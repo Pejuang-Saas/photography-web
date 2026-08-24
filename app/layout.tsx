@@ -16,6 +16,15 @@ export const metadata: Metadata = {
   title: "Kayastory | Graduation Photography Semarang",
   description:
     "Abadikan momen wisudamu bersama Kayastory. Katalog, reservasi, dan pilih fotomu di satu tempat.",
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({
