@@ -63,8 +63,12 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
 * **Perilaku**: Daftar paket di Landing Page tidak boleh di-hardcode lagi. Bagian ini harus membaca langsung data dari `kaya_packages`.
 * **Reaksi**: Jika ada paket yang statusnya dinonaktifkan atau diubah harganya oleh admin, tampilan di landing page seketika mengikuti perubahan tersebut.
 
-#### Aksi 2: Pelanggan Menyelesaikan Checkout Booking
-* **Perilaku**: Setelah mengisi formulir dan menyelesaikan pembayaran (simulasi gateway atau upload bukti transfer manual), modal sukses menampilkan kode booking unik.
+#### Aksi 2: Pelanggan Menyelesaikan Checkout Booking (4 Langkah Anti-Scam)
+* **Alur Checkout Pelanggan**:
+  1. **Langkah 1 (Data & Jadwal)**: Input data diri pemesan dan slot tanggal/jam.
+  2. **Langkah 2 (Preview Order & Anti-Scam)**: Tinjauan slip resmi rincian booking, pilihan DP 50% vs Lunas, disertai kartu keaslian studio (alamat fisik Semarang, link IG resmi, dan garansi bebas reschedule).
+  3. **Langkah 3 (Pembayaran)**: Simulasi Payment Gateway ATAU instruksi transfer BCA & upload bukti struk dengan pratinjau foto.
+  4. **Langkah 4 (Sukses & WhatsApp CS)**: Layar sukses dengan kode booking unik serta tombol hijau konfirmasi langsung ke WhatsApp CS studio 1-klik.
 * **Efek Berantai di Sisi Admin**:
   - Entitas `kaya_bookings` menerima 1 data booking baru di urutan teratas.
   - Entitas `kaya_notifications` menerima 1 notifikasi baru (contoh: *"Reservasi Baru dari [Nama Pelanggan] - Paket [Nama Paket]"*).

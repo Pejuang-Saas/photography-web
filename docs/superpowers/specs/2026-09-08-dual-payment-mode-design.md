@@ -60,10 +60,10 @@ Komponen **harus menjadi komponen lokal** jika:
 * **Di Folder Pengunjung (`app/components/booking/`)**:
   - `BookingMultiStepModal`: Kontainer modal pemesanan di landing page.
   - `StepCustomerSchedule`: Tampilan langkah 1 (input data diri dan jadwal sesi).
-  - `StepPaymentOption`: Tampilan langkah 2 (ringkasan dan pilihan DP 50% vs Lunas).
+  - `StepOrderPreview`: Tampilan langkah 2 (Preview Order Booking resmi, pilihan DP 50% vs Lunas, serta kartu sinyal anti-scam: alamat fisik studio Semarang, link IG resmi, dan garansi reschedule).
   - `StepGatewayPayment`: Tampilan langkah 3A (simulasi popup payment gateway).
-  - `StepManualPayment`: Tampilan langkah 3B (informasi rekening studio dan form upload bukti).
-  - `StepBookingSuccess`: Tampilan langkah 4 (layar sukses dan kode booking).
+  - `StepManualPayment`: Tampilan langkah 3B (informasi rekening BCA studio, salin nomor rekening, dan form upload bukti struk).
+  - `StepBookingSuccess`: Tampilan langkah 4 (layar sukses, kode booking resmi, dan tombol konfirmasi langsung ke WhatsApp CS 1-klik).
 
 ---
 
@@ -184,13 +184,23 @@ Pada setiap kartu paket di landing page (`PackageCard`), tombol *"Pilih Paket"* 
 
 ---
 
-#### **Langkah 2: Ringkasan Paket & Skema Pembayaran**
-* **Elemen yang Harus Ada**:
-  - Kartu ringkasan yang memuat nama paket, total harga, tanggal, dan jam sesi yang tadi dipilih.
-  - **Pilihan Skema Pembayaran**:
-    - Opsi A: **Bayar DP 50%** — Menampilkan nominal separuh harga dengan catatan bahwa sisa pembayaran dilunasi di studio saat hari-H pemotretan.
-    - Opsi B: **Bayar Lunas 100%** — Membayar total harga paket secara penuh di awal.
-* **Perilaku**: Pengunjung memilih salah satu, lalu menekan tombol *"Lanjut Bayar"*.
+#### **Langkah 2: Preview Order Booking & Sinyal Kepercayaan (Anti-Scam)**
+Langkah ini dirancang khusus agar customer merasa aman dan percaya bahwa studio ini resmi dan kredibel sebelum melakukan transaksi:
+* **Tampilan Slip Ringkasan Pesanan**:
+  - Nama paket yang dipilih beserta daftar fasilitasnya.
+  - Tanggal dan slot jam sesi pemotretan yang terkunci.
+  - Data diri pemesan (Nama dan Nomor WhatsApp).
+* **Pilihan Skema Pembayaran**:
+  - Opsi A: **Bayar DP 50%** — Menampilkan nominal uang muka dengan catatan sisa pelunasan dibayar di studio pada hari-H pemotretan.
+  - Opsi B: **Bayar Lunas 100%** — Membayar penuh total biaya paket di awal.
+* **Elemen Penguat Kepercayaan (Anti-Scam Signals Tanpa QRIS)**:
+  - 🏠 **Alamat Fisik Studio**: Menampilkan lokasi fisik studio: *"Studio Kayastory: Jl. Tirto Agung No. 12, Tembalang, Semarang (dapat dikunjungi langsung)"*.
+  - 📸 **Instagram Resmi**: Tautan profil Instagram resmi `@kayastory.id` agar pelanggan dapat memeriksa portofolio foto klien asli.
+  - 🛡️ **Badge Jaminan Studio**:
+    - *"100% Garansi Slot Jadwal Terkunci"*.
+    - *"Bebas Reschedule / Ganti Jadwal (maksimal H-3 sesi)"*.
+    - *"Garansi Uang Kembali jika sesi dibatalkan oleh pihak studio"*.
+* **Perilaku**: Pelanggan meninjau seluruh data dengan tenang, lalu menekan tombol *"Lanjut ke Pembayaran ->"*.
 
 ---
 
@@ -199,30 +209,36 @@ Sistem memeriksa mode pembayaran apa yang saat itu sedang aktif di pengaturan ad
 
 ##### **Jika Mode 1 (Payment Gateway) yang Aktif**:
 * Tampilkan dialog simulasi antarmuka Payment Gateway (mirip pop-up Midtrans Snap atau invoice Xendit).
-* Tampilkan ringkasan nominal dan pilihan mock metode (QRIS, Virtual Account BCA/Mandiri, Kartu Kredit).
+* Tampilkan ringkasan nominal dan pilihan mock metode (Virtual Account BCA/Mandiri, Kartu Kredit).
 * **Kebutuhan Khusus Pengujian Frontend**:
   - Sediakan tombol hijau **[Simulasikan Bayar Berhasil]**: Begitu diklik, sistem langsung mencatat booking ke local storage dengan status `CONFIRMED` dan pembayaran otomatis lunas/DP, lalu langsung melangkah ke Langkah 4 (Sukses).
   - Sediakan tombol merah **[Simulasikan Gagal / Batal]**: Memberikan pesan kesalahan simulasi dan memberi kesempatan untuk mencoba bayar lagi.
 
 ##### **Jika Mode 2 (Transfer Manual) yang Aktif**:
-* Tampilkan daftar rekening studio yang sedang aktif (Nama Bank, Nomor Rekening, Atas Nama, dan tombol *"Salin Nomor Rekening"*).
-* Tampilkan nominal transfer yang harus dibayar.
+* **Kartu Rekening Bank Studio**:
+  - Bank BCA: `8030-8819-20` atas nama **Bima Satria (Studio Owner & Lead Photographer)**.
+  - Tombol praktis: **"Salin Nomor Rekening"** (dengan animasi toast feedback saat nomor berhasil disalin).
+* Menampilkan nominal pasti yang wajib ditransfer (DP 50% atau Lunas).
 * **Formulir Konfirmasi Bukti**:
-  - Input teks: Nama Pemilik Rekening Pengirim (nama yang tertera di rekening customer).
-  - Input file: Unggah Bukti Struk Transfer (format foto gambar).
-  - **Area Preview Gambar**: Begitu file dipilih, foto struk langsung tampil di dalam modal agar customer yakin foto yang diunggah benar.
-* **Perilaku**: Saat tombol *"Kirim Bukti Pembayaran"* diklik, booking disimpan ke local storage dengan status `PENDING_VERIFICATION` dan pembayaran `WAITING_CONFIRMATION`, lalu lanjut ke Langkah 4.
+  - Input teks: `Nama Pemilik Rekening Pengirim` (nama yang tertera di mutasi bank customer).
+  - Input file: `Unggah Bukti Struk Transfer` (menerima file foto .jpg, .png, .webp).
+  - **Area Preview Gambar**: Begitu file dipilih, foto struk langsung tampil di layar agar customer yakin bukti yang diunggah sudah benar.
+* **Perilaku**: Saat tombol *"Kirim Bukti Pembayaran"* diklik, booking disimpan ke local storage dengan status `PENDING_VERIFICATION` dan pembayaran `WAITING_CONFIRMATION`, lalu melangkah ke Langkah 4.
 
 ---
 
-#### **Langkah 4: Layar Sukses & Konfirmasi Booking**
+#### **Langkah 4: Layar Sukses & Konfirmasi WhatsApp CS 1-Klik**
 * **Elemen yang Harus Ada**:
-  - Animasi atau ikon centang sukses.
-  - Nomor referensi booking unik yang di-generate otomatis (contoh: `#KYA-2026-904`).
+  - Animasi centang sukses dan **Nomor Kode Booking Resmi** (contoh: `#KYA-2026-904`).
   - **Pesan Status Berbeda Sesuai Metode**:
     - *Jika via Gateway*: Tampilkan pesan sukses bahwa jadwal sesi foto sudah resmi terkonfirmasi otomatis, disertai tombol melihat invoice dan link WhatsApp studio.
-    - *Jika via Manual*: Tampilkan pesan bahwa bukti transfer telah diterima dan sedang menunggu verifikasi admin studio dalam 1x24 jam, disertai tombol konfirmasi langsung ke WA admin.
-  - Tombol untuk menutup modal dan kembali ke beranda.
+    - *Jika via Manual*: Tampilkan pesan bahwa bukti transfer telah diterima dan sedang menunggu verifikasi admin studio dalam 1x24 jam.
+* **Tombol Aksi Utama (Penghilang Ragu Customer)**:
+  - **Tombol Hijau "Konfirmasi Cepat ke WhatsApp CS Studio"**:
+    - Langsung membuka chat WhatsApp resmi studio dengan pesan template otomatis yang sudah memuat:
+      > *"Halo Admin Kayastory! Saya sudah transfer untuk Booking #[KODE_BOOKING] a.n. [NAMA_CUSTOMER] sebesar [NOMINAL]. Mohon bantu verifikasinya ya kak, ini bukti transfernya. Terima kasih! 📸"*
+    - Memberikan rasa aman maksimal karena customer langsung terhubung dengan admin manusia secara personal.
+  - Tombol sekunder: *"Tutup dan Kembali ke Beranda"*.
 
 ---
 
