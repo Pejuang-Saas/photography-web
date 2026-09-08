@@ -1,0 +1,29 @@
+services:
+  web:
+    build:
+      context: .
+      target: dev
+    container_name: photography-web-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount direktori project agar perubahan kode langsung terbaca (hot-reload)
+      - .:/app
+      # Anonymous volume agar node_modules & .next di dalam container tidak tertimpa oleh host
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # Memastikan file watching mendeteksi perubahan di macOS / Docker Desktop
+      - WATCHPACK_POLLING=true
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    stdin_open: true
+    tty: true
+    command: npm run dev -- -H 0.0.0.0

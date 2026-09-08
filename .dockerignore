@@ -1,0 +1,12 @@
+Dockerfile*
+docker-compose*
+.dockerignore
+node_modules
+.next
+.git
+.gitignore
+.agents
+.vscode
+.idea
+*.log
+.env*.local
