@@ -22,6 +22,7 @@ Setiap aksi yang dilakukan pengguna harus memiliki **efek berantai (*reactive up
 ### 1.3 Keterhubungan Antar Dokumen Spesifikasi
 Dokumen ini merupakan arsitektur induk (*Master Data Layer Spec*) yang menjadi pondasi bagi spesifikasi fitur lainnya di aplikasi Kaya Story:
 * 📄 **Spesifikasi Subsistem Pembayaran**: [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md) — Rincian detail konfigurasi Gateway (Midtrans/Xendit), manajemen rekening manual, upload & verifikasi bukti transfer, serta modal booking multi-step di sisi pengunjung.
+* 📄 **Spesifikasi Subsistem WAHA & Mini CRM**: [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md) — Integrasi engine WhatsApp HTTP API (WAHA), pembacaan data chat dari sesi aktif, sistem kategori chat dinamis, serta proteksi anti-ban (24-Hour Messaging Window).
 
 ---
 
@@ -52,6 +53,9 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
 | `kaya_notifications` | **Pusat Notifikasi Admin** | Daftar pemberitahuan masuk (misal: booking baru dari customer, bukti bayar diunggah, dll.) beserta status sudah dibaca atau belum. |
 | `kaya_calendar_blocks` | **Jadwal Libur Studio** | Daftar tanggal atau rentang waktu di mana studio tutup/libur (blackout dates) sehingga customer tidak bisa memesan di hari tersebut. |
 | `kaya_payment_settings` | **Pengaturan Pembayaran** | Pilihan mode aktif (Payment Gateway vs Transfer Manual), kunci API Midtrans/Xendit, dan daftar rekening bank studio. *(Detail konfigurasi form di [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md))* |
+| `kaya_waha_session` | **Status Sesi Engine WAHA** | Menyimpan status koneksi WhatsApp studio (terputus, memindai QR, terhubung), nomor aktif studio, dan timestamp sesi. *(Detail di [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md))* |
+| `kaya_crm_chats` | **Riwayat Obrolan Mini CRM** | Menyimpan riwayat pesan masuk dan keluar yang dibaca dari sesi aktif, penanda waktu, status pengiriman, serta countdown timer 24-Hour Messaging Window. |
+| `kaya_crm_categories` | **Kategori Obrolan Kustom** | Daftar label/kategori percakapan klien yang dapat dibuat dan diatur warnanya oleh admin (misal: Tanya Paket, Booking DP, Lunas, Selesai). |
 
 ---
 
@@ -201,6 +205,17 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
    - Mengklik salah satu notifikasi akan menandai notifikasi tersebut telah dibaca dan langsung mengarahkan/membuka modal detail booking yang bersangkutan.
 3. **Tombol "Tandai Semua Telah Dibaca"**:
    - Mengubah seluruh status notifikasi menjadi sudah dibaca dan menghilangkan angka merah badge.
+
+---
+
+### 4.9 Halaman Mini CRM WhatsApp (`/admin/crm`)
+* **Pusat Percakapan & Hub Kontak**: Membaca riwayat pesan obrolan dari sesi aktif WhatsApp studio yang tersimpan di `kaya_crm_chats`.
+* **Pengelompokan Kategori Dinamis**: Admin dapat menandai kontak dengan label/kategori kustom (Tanya Paket, Booking DP, Lunas, Selesai) dan memfilter daftar obrolan berdasarkan kategori tersebut (`kaya_crm_categories`).
+* **Proteksi Anti-Ban (24-Hour Messaging Window)**:
+  - **Jendela Aktif (<24 jam)**: Input pengetikan pesan teks bebas terbuka normal.
+  - **Jendela Kedaluwarsa (>24 jam)**: Input pengetikan pesan bebas dikunci otomatis demi mencegah nomor dilaporkan sebagai spam, dan admin hanya dapat mengirimkan **Template Pesan Resmi Studio**.
+* **Akses Cepat dari Detail Booking**: Pada modal detail reservasi (`BookingDetailModal`), terdapat tombol sorotan *"Buka Obrolan WhatsApp CRM"* yang seketika mengarahkan admin ke ruang obrolan pelanggan tersebut di halaman CRM.
+*(Rincian lengkap arsitektur ini tertera pada [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md))*.
 
 ---
 
