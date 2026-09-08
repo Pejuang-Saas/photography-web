@@ -14,12 +14,14 @@ Fokus dokumen ini adalah memberikan gambaran **kebutuhan fitur, aturan keamanan 
 * **Pengelompokan Percakapan dengan Kategori Kustom**: Admin dapat membuat, mengedit warna, dan menetapkan kategori/label pada setiap percakapan klien (misal: *Prospek Baru*, *Tanya Paket*, *Booking DP*, *Lunas*, *Selesai*).
 * **Proteksi Anti-Ban (24-Hour Messaging Window)**: Mengatur aturan keamanan pengiriman pesan untuk mencegah nomor WhatsApp studio diblokir atau dilaporkan sebagai spam oleh pelanggan.
 
-### 1.2 Keterhubungan dengan Master Data Layer
-Spesifikasi ini merupakan subsistem yang terhubung langsung dengan:
-📄 **Spesifikasi Induk**: [`2026-09-08-unified-mock-data-layer-design.md`](./2026-09-08-unified-mock-data-layer-design.md)
+### 1.2 Keterhubungan dengan Master Data Layer & Spesifikasi Terkait
+Spesifikasi ini terhubung langsung dengan:
+* 📄 **Spesifikasi Induk**: [`2026-09-08-unified-mock-data-layer-design.md`](./2026-09-08-unified-mock-data-layer-design.md)
+* 📄 **Spesifikasi Template Builder**: [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md) — Menjadi sumber **Template Resmi** yang dipilih saat jendela 24 jam pelanggan kedaluwarsa.
 * **Entitas Sesi WAHA (`kaya_waha_session`)**: Menyimpan status koneksi nomor WhatsApp studio.
 * **Entitas Chat CRM (`kaya_crm_chats`)**: Menyimpan riwayat obrolan pelanggan beserta timer 24 jam.
 * **Entitas Kategori CRM (`kaya_crm_categories`)**: Menyimpan daftar label/kategori kustom yang dibuat oleh admin.
+* **Entitas Template Pesan (`kaya_message_templates`)**: Menyediakan teks template dinamis yang dirancang di Template Builder.
 
 ---
 

@@ -23,6 +23,7 @@ Setiap aksi yang dilakukan pengguna harus memiliki **efek berantai (*reactive up
 Dokumen ini merupakan arsitektur induk (*Master Data Layer Spec*) yang menjadi pondasi bagi spesifikasi fitur lainnya di aplikasi Kaya Story:
 * 📄 **Spesifikasi Subsistem Pembayaran**: [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md) — Rincian detail konfigurasi Gateway (Midtrans/Xendit), manajemen rekening manual, upload & verifikasi bukti transfer, serta modal booking multi-step di sisi pengunjung.
 * 📄 **Spesifikasi Subsistem WAHA & Mini CRM**: [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md) — Integrasi engine WhatsApp HTTP API (WAHA), pembacaan data chat dari sesi aktif, sistem kategori chat dinamis, serta proteksi anti-ban (24-Hour Messaging Window).
+* 📄 **Spesifikasi Template Builder WhatsApp**: [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md) — Antarmuka visual penyusunan template pesan WhatsApp, tombol tag variabel dinamis, live smartphone simulator, dan checker kesehatan anti-spam.
 
 ---
 
@@ -56,6 +57,7 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
 | `kaya_waha_session` | **Status Sesi Engine WAHA** | Menyimpan status koneksi WhatsApp studio (terputus, memindai QR, terhubung), nomor aktif studio, dan timestamp sesi. *(Detail di [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md))* |
 | `kaya_crm_chats` | **Riwayat Obrolan Mini CRM** | Menyimpan riwayat pesan masuk dan keluar yang dibaca dari sesi aktif, penanda waktu, status pengiriman, serta countdown timer 24-Hour Messaging Window. |
 | `kaya_crm_categories` | **Kategori Obrolan Kustom** | Daftar label/kategori percakapan klien yang dapat dibuat dan diatur warnanya oleh admin (misal: Tanya Paket, Booking DP, Lunas, Selesai). |
+| `kaya_message_templates` | **Template Pesan WhatsApp** | Koleksi template pesan kustom yang dibuat admin di Template Builder (variabel dinamis, kategori pesan, teks template, dan simulator WhatsApp). *(Detail di [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md))* |
 
 ---
 
@@ -177,17 +179,20 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
 | :---: | :--- | :--- | :---: | :--- |
 | **1** | `profil-studio` | **Profil & Lokasi Studio** | 🏢 `Building2` | Nama studio, alamat fisik di Semarang, nomor telepon WhatsApp, link akun Instagram, dan jam operasional harian. Tersimpan di `kaya_studio_profile` dan otomatis mengupdate teks di footer Landing Page. |
 | **2** | `metode-pembayaran` | **Metode Pembayaran** | 💳 `CreditCard` | Pengaturan **Dual Mode (Opsi 1: Payment Gateway vs Opsi 2: Transfer Manual)**, konfigurasi Midtrans/Xendit, dan manajemen daftar rekening bank studio. *(Rincian lengkap pada [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md))*. |
-| **3** | `whatsapp-baileys` | **Otomasi WhatsApp Baileys** | 💬 `MessageSquare` | Status koneksi WhatsApp QR Code (Baileys), editor template pesan dinamis (New Booking, Payment Verified, Reminder H-1, Photo Delivery), dan tombol uji coba kirim pesan test. |
-| **4** | `email-smtp` | **Notifikasi Email SMTP** | 📧 `Mail` | Pengaturan server SMTP (Host, Port, Username, Password, Pengirim) untuk pengiriman invoice dan cadangan notifikasi cadangan, beserta form uji kirim email. |
-| **5** | `pemeliharaan-data` | **Pemeliharaan & Simulator Data** | 🛠️ `Sliders` | Tampilan status sistem, monitoring ukuran data di `localStorage`, status environment (`development` vs `production`), dan tombol **"Reset Mock Data ke Awal"** (hanya aktif pada mode development). |
+| **3** | `whatsapp-waha` | **Koneksi Engine WAHA** | 💬 `MessageSquare` | Status koneksi WhatsApp QR Code (WAHA tanpa input Base URL/Key di frontend), info nomor terhubung, tombol refresh status, dan putus sesi. *(Detail di [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md))*. |
+| **4** | `whatsapp-templates` | **Template WhatsApp Builder** | 📝 `Sparkles` | **Visual Template Builder WhatsApp** dengan simulator smartphone live, bilah tag variabel dinamis, analisis anti-spam, dan form uji coba kirim pesan test. *(Detail di [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md))*. |
+| **5** | `email-smtp` | **Notifikasi Email SMTP** | 📧 `Mail` | Pengaturan server SMTP (Host, Port, Username, Password, Pengirim) untuk pengiriman invoice dan cadangan notifikasi cadangan, beserta form uji kirim email. |
+| **6** | `pemeliharaan-data` | **Pemeliharaan & Simulator Data** | 🛠️ `Sliders` | Tampilan status sistem, monitoring ukuran data di `localStorage`, status environment (`development` vs `production`), dan tombol **"Reset Mock Data ke Awal"** (hanya aktif pada mode development). |
 
 #### Rincian Aksi per Sub-Menu:
 * **Pada Sub-Menu `profil-studio`**:
   - Formulir informasi dasar studio. Saat disimpan, teks nama studio dan alamat di seluruh website ikut ter-update.
 * **Pada Sub-Menu `metode-pembayaran`**:
   - Pengaturan mode pembayaran eksklusif (jika Gateway aktif, Manual non-aktif, dan sebaliknya).
-* **Pada Sub-Menu `whatsapp-baileys`**:
-  - Admin dapat mengubah template ucapan terima kasih atau tagihan. Template ini yang akan dipakai saat pesan WhatsApp dikirimkan.
+* **Pada Sub-Menu `whatsapp-waha`**:
+  - Pindai QR code dan pantau kesehatan koneksi WAHA.
+* **Pada Sub-Menu `whatsapp-templates`**:
+  - Merancang kalimat template pesan dengan tombol tag variabel dinamis dan live preview di smartphone simulator.
 * **Pada Sub-Menu `pemeliharaan-data` (Fitur Khusus Reset Data)**:
   - **Aturan Lingkungan**: Tombol warna merah *"Reset ke Data Awal Pabrik"* **hanya dirender jika `process.env.NODE_ENV === 'development'`**.
   - Jika diklik, memunculkan modal konfirmasi untuk membersihkan seluruh data booking, paket, dan pengaturan di `localStorage`, lalu memulihkan data default awal pabrik.
