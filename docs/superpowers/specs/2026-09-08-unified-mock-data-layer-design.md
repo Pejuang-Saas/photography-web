@@ -161,21 +161,32 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
 
 ---
 
-### 4.7 Halaman Pengaturan Studio (`/admin/settings`)
+### 4.7 Halaman Pengaturan Studio: Struktur Menu & Sub-Menu (`/admin/settings`)
 
-#### Aksi 1: Perbarui Profil Studio
-* Mengubah Nama Studio, Alamat Studio Semarang, No. Telepon, dan Jam Operasional.
-* Saat tombol *"Simpan Profil"* diklik, entitas `kaya_studio_profile` diperbarui, dan teks informasi di footer Landing Page ikut menyesuaikan.
+> 🌟 **HIGHLIGHT ARSITEKTUR SETTINGS**: Halaman pengaturan tidak boleh dijadikan satu halaman panjang (*single long page*) yang membingungkan. Pengaturan wajib dipecah ke dalam **Struktur Menu & Sub-Menu Navigasi (Tata Letak 2 Kolom)**:
+> * **Kolom Kiri**: Sidebar Navigasi Vertikal untuk memilih Sub-Menu Pengaturan.
+> * **Kolom Kanan**: Panel Konten Dinamis yang menampilkan formulir sesuai sub-menu yang dipilih.
 
-#### Aksi 2: Pengaturan Metode Pembayaran
-* Mengatur Dual Mode (Gateway vs Manual) sesuai rincian lengkap pada dokumen: 📄 [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md). Termasuk aturan form eksklusif Midtrans/Xendit dan pengelola rekening manual.
+#### Daftar Struktur Sub-Menu Pengaturan:
 
-#### Aksi 3: Tombol "Reset Mock Data ke Awal" (Khusus Mode Development)
-* **Aturan Visibilitas**: Hanya dirender jika lingkungan aplikasi berada pada mode development (`process.env.NODE_ENV === 'development'`).
-* **Perilaku Saat Diklik**:
-  1. Menampilkan dialog konfirmasi: *"Apakah Anda yakin ingin mengembalikan semua data ke kondisi awal pabrik? Seluruh transaksi dan paket yang Anda buat akan di-reset."*
-  2. Jika disetujui, seluruh key `localStorage` terkait studio dibersihkan dan diisi ulang dengan data mock default bawaan.
-  3. Menampilkan toast sukses dan me-refresh halaman otomatis.
+| No | Sub-Menu ID | Judul Sub-Menu | Ikon | Isi Pengaturan & Logika Mock |
+| :---: | :--- | :--- | :---: | :--- |
+| **1** | `profil-studio` | **Profil & Lokasi Studio** | 🏢 `Building2` | Nama studio, alamat fisik di Semarang, nomor telepon WhatsApp, link akun Instagram, dan jam operasional harian. Tersimpan di `kaya_studio_profile` dan otomatis mengupdate teks di footer Landing Page. |
+| **2** | `metode-pembayaran` | **Metode Pembayaran** | 💳 `CreditCard` | Pengaturan **Dual Mode (Opsi 1: Payment Gateway vs Opsi 2: Transfer Manual)**, konfigurasi Midtrans/Xendit, dan manajemen daftar rekening bank studio. *(Rincian lengkap pada [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md))*. |
+| **3** | `whatsapp-baileys` | **Otomasi WhatsApp Baileys** | 💬 `MessageSquare` | Status koneksi WhatsApp QR Code (Baileys), editor template pesan dinamis (New Booking, Payment Verified, Reminder H-1, Photo Delivery), dan tombol uji coba kirim pesan test. |
+| **4** | `email-smtp` | **Notifikasi Email SMTP** | 📧 `Mail` | Pengaturan server SMTP (Host, Port, Username, Password, Pengirim) untuk pengiriman invoice dan cadangan notifikasi cadangan, beserta form uji kirim email. |
+| **5** | `pemeliharaan-data` | **Pemeliharaan & Simulator Data** | 🛠️ `Sliders` | Tampilan status sistem, monitoring ukuran data di `localStorage`, status environment (`development` vs `production`), dan tombol **"Reset Mock Data ke Awal"** (hanya aktif pada mode development). |
+
+#### Rincian Aksi per Sub-Menu:
+* **Pada Sub-Menu `profil-studio`**:
+  - Formulir informasi dasar studio. Saat disimpan, teks nama studio dan alamat di seluruh website ikut ter-update.
+* **Pada Sub-Menu `metode-pembayaran`**:
+  - Pengaturan mode pembayaran eksklusif (jika Gateway aktif, Manual non-aktif, dan sebaliknya).
+* **Pada Sub-Menu `whatsapp-baileys`**:
+  - Admin dapat mengubah template ucapan terima kasih atau tagihan. Template ini yang akan dipakai saat pesan WhatsApp dikirimkan.
+* **Pada Sub-Menu `pemeliharaan-data` (Fitur Khusus Reset Data)**:
+  - **Aturan Lingkungan**: Tombol warna merah *"Reset ke Data Awal Pabrik"* **hanya dirender jika `process.env.NODE_ENV === 'development'`**.
+  - Jika diklik, memunculkan modal konfirmasi untuk membersihkan seluruh data booking, paket, dan pengaturan di `localStorage`, lalu memulihkan data default awal pabrik.
 
 ---
 

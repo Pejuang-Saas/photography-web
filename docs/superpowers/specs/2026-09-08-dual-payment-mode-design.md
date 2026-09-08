@@ -108,7 +108,9 @@ Disimpan dengan key `kaya_bookings`, terhubung dengan daftar booking di admin:
 
 ## 4. Spesifikasi Halaman Admin (`/admin/settings` & `/admin/bookings`)
 
-### 4.1 Pengaturan Metode Pembayaran (`/admin/settings`)
+### 4.1 Pengaturan Metode Pembayaran: Sub-Menu `metode-pembayaran` (`/admin/settings`)
+
+> 🌟 **HIGHLIGHT PENEMPATAN SUB-MENU**: Seluruh formulir pengaturan pembayaran di bawah ini ditempatkan secara khusus pada **Menu Settings -> Sub-Menu "Metode Pembayaran"** (pada layout navigasi 2 kolom halaman pengaturan). Hal ini memastikan halaman tidak bercampur baur dengan pengaturan profil studio atau WhatsApp.
 
 #### Perilaku Antarmuka (UI Behavior):
 1. **Pilihan Mode Utama (Switcher / Radio Eksklusif)**:
