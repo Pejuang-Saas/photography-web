@@ -12,6 +12,7 @@ Website resmi studio foto wisuda dan potret analog **Kaya Story Photography (Sem
   - [A. Mode Development (Hot-Reload)](#a-mode-development-hot-reload)
   - [B. Mode Production (Build Optimal)](#b-mode-production-build-optimal)
 - [Dokumentasi Spesifikasi Teknis (Specs)](#-dokumentasi-spesifikasi-teknis-specs)
+- [Panduan Kontribusi (Contributing)](#-panduan-kontribusi-contributing)
 - [Troubleshooting & Kendala Umum](#-troubleshooting--kendala-umum)
 
 ---
@@ -169,6 +170,19 @@ Aplikasi ini dirancang menggunakan standar spesifikasi teknis modular. Seluruh d
 
 5. 📄 [`docs/superpowers/specs/2026-09-08-email-smtp-and-template-builder-design.md`](./docs/superpowers/specs/2026-09-08-email-smtp-and-template-builder-design.md)  
    **Modul Email SMTP & Builder**: Pengaturan koneksi server SMTP, pengiriman otomatis invoice digital ke email pelanggan, dan builder email responsif (Desktop & Mobile).
+
+---
+
+## 🤝 Panduan Kontribusi (Contributing)
+
+Kami menyambut kontribusi dari seluruh anggota tim developer! Sebelum mulai membuat branch atau menulis kode:
+* Baca panduan lengkap di 📄 [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+* **Ringkasan 5 Aturan Emas**:
+  1. **Wajib Baca Dokumen Spesifikasi** di `docs/superpowers/specs/` sebelum menulis kode.
+  2. **Dilarang Commit Langsung ke `main`** — Buat branch fitur (`feat/...`, `fix/...`, dll.).
+  3. **Patuhi Pemisahan Komponen Global vs Lokal** (`@/components/ui/` vs folder lokal fitur).
+  4. **Gunakan Format Conventional Commits** (`feat:`, `fix:`, `docs:`, dll.).
+  5. **Wajib Lolos Build Docker Compose (`docker compose -f docker-compose.prod.yml build`)** sebelum mengajukan Pull Request (PR).
 
 ---
 
