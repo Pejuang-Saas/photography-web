@@ -19,12 +19,18 @@ Setiap aksi yang dilakukan pengguna harus memiliki **efek berantai (*reactive up
 * Tombol **"Reset ke Data Awal Pabrik"** disediakan di menu Admin Settings untuk mengembalikan seluruh data ke kondisi awal saat demonstrasi atau pengujian.
 * **Syarat Khusus**: Tombol ini **hanya boleh tampil pada mode pengembangan (`development`)**. Jika aplikasi dijalankan di mode produksi (`production`), tombol reset ini wajib disembunyikan agar tidak disalahgunakan oleh pengguna umum.
 
-### 1.3 Keterhubungan Antar Dokumen Spesifikasi
-Dokumen ini merupakan arsitektur induk (*Master Data Layer Spec*) yang menjadi pondasi bagi spesifikasi fitur lainnya di aplikasi Kaya Story:
-* 📄 **Spesifikasi Subsistem Pembayaran**: [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md) — Rincian detail konfigurasi Gateway (Midtrans/Xendit), manajemen rekening manual, upload & verifikasi bukti transfer, serta modal booking multi-step di sisi pengunjung.
-* 📄 **Spesifikasi Subsistem WAHA & Mini CRM**: [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md) — Integrasi engine WhatsApp HTTP API (WAHA), pembacaan data chat dari sesi aktif, sistem kategori chat dinamis, serta proteksi anti-ban (24-Hour Messaging Window).
-* 📄 **Spesifikasi Template Builder WhatsApp**: [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md) — Antarmuka visual penyusunan template pesan WhatsApp, tombol tag variabel dinamis, live smartphone simulator, dan checker kesehatan anti-spam.
-* 📄 **Spesifikasi Email SMTP & Template Builder**: [`2026-09-08-email-smtp-and-template-builder-design.md`](./2026-09-08-email-smtp-and-template-builder-design.md) — Konfigurasi server SMTP, pengiriman otomatis invoice resmi ke email customer, serta Email Template Builder modular dengan live responsive preview (Desktop & Mobile).
+### 1.3 Highlight Peta Relasi & Keterhubungan Dokumen Spesifikasi
+
+> 🔗 **HIGHLIGHT INTEGRASI 5 DOKUMEN SPESIFIKASI**:
+> Arsitektur website Kaya Story dirancang secara modular dan terdiri dari **5 dokumen spesifikasi yang saling bertukar data dan peristiwa (events)**. Dokumen ini bertindak sebagai **Dokumen Induk (Master Data Layer)**.
+
+| Dokumen Spesifikasi | Peran Utama dalam Sistem | Relasi & Aliran Data dengan Dokumen Ini |
+| :--- | :--- | :--- |
+| **1. Master Data Layer** *(Dokumen Ini)* | Pondasi arsitektur data lokal (`localStorage`), event listener antar tab, dan navigasi 2 kolom settings. | Menyediakan dan menyinkronkan seluruh entitas master (`kaya_bookings`, `kaya_payment_settings`, `kaya_crm_chats`, `kaya_message_templates`, `kaya_email_templates`). |
+| **2.** 📄 [`Dual Payment & Anti-Scam`](./2026-09-08-dual-payment-mode-design.md) | Mode Gateway vs Manual, alur checkout 4 langkah, preview order anti-scam, dan verifikasi struk transfer. | Menyimpan data ke `kaya_bookings` & `kaya_payment_settings`, serta memicu terbitnya invoice resmi ke `kaya_invoices`. |
+| **3.** 📄 [`WAHA & Mini CRM`](./2026-09-08-waha-mini-crm-design.md) | Koneksi QR WAHA, CRM chat, proteksi anti-ban jendela 24 jam, dan kategori obrolan dinamis. | Membaca kontak klien dari `kaya_bookings`, mencatat chat ke `kaya_crm_chats`, dan mengambil template resmi dari `kaya_message_templates`. |
+| **4.** 📄 [`WhatsApp Template Builder`](./2026-09-08-whatsapp-template-builder-design.md) | Penyusun template pesan WhatsApp visual dengan live simulator smartphone WhatsApp. | Menyimpan template ke `kaya_message_templates` yang dipakai otomatis saat booking terkonfirmasi dan saat jendela 24 jam CRM terkunci. |
+| **5.** 📄 [`Email SMTP & Template Builder`](./2026-09-08-email-smtp-and-template-builder-design.md) | Server SMTP, pengiriman invoice PDF otomatis, dan visual email template builder responsif. | Otomatis terpicu saat status di `kaya_bookings` diverifikasi admin untuk mengirimkan email invoice resmi ke customer. |
 
 ---
 

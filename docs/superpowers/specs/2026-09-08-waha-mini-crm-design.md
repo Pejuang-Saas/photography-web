@@ -14,14 +14,18 @@ Fokus dokumen ini adalah memberikan gambaran **kebutuhan fitur, aturan keamanan 
 * **Pengelompokan Percakapan dengan Kategori Kustom**: Admin dapat membuat, mengedit warna, dan menetapkan kategori/label pada setiap percakapan klien (misal: *Prospek Baru*, *Tanya Paket*, *Booking DP*, *Lunas*, *Selesai*).
 * **Proteksi Anti-Ban (24-Hour Messaging Window)**: Mengatur aturan keamanan pengiriman pesan untuk mencegah nomor WhatsApp studio diblokir atau dilaporkan sebagai spam oleh pelanggan.
 
-### 1.2 Keterhubungan dengan Master Data Layer & Spesifikasi Terkait
-Spesifikasi ini terhubung langsung dengan:
-* 📄 **Spesifikasi Induk**: [`2026-09-08-unified-mock-data-layer-design.md`](./2026-09-08-unified-mock-data-layer-design.md)
-* 📄 **Spesifikasi Template Builder**: [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md) — Menjadi sumber **Template Resmi** yang dipilih saat jendela 24 jam pelanggan kedaluwarsa.
-* **Entitas Sesi WAHA (`kaya_waha_session`)**: Menyimpan status koneksi nomor WhatsApp studio.
-* **Entitas Chat CRM (`kaya_crm_chats`)**: Menyimpan riwayat obrolan pelanggan beserta timer 24 jam.
-* **Entitas Kategori CRM (`kaya_crm_categories`)**: Menyimpan daftar label/kategori kustom yang dibuat oleh admin.
-* **Entitas Template Pesan (`kaya_message_templates`)**: Menyediakan teks template dinamis yang dirancang di Template Builder.
+### 1.2 Highlight Peta Relasi & Keterhubungan Dokumen Spesifikasi
+
+> 🔗 **HIGHLIGHT INTEGRASI 5 DOKUMEN SPESIFIKASI**:
+> Fitur WAHA & Mini CRM ini berinteraksi langsung dengan **4 dokumen spesifikasi lainnya** dalam arsitektur website Kaya Story:
+
+| Dokumen Terkait | Hubungan & Aliran Data dengan Fitur WAHA & Mini CRM Ini |
+| :--- | :--- |
+| **1.** 📄 [`Master Data Layer`](./2026-09-08-unified-mock-data-layer-design.md) *(Dokumen Induk)* | Mengelola persistensi `kaya_crm_chats`, `kaya_waha_session`, dan `kaya_crm_categories`, serta sinkronisasi event antar tab browser. |
+| **2.** 📄 [`Dual Payment & Anti-Scam`](./2026-09-08-dual-payment-mode-design.md) | Menerima kontak masuk saat customer mengklik tombol *"Konfirmasi ke WA CS"* setelah transfer, dan menghubungkan obrolan dengan kartu rincian booking pelanggan. |
+| **3. WAHA & Mini CRM** *(Dokumen Ini)* | **Pusat Komunikasi & Anti-Ban**: Mengelola obrolan pelanggan, pengelompokan kategori dinamis, dan proteksi penguncian chat jika jendela 24 jam telah lewat. |
+| **4.** 📄 [`WhatsApp Template Builder`](./2026-09-08-whatsapp-template-builder-design.md) | Menyediakan daftar **Template Resmi** yang otomatis muncul dan bisa dipilih di Mini CRM ketika jendela pesan 24 jam customer sedang terkunci. |
+| **5.** 📄 [`Email SMTP & Template Builder`](./2026-09-08-email-smtp-and-template-builder-design.md) | Saluran komunikasi cadangan: Jika nomor WhatsApp customer tidak aktif atau di luar jendela 24 jam, admin dapat memantau status pengiriman email invoice. |
 
 ---
 

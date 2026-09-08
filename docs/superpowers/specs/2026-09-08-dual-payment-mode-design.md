@@ -16,15 +16,18 @@ Studio foto Kaya Story membutuhkan sistem fleksibel untuk mengatur metode pembay
 * **Simulasi Interaktif via LocalStorage**: Data pengaturan dan data booking baru disimpan di `localStorage` browser agar pengujian berjalan nyata dan tidak hilang saat halaman di-refresh.
 * **Saling Mematikan (*Mutually Exclusive*)**: Hanya ada satu mode yang aktif dalam satu waktu. Jika Mode 1 dipilih, seluruh pengaturan Mode 2 otomatis terkunci/non-aktif, begitu pula sebaliknya.
 
-### 1.3 Keterhubungan dengan Dokumen Spesifikasi Mock Data Layer
-Spesifikasi pembayaran ini merupakan subsistem yang terintegrasi langsung dengan:
-📄 **Spesifikasi Induk**: [`2026-09-08-unified-mock-data-layer-design.md`](./2026-09-08-unified-mock-data-layer-design.md)
+### 1.3 Highlight Peta Relasi & Keterhubungan Dokumen Spesifikasi
 
-* **Entitas Pengaturan (`kaya_payment_settings`)**: Menyimpan konfigurasi activeMode (GATEWAY vs MANUAL), API Key Midtrans/Xendit, dan daftar rekening manual.
-* **Entitas Pemesanan (`kaya_bookings`)**: Transaksi dari checkout modal (baik simulasi gateway maupun transfer manual) otomatis ditambahkan ke entitas ini.
-* **Entitas Notifikasi (`kaya_notifications`)**: Setiap kali ada customer yang melakukan booking atau upload bukti transfer manual, notifikasi lonceng admin otomatis terpicu.
-* **Entitas Invoice (`kaya_invoices`)**: Ketika admin memverifikasi pembayaran manual, invoice resmi otomatis diterbitkan ke entitas ini.
-* **Reset Data (Dev Mode)**: Pengaturan pembayaran dan daftar rekening akan ikut ter-reset ke kondisi awal saat tombol reset di development mode diklik.
+> 🔗 **HIGHLIGHT INTEGRASI 5 DOKUMEN SPESIFIKASI**:
+> Fitur Pembayaran Dual Mode ini berinteraksi langsung dengan **4 dokumen spesifikasi lainnya** dalam arsitektur website Kaya Story:
+
+| Dokumen Terkait | Hubungan & Aliran Data dengan Fitur Pembayaran Ini |
+| :--- | :--- |
+| **1.** 📄 [`Master Data Layer`](./2026-09-08-unified-mock-data-layer-design.md) *(Dokumen Induk)* | Menyimpan konfigurasi ke `kaya_payment_settings`, mencatat booking baru ke `kaya_bookings`, memicu alert lonceng di `kaya_notifications`, dan menerbitkan invoice resmi ke `kaya_invoices`. |
+| **2. Dual Payment & Anti-Scam** *(Dokumen Ini)* | **Pusat Logika Transaksi**: Mengelola alur checkout 4 langkah (Data Diri, Preview Order & Sinyal Anti-Scam, Transfer/Gateway, Layar Sukses & WA CS) serta verifikasi admin. |
+| **3.** 📄 [`WAHA & Mini CRM`](./2026-09-08-waha-mini-crm-design.md) | Saat customer menyelesaikan transfer di Langkah 4 dan mengklik tombol *"Konfirmasi ke WA CS"*, chat otomatis masuk ke inbox Mini CRM dan nomor customer langsung dicocokkan dengan data booking. |
+| **4.** 📄 [`WhatsApp Template Builder`](./2026-09-08-whatsapp-template-builder-design.md) | Saat admin memverifikasi pembayaran di `/admin/bookings`, notifikasi WhatsApp otomatis dikirimkan menggunakan template resmi `PAYMENT_VERIFIED` yang dirancang di builder ini. |
+| **5.** 📄 [`Email SMTP & Template Builder`](./2026-09-08-email-smtp-and-template-builder-design.md) | Saat admin menyetujui pembayaran, sistem otomatis mengirimkan email invoice resmi ke alamat email pelanggan menggunakan template `INVOICE_OFFICIAL`. |
 
 ---
 

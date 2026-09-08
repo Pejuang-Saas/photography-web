@@ -18,6 +18,19 @@ Fitur ini memungkinkan admin studio merancang, menyesuaikan, menyisipkan variabe
 * **Halaman Utama Builder**: Ditempatkan pada **Menu Settings -> Sub-Menu "Template WhatsApp" (`/admin/settings?tab=whatsapp-templates`)**.
 * **Pintasan Akses Cepat**: Pada antarmuka Mini CRM (`/admin/crm`), disediakan tombol **"⚙️ Kelola Template"** yang langsung mengarahkan admin ke halaman builder ini.
 
+### 1.3 Highlight Peta Relasi & Keterhubungan Dokumen Spesifikasi
+
+> 🔗 **HIGHLIGHT INTEGRASI 5 DOKUMEN SPESIFIKASI**:
+> Fitur WhatsApp Template Builder ini berinteraksi langsung dengan **4 dokumen spesifikasi lainnya** dalam arsitektur website Kaya Story:
+
+| Dokumen Terkait | Hubungan & Aliran Data dengan Template Builder Ini |
+| :--- | :--- |
+| **1.** 📄 [`Master Data Layer`](./2026-09-08-unified-mock-data-layer-design.md) *(Dokumen Induk)* | Menyimpan koleksi seluruh template ke entitas master `kaya_message_templates` di `localStorage` dan meresetnya saat tombol reset dev mode ditekan. |
+| **2.** 📄 [`Dual Payment & Anti-Scam`](./2026-09-08-dual-payment-mode-design.md) | Menyediakan template berkode `PAYMENT_VERIFIED` yang otomatis dieksekusi saat admin menyetujui bukti bayar booking di `/admin/bookings`. |
+| **3.** 📄 [`WAHA & Mini CRM`](./2026-09-08-waha-mini-crm-design.md) | Menjadi **Pemasok Utama Template Resmi**: Mini CRM membaca template aktif dari builder ini untuk disajikan pada pemilih template saat jendela 24 jam customer terkunci. |
+| **4. WhatsApp Template Builder** *(Dokumen Ini)* | **Pusat Desain Pesan WhatsApp**: Menyediakan editor tag variabel dinamis, live simulator smartphone WhatsApp, dan analisis anti-spam. |
+| **5.** 📄 [`Email SMTP & Template Builder`](./2026-09-08-email-smtp-and-template-builder-design.md) | Padanan saluran komunikasi: Jika WhatsApp Builder menangani pesan chat mobile, Email Builder menangani komunikasi surat digital formal. |
+
 ---
 
 ## 2. Standar Arsitektur: Komponen Global vs Komponen Lokal

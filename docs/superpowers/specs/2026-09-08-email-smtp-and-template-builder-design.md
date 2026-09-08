@@ -21,6 +21,19 @@ Fitur ini memiliki dua tujuan utama:
   1. **Tab 1: Konfigurasi Server SMTP** (Pengaturan koneksi host, port, kredensial, dan tes kirim).
   2. **Tab 2: Template Builder Email** (Daftar template dan ruang kerja penyusunan blok visual email).
 
+### 1.3 Highlight Peta Relasi & Keterhubungan Dokumen Spesifikasi
+
+> 🔗 **HIGHLIGHT INTEGRASI 5 DOKUMEN SPESIFIKASI**:
+> Fitur Email SMTP & Template Builder ini berinteraksi langsung dengan **4 dokumen spesifikasi lainnya** dalam arsitektur website Kaya Story:
+
+| Dokumen Terkait | Hubungan & Aliran Data dengan Fitur Email Ini |
+| :--- | :--- |
+| **1.** 📄 [`Master Data Layer`](./2026-09-08-unified-mock-data-layer-design.md) *(Dokumen Induk)* | Mengelola persistensi `kaya_email_settings`, `kaya_email_templates`, dan `kaya_email_logs` di `localStorage`, serta sinkronisasi event real-time antar tab. |
+| **2.** 📄 [`Dual Payment & Anti-Scam`](./2026-09-08-dual-payment-mode-design.md) | Saat admin menyetujui pembayaran di `/admin/bookings`, sistem otomatis memicu pengiriman email invoice resmi menggunakan template `INVOICE_OFFICIAL`. |
+| **3.** 📄 [`WAHA & Mini CRM`](./2026-09-08-waha-mini-crm-design.md) | Saluran komunikasi ganda: Memberikan cadangan konfirmasi formal jika chat WhatsApp pelanggan sedang tidak aktif atau di luar jendela pesan 24 jam. |
+| **4.** 📄 [`WhatsApp Template Builder`](./2026-09-08-whatsapp-template-builder-design.md) | Padanan arsitektur template: Menggunakan filosofi desain tag variabel dinamis yang serupa (`{customer_name}`, `{session_date}`, dll.) untuk konsistensi pengalaman admin. |
+| **5. Email SMTP & Template Builder** *(Dokumen Ini)* | **Pusat Komunikasi Surat Digital**: Mengelola kredensial server SMTP, pengiriman invoice PDF otomatis, dan editor blok modular email responsif. |
+
 ---
 
 ## 2. Standar Arsitektur: Komponen Global vs Komponen Lokal
