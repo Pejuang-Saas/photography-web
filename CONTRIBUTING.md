@@ -12,7 +12,7 @@ Panduan ini dibuat agar seluruh anggota tim developer (terutama developer pemula
 2. **Dilarang Keras Commit Langsung ke Branch `main`**. Selalu buat branch fitur baru.
 3. **Patuhi Pemisahan Komponen Global vs Komponen Lokal**.
 4. **Gunakan Format Conventional Commits** untuk setiap commit pesan.
-5. **Wajib Lolos Build Docker Compose (`docker compose -f docker-compose.prod.yml build`)** sebelum mengajukan Pull Request (PR).
+5. **Wajib Lolos Uji Build & Linting** sebelum mengajukan Pull Request (PR) — baik via **Docker Compose** maupun **Build Lokal**.
 
 ---
 
@@ -27,7 +27,7 @@ Sebelum membuat branch atau menulis baris kode pertama:
    - 📄 [`Email SMTP & Template Builder`](./docs/superpowers/specs/2026-09-08-email-smtp-and-template-builder-design.md)
 2. **Pahami Batasan & Arsitektur Sistem**:
    - Proyek ini menggunakan arsitektur **Frontend Mock berbasis `localStorage`** (belum ada database sungguhan). Jangan menambahkan dependensi backend atau ORM database tanpa persetujuan tim.
-   - Proyek ini **sepenuhnya di-containerize menggunakan Docker Compose**. Seluruh proses build, kompilasi Next.js, dan linting wajib dieksekusi di dalam container Docker.
+   - Proyek ini mendukung dua alur kerja: **Docker Compose** (direkomendasikan, zero local setup) dan **Node.js Lokal** (jika host Anda sudah terpasang Node.js v20+ & npm).
 
 ---
 
@@ -97,36 +97,52 @@ tipe(cakupan): deskripsi singkat perubahan
 
 ---
 
-## 5. Verifikasi Wajib Sebelum Push (Build & Linting Gate via Docker)
+## 5. Verifikasi Wajib Sebelum Push (Build & Linting Gate)
 
-> 🛑 **PERINGATAN**: Proyek ini di-build dan di-bundle di dalam lingkungan Docker Compose. Sebelum menjalankan `git push`, Anda **WAJIB memvalidasi bahwa aplikasi lolos build di dalam Docker Compose!**
+> 🛑 **PERINGATAN**: Sebelum menjalankan `git push`, Anda **WAJIB memastikan proyek dapat di-build dengan sempurna tanpa error**.
+> Pilih salah satu dari **2 opsi verifikasi** berikut sesuai lingkungan kerja Anda:
 
-Jalankan perintah verifikasi ini dari terminal Anda:
+### 🐳 Opsi A: Verifikasi via Docker Compose (Direkomendasikan)
+Gunakan opsi ini jika Anda menggunakan Docker (tidak perlu install Node.js/npm di host machine):
 
-### 1. Uji Kompilasi Build Produksi via Docker Compose:
-```bash
-docker compose -f docker-compose.prod.yml build
-```
-*Perintah ini menjalankan stage `builder` di dalam Docker Alpine Node.js 20, mengompilasi Next.js 16 standalone, dan memverifikasi TypeScript Strict Mode tanpa memerlukan Node.js/npm di host machine.*
+1. **Periksa Standar Kode (Linting via Container)**:
+   ```bash
+   docker compose run --rm web npm run lint
+   ```
 
-Pastikan proses build selesai sukses tanpa error fatal:
-```text
-✓ Compiled successfully
-✓ Generating static pages
-✓ Finalizing page optimization
-```
+2. **Uji Kompilasi Build Produksi via Docker Compose**:
+   ```bash
+   docker compose -f docker-compose.prod.yml build
+   ```
+   *Perintah ini menjalankan stage `builder` di dalam container Node.js 20 Alpine, mengompilasi Next.js 16 standalone, dan memverifikasi TypeScript Strict Mode.*
 
-### 2. Periksa Standar Kode (Linting via Container):
-```bash
-docker compose run --rm web npm run lint
-```
-*Pastikan tidak ada error ESLint atau pelanggaran aturan styling kode.*
+---
+
+### 💻 Opsi B: Verifikasi via Komputer Lokal (Node.js & npm Native)
+Gunakan opsi ini jika di komputer Anda sudah terpasang Node.js v20+ dan npm secara native:
+
+1. **Pastikan Dependensi Terinstal**:
+   ```bash
+   npm install
+   ```
+
+2. **Periksa Standar Kode (Linting)**:
+   ```bash
+   npm run lint
+   ```
+   *Pastikan tidak ada error ESLint atau peringatan syntax yang fatal.*
+
+3. **Uji Kompilasi Build Produksi**:
+   ```bash
+   npm run build
+   ```
+   *Memvalidasi TypeScript Strict Mode dan memastikan seluruh komponen Next.js 16 berhasil dikompilasi.*
 
 ---
 
 ## 6. Alur Pengajuan Pull Request (PR)
 
-Setelah kode lolos build Docker Compose dan branch telah di-push ke GitHub:
+Setelah kode lolos verifikasi build dan branch telah di-push ke GitHub:
 1. **Buka Pull Request** dari branch Anda ke branch `main`.
 2. **Format Judul PR**: Gunakan judul yang sama dengan format commit (contoh: `feat(payment): implement dual payment mode and anti-scam checkout`).
 3. **Isi Deskripsi PR**:
@@ -135,11 +151,9 @@ Setelah kode lolos build Docker Compose dan branch telah di-push ke GitHub:
    - Lampirkan screenshot atau rekaman singkat pengujian (jika mengubah tampilan UI).
 4. **Checklist Pengujian Mandiri**:
    - [ ] Dokumen spec terkait telah dibaca dan dipatuhi.
-   - [ ] `docker compose run --rm web npm run lint` lolos tanpa error.
-   - [ ] `docker compose -f docker-compose.prod.yml build` sukses tanpa error build.
-   - [ ] Sudah diuji coba di browser via `docker compose up` (tampilan desktop dan mobile rapi).
+   - [ ] Lolos linting (`docker compose run --rm web npm run lint` ATAU `npm run lint`).
+   - [ ] Lolos build produksi (`docker compose -f docker-compose.prod.yml build` ATAU `npm run build`).
+   - [ ] Sudah diuji coba di browser (tampilan desktop dan mobile rapi).
 5. Minta rekan tim atau Tech Lead untuk me-review kode Anda sebelum di-merge ke `main`.
-
----
 
 Selamat berkontribusi dan mari kita bangun website **Kaya Story Photography** yang luar biasa! 🚀📸

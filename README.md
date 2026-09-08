@@ -182,7 +182,7 @@ Kami menyambut kontribusi dari seluruh anggota tim developer! Sebelum mulai memb
   2. **Dilarang Commit Langsung ke `main`** — Buat branch fitur (`feat/...`, `fix/...`, dll.).
   3. **Patuhi Pemisahan Komponen Global vs Lokal** (`@/components/ui/` vs folder lokal fitur).
   4. **Gunakan Format Conventional Commits** (`feat:`, `fix:`, `docs:`, dll.).
-  5. **Wajib Lolos Build Docker Compose (`docker compose -f docker-compose.prod.yml build`)** sebelum mengajukan Pull Request (PR).
+  5. **Wajib Lolos Uji Build & Linting** sebelum mengajukan Pull Request (tersedia opsi **Docker Compose** maupun **Build Lokal** di [`CONTRIBUTING.md`](./CONTRIBUTING.md)).
 
 ---
 
