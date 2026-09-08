@@ -16,6 +16,16 @@ Studio foto Kaya Story membutuhkan sistem fleksibel untuk mengatur metode pembay
 * **Simulasi Interaktif via LocalStorage**: Data pengaturan dan data booking baru disimpan di `localStorage` browser agar pengujian berjalan nyata dan tidak hilang saat halaman di-refresh.
 * **Saling Mematikan (*Mutually Exclusive*)**: Hanya ada satu mode yang aktif dalam satu waktu. Jika Mode 1 dipilih, seluruh pengaturan Mode 2 otomatis terkunci/non-aktif, begitu pula sebaliknya.
 
+### 1.3 Keterhubungan dengan Dokumen Spesifikasi Mock Data Layer
+Spesifikasi pembayaran ini merupakan subsistem yang terintegrasi langsung dengan:
+📄 **Spesifikasi Induk**: [`2026-09-08-unified-mock-data-layer-design.md`](./2026-09-08-unified-mock-data-layer-design.md)
+
+* **Entitas Pengaturan (`kaya_payment_settings`)**: Menyimpan konfigurasi activeMode (GATEWAY vs MANUAL), API Key Midtrans/Xendit, dan daftar rekening manual.
+* **Entitas Pemesanan (`kaya_bookings`)**: Transaksi dari checkout modal (baik simulasi gateway maupun transfer manual) otomatis ditambahkan ke entitas ini.
+* **Entitas Notifikasi (`kaya_notifications`)**: Setiap kali ada customer yang melakukan booking atau upload bukti transfer manual, notifikasi lonceng admin otomatis terpicu.
+* **Entitas Invoice (`kaya_invoices`)**: Ketika admin memverifikasi pembayaran manual, invoice resmi otomatis diterbitkan ke entitas ini.
+* **Reset Data (Dev Mode)**: Pengaturan pembayaran dan daftar rekening akan ikut ter-reset ke kondisi awal saat tombol reset di development mode diklik.
+
 ---
 
 ## 2. Standar Arsitektur: Komponen Global vs Komponen Lokal
