@@ -24,6 +24,7 @@ Dokumen ini merupakan arsitektur induk (*Master Data Layer Spec*) yang menjadi p
 * 📄 **Spesifikasi Subsistem Pembayaran**: [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md) — Rincian detail konfigurasi Gateway (Midtrans/Xendit), manajemen rekening manual, upload & verifikasi bukti transfer, serta modal booking multi-step di sisi pengunjung.
 * 📄 **Spesifikasi Subsistem WAHA & Mini CRM**: [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md) — Integrasi engine WhatsApp HTTP API (WAHA), pembacaan data chat dari sesi aktif, sistem kategori chat dinamis, serta proteksi anti-ban (24-Hour Messaging Window).
 * 📄 **Spesifikasi Template Builder WhatsApp**: [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md) — Antarmuka visual penyusunan template pesan WhatsApp, tombol tag variabel dinamis, live smartphone simulator, dan checker kesehatan anti-spam.
+* 📄 **Spesifikasi Email SMTP & Template Builder**: [`2026-09-08-email-smtp-and-template-builder-design.md`](./2026-09-08-email-smtp-and-template-builder-design.md) — Konfigurasi server SMTP, pengiriman otomatis invoice resmi ke email customer, serta Email Template Builder modular dengan live responsive preview (Desktop & Mobile).
 
 ---
 
@@ -58,6 +59,9 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
 | `kaya_crm_chats` | **Riwayat Obrolan Mini CRM** | Menyimpan riwayat pesan masuk dan keluar yang dibaca dari sesi aktif, penanda waktu, status pengiriman, serta countdown timer 24-Hour Messaging Window. |
 | `kaya_crm_categories` | **Kategori Obrolan Kustom** | Daftar label/kategori percakapan klien yang dapat dibuat dan diatur warnanya oleh admin (misal: Tanya Paket, Booking DP, Lunas, Selesai). |
 | `kaya_message_templates` | **Template Pesan WhatsApp** | Koleksi template pesan kustom yang dibuat admin di Template Builder (variabel dinamis, kategori pesan, teks template, dan simulator WhatsApp). *(Detail di [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md))* |
+| `kaya_email_settings` | **Pengaturan Server SMTP** | Host, port, akun otentikasi pengirim studio, nama pengirim, dan saklar pengiriman invoice otomatis. *(Detail di [`2026-09-08-email-smtp-and-template-builder-design.md`](./2026-09-08-email-smtp-and-template-builder-design.md))* |
+| `kaya_email_templates` | **Template Email Responsif** | Koleksi template email berbasis blok modular (invoice resmi, galeri drive foto, pengingat jadwal H-1, promo) yang bisa dirancang admin. |
+| `kaya_email_logs` | **Riwayat Pengiriman Email** | Log catatan pengiriman email simulasi ke pelanggan studio. |
 
 ---
 
@@ -181,7 +185,7 @@ Semua data disimpan dalam bentuk kumpulan objek di `localStorage` dengan penamaa
 | **2** | `metode-pembayaran` | **Metode Pembayaran** | 💳 `CreditCard` | Pengaturan **Dual Mode (Opsi 1: Payment Gateway vs Opsi 2: Transfer Manual)**, konfigurasi Midtrans/Xendit, dan manajemen daftar rekening bank studio. *(Rincian lengkap pada [`2026-09-08-dual-payment-mode-design.md`](./2026-09-08-dual-payment-mode-design.md))*. |
 | **3** | `whatsapp-waha` | **Koneksi Engine WAHA** | 💬 `MessageSquare` | Status koneksi WhatsApp QR Code (WAHA tanpa input Base URL/Key di frontend), info nomor terhubung, tombol refresh status, dan putus sesi. *(Detail di [`2026-09-08-waha-mini-crm-design.md`](./2026-09-08-waha-mini-crm-design.md))*. |
 | **4** | `whatsapp-templates` | **Template WhatsApp Builder** | 📝 `Sparkles` | **Visual Template Builder WhatsApp** dengan simulator smartphone live, bilah tag variabel dinamis, analisis anti-spam, dan form uji coba kirim pesan test. *(Detail di [`2026-09-08-whatsapp-template-builder-design.md`](./2026-09-08-whatsapp-template-builder-design.md))*. |
-| **5** | `email-smtp` | **Notifikasi Email SMTP** | 📧 `Mail` | Pengaturan server SMTP (Host, Port, Username, Password, Pengirim) untuk pengiriman invoice dan cadangan notifikasi cadangan, beserta form uji kirim email. |
+| **5** | `email-smtp` | **Notifikasi Email SMTP** | 📧 `Mail` | Pengaturan server SMTP (Host, Port, Username, Password, Pengirim) untuk pengiriman invoice otomatis, beserta **Visual Email Template Builder responsif**. *(Detail di [`2026-09-08-email-smtp-and-template-builder-design.md`](./2026-09-08-email-smtp-and-template-builder-design.md))*. |
 | **6** | `pemeliharaan-data` | **Pemeliharaan & Simulator Data** | 🛠️ `Sliders` | Tampilan status sistem, monitoring ukuran data di `localStorage`, status environment (`development` vs `production`), dan tombol **"Reset Mock Data ke Awal"** (hanya aktif pada mode development). |
 
 #### Rincian Aksi per Sub-Menu:
