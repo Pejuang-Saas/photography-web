@@ -1,22 +1,4 @@
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: photography-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-photography_db}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-photography_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   api:
     build:
       context: ./apps/api
@@ -24,17 +6,19 @@ services:
     container_name: photography-api
     restart: unless-stopped
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "3002:3000"
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-photography_db}?schema=public
+      - API_URL=${API_URL:-http://localhost:3002}
+      - WEB_URL=${WEB_URL:-http://localhost:3000}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://root:root@dev-postgres:5432/photography_db?schema=public}
+      - REDIS_URL=${REDIS_URL:-redis://dev-redis:6379}
     volumes:
       - ./apps/api:/app
       - /app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
+    networks:
+      - dev-network
 
   web:
     build:
@@ -43,7 +27,7 @@ services:
     container_name: photography-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-3001}:3000"
+      - "3000:3000"
     volumes:
       - ./apps/web:/app
       - /app/node_modules
@@ -53,8 +37,8 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - WATCHPACK_POLLING=true
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3001}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_SITE_URL=${WEB_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:3002}
     env_file:
       - path: ./apps/web/.env
         required: false
@@ -64,6 +48,10 @@ services:
     tty: true
     depends_on:
       - api
+    networks:
+      - dev-network
 
-volumes:
-  postgres_data:
+networks:
+  dev-network:
+    name: dev-network
+    external: true
