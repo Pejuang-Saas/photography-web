@@ -7,7 +7,7 @@
 ---
 
 ## 1. Konteks & Permasalahan
-Mengacu pada dokumen spesifikasi `apps/web/docs/superpowers/specs/2026-09-08-dual-payment-mode-design.md`:
+Mengacu pada dokumen spesifikasi `docs/frontend/superpowers/specs/2026-09-08-dual-payment-mode-design.md`:
 Sebagian besar mahasiswa wisudawan di Tembalang (Undip, Polines, dsb.) lebih menyukai transfer langsung ke rekening bank lokal (BCA/Mandiri) tanpa biaya admin gateway (Rp 2.000 - Rp 4.000). Di sisi lain, pelanggan keluarga atau pemesan mendadak menginginkan pembayaran instan (QRIS / Virtual Account otomatis).
 Selain itu, transfer manual rawan pemalsuan bukti bayar (*fake receipt / slip palsu*).
 

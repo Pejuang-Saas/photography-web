@@ -7,7 +7,7 @@
 ---
 
 ## 1. Konteks & Permasalahan
-Mengacu pada spesifikasi frontend `apps/web/docs/superpowers/specs/2026-09-08-waha-mini-crm-design.md`, studio foto Kaya Story mengandalkan WhatsApp sebagai saluran komunikasi primer dengan pelanggan (pengiriman bukti booking, invoice, revisi foto, dan CS obrolan).
+Mengacu pada spesifikasi frontend `docs/frontend/superpowers/specs/2026-09-08-waha-mini-crm-design.md`, studio foto Kaya Story mengandalkan WhatsApp sebagai saluran komunikasi primer dengan pelanggan (pengiriman bukti booking, invoice, revisi foto, dan CS obrolan).
 Namun, terdapat dua risiko besar:
 1. **Risiko Pemblokiran Akun (Banned by Meta)**: WhatsApp menerapkan kebijakan ketat anti-spam. Mengirim pesan pemasaran bebas ke nomor pelanggan yang pasif lebih dari 24 jam dapat memicu pemblokiran nomor studio secara permanen.
 2. **Ketergantungan Sesi WAHA**: Service WAHA (`dev-waha`) dapat mengalami perubahan status sesi (QR terputus, token kedaluwarsa, atau restart kontainer).

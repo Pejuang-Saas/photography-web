@@ -8,7 +8,7 @@ Panduan ini dibuat agar seluruh anggota tim developer memiliki standar kerja yan
 
 ## 📋 5 Aturan Emas Kontributor (Golden Rules)
 
-1. **Wajib Baca Dokumen Spesifikasi (`apps/web/docs/superpowers/specs/`)** sebelum mulai menulis kode.
+1. **Wajib Baca Dokumen Spesifikasi (`docs/frontend/superpowers/specs/`)** sebelum mulai menulis kode.
 2. **Dilarang Keras Commit Langsung ke Branch `main`**. Selalu buat branch fitur baru.
 3. **Patuhi Pemisahan Monorepo**: Frontend di `apps/web`, Backend di `apps/api`, dan Infra di `infra/`.
 4. **Gunakan Format Conventional Commits** untuk setiap commit pesan.
@@ -19,12 +19,12 @@ Panduan ini dibuat agar seluruh anggota tim developer memiliki standar kerja yan
 ## 1. Langkah Wajib Sebelum Mulai Coding
 
 Sebelum membuat branch atau menulis baris kode pertama:
-1. **Buka folder `apps/web/docs/superpowers/specs/`** dan baca dokumen spesifikasi fitur yang akan Anda kerjakan:
-   - 📄 [`Master Data Layer & Settings`](apps/web/docs/superpowers/specs/2026-09-08-unified-mock-data-layer-design.md)
-   - 📄 [`Dual Payment & Anti-Scam Checkout`](apps/web/docs/superpowers/specs/2026-09-08-dual-payment-mode-design.md)
-   - 📄 [`WAHA Integration & Mini CRM Anti-Ban`](apps/web/docs/superpowers/specs/2026-09-08-waha-mini-crm-design.md)
-   - 📄 [`WhatsApp Template Builder`](apps/web/docs/superpowers/specs/2026-09-08-whatsapp-template-builder-design.md)
-   - 📄 [`Email SMTP & Template Builder`](apps/web/docs/superpowers/specs/2026-09-08-email-smtp-and-template-builder-design.md)
+1. **Buka folder `docs/frontend/superpowers/specs/`** dan baca dokumen spesifikasi fitur yang akan Anda kerjakan:
+   - 📄 [`Master Data Layer & Settings`](docs/frontend/superpowers/specs/2026-09-08-unified-mock-data-layer-design.md)
+   - 📄 [`Dual Payment & Anti-Scam Checkout`](docs/frontend/superpowers/specs/2026-09-08-dual-payment-mode-design.md)
+   - 📄 [`WAHA Integration & Mini CRM Anti-Ban`](docs/frontend/superpowers/specs/2026-09-08-waha-mini-crm-design.md)
+   - 📄 [`WhatsApp Template Builder`](docs/frontend/superpowers/specs/2026-09-08-whatsapp-template-builder-design.md)
+   - 📄 [`Email SMTP & Template Builder`](docs/frontend/superpowers/specs/2026-09-08-email-smtp-and-template-builder-design.md)
 2. **Pahami Arsitektur Monorepo**:
    - **Frontend (`apps/web`)**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Motion, Lucide & Base UI.
    - **Backend (`apps/api`)**: NestJS, Prisma ORM, PostgreSQL. Tidak ada `node_modules` di host lokal (diinstal di dalam Docker).

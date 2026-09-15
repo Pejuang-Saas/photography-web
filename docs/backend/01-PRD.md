@@ -69,7 +69,7 @@ Sesuai dengan data `INITIAL_PACKAGES` pada `apps/web/lib/mock-data.ts`:
 - **FR-BKG-005 (Blackout Dates Management)**: Admin dapat menambahkan penanda libur studio (misal: Idul Fitri, Renovasi Studio, Libur Tahun Baru) yang otomatis menutup seluruh ketersediaan slot di tanggal tersebut.
 
 ### 3.4 Modul 4: Dual Payment & Verifikasi Transfer Anti-Scam
-Mengacu langsung pada spesifikasi frontend `apps/web/docs/superpowers/specs/2026-09-08-dual-payment-mode-design.md`:
+Mengacu langsung pada spesifikasi frontend `docs/frontend/superpowers/specs/2026-09-08-dual-payment-mode-design.md`:
 - **FR-PAY-001 (Mode Pembayaran Dinamis)**: Sistem mendukung 2 mode yang dapat diaktifkan/dinonaktifkan admin:
   1. *Mode Manual*: Transfer Bank BCA, Mandiri, BRI, BSI, atau Static QRIS.
   2. *Mode Otomatis (Gateway)*: Midtrans / Xendit (Virtual Account, Gopay, ShopeePay, QRIS Dinamis).
@@ -88,7 +88,7 @@ Mengacu langsung pada spesifikasi frontend `apps/web/docs/superpowers/specs/2026
   - Tanda tangan digital / stempel stiker "LUNAS" / "DP DITERIMA".
 
 ### 3.6 Modul 6: Integrasi WAHA (WhatsApp HTTP API) & Mini CRM Anti-Ban
-Mengacu langsung pada spesifikasi `apps/web/docs/superpowers/specs/2026-09-08-waha-mini-crm-design.md`:
+Mengacu langsung pada spesifikasi `docs/frontend/superpowers/specs/2026-09-08-waha-mini-crm-design.md`:
 - **FR-CRM-001 (Status Sesi WAHA)**: Endpoint `GET /admin/waha/status` memonitor status container `dev-waha`: `STARTING`, `SCAN_QR_CODE`, `WORKING`, `FAILED`, `STOPPED`.
 - **FR-CRM-002 (Inisialisasi & Scan QR)**: Menyediakan QR Code visual untuk proses pairing WhatsApp Web studio.
 - **FR-CRM-003 (Ingestion Webhook Chat Masuk)**: Endpoint `POST /webhooks/waha` menerima payload obrolan pelanggan, menyinkronkan data kontak dengan pemesanan pelanggan berdasarkan nomor telepon (`customerPhone`), dan mencatat timestamp pesan terakhir pelanggan (`lastCustomerMessageAt`).
