@@ -1,29 +1,69 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: photography-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-photography_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-photography_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    container_name: photography-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-photography_db}?schema=public
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   web:
     build:
-      context: .
-      target: dev
-    container_name: photography-web-dev
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: photography-web
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3001}:3000"
     volumes:
-      # Mount direktori project agar perubahan kode langsung terbaca (hot-reload)
-      - .:/app
-      # Anonymous volume agar node_modules & .next di dalam container tidak tertimpa oleh host
+      - ./apps/web:/app
       - /app/node_modules
       - /app/.next
     environment:
       - NODE_ENV=development
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # Memastikan file watching mendeteksi perubahan di macOS / Docker Desktop
       - WATCHPACK_POLLING=true
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3001}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000}
     env_file:
-      - path: .env
+      - path: ./apps/web/.env
         required: false
-      - path: .env.local
+      - path: ./apps/web/.env.local
         required: false
     stdin_open: true
     tty: true
-    command: npm run dev -- -H 0.0.0.0
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
