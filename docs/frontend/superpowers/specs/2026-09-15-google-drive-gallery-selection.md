@@ -4,9 +4,11 @@
 - **Status**: Ready for Implementation
 - **Date**: 2026-09-15
 - **Related Backend Docs**: 
-  - [05-GALLERY-PRD.md](../backend/05-GALLERY-PRD.md)
-  - [06-GALLERY-DATABASE.md](../backend/06-GALLERY-DATABASE.md)
-  - [07-GALLERY-API.md](../backend/07-GALLERY-API.md)
+  - [01-PRD.md](../../backend/01-PRD.md) — Bagian 2: Gallery Feature PRD
+  - [03-DATABASE-ERD.md](../../backend/03-DATABASE-ERD.md) — Bagian 2: Gallery Database Schema
+  - [04-API-SPECIFICATION.md](../../backend/04-API-SPECIFICATION.md) — Bagian 2: Gallery API Spec
+  - [adrs/ADR-007-google-drive-public-source.md](../../backend/adrs/ADR-007-google-drive-public-source.md)
+  - [adrs/ADR-008-client-side-selection-state.md](../../backend/adrs/ADR-008-client-side-selection-state.md)
 
 ---
 
