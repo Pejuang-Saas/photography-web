@@ -1,29 +1,57 @@
 services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    container_name: photography-api
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - API_URL=${API_URL:-http://localhost:3002}
+      - WEB_URL=${WEB_URL:-http://localhost:3000}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://root:root@dev-postgres:5432/photography_db?schema=public}
+      - REDIS_URL=${REDIS_URL:-redis://dev-redis:6379}
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    networks:
+      - dev-network
+
   web:
     build:
-      context: .
-      target: dev
-    container_name: photography-web-dev
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: photography-web
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      # Mount direktori project agar perubahan kode langsung terbaca (hot-reload)
-      - .:/app
-      # Anonymous volume agar node_modules & .next di dalam container tidak tertimpa oleh host
+      - ./apps/web:/app
       - /app/node_modules
       - /app/.next
     environment:
       - NODE_ENV=development
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # Memastikan file watching mendeteksi perubahan di macOS / Docker Desktop
       - WATCHPACK_POLLING=true
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_SITE_URL=${WEB_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:3002}
     env_file:
-      - path: .env
+      - path: ./apps/web/.env
         required: false
-      - path: .env.local
+      - path: ./apps/web/.env.local
         required: false
     stdin_open: true
     tty: true
-    command: npm run dev -- -H 0.0.0.0
+    depends_on:
+      - api
+    networks:
+      - dev-network
+
+networks:
+  dev-network:
+    name: dev-network
+    external: true

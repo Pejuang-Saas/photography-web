@@ -1,213 +1,317 @@
-# 📸 Kayastory Photography Web & Studio Management
+<div align="center">
+  <h1>📸 Kaya Story Photography Platform</h1>
+  
+  ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)
+  ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
+  ![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)
+  ![Node.js](https://img.shields.io/badge/node->=20.0.0-339933.svg?style=for-the-badge&logo=nodedotjs&logoColor=white)
 
-Website resmi studio foto wisuda dan potret analog **Kaya Story Photography (Semarang)**. Aplikasi ini dibangun dengan teknologi modern **Next.js 16 (App Router)**, **React 19**, **Tailwind CSS v4**, dan **Motion**, dilengkapi sistem manajemen reservasi studio (*Admin Dashboard*), Mini CRM WhatsApp, serta lapisan data simulasi interaktif (*LocalStorage Data Layer*).
+  <p><strong>Sistem Manajemen Studio & Website Resmi Kaya Story (Semarang)</strong></p>
 
----
+  ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
+  ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
+  ![Tailwind](https://img.shields.io/badge/Tailwind-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
+  ![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=flat-square&logo=nestjs&logoColor=white)
+  ![Prisma](https://img.shields.io/badge/Prisma-6.x-2D3748?style=flat-square&logo=prisma&logoColor=white)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square&logo=postgresql&logoColor=white)
+  ![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white)
+</div>
 
-## 📑 Daftar Isi
-- [Teknologi & Stack](#-teknologi--stack)
-- [Struktur Halaman & Rute](#-struktur-halaman--rute)
-- [Panduan Setup 1: Tanpa Docker (Lokal / Node.js)](#-panduan-setup-1-tanpa-docker-lokal--nodejs)
-- [Panduan Setup 2: Menggunakan Docker](#-panduan-setup-2-menggunakan-docker)
-  - [A. Mode Development (Hot-Reload)](#a-mode-development-hot-reload)
-  - [B. Mode Production (Build Optimal)](#b-mode-production-build-optimal)
-- [Dokumentasi Spesifikasi Teknis (Specs)](#-dokumentasi-spesifikasi-teknis-specs)
-- [Panduan Kontribusi (Contributing)](#-panduan-kontribusi-contributing)
-- [Troubleshooting & Kendala Umum](#-troubleshooting--kendala-umum)
+<br />
 
----
-
-## 🛠 Teknologi & Stack
-
-* **Framework**: [Next.js 16.3 (App Router)](https://nextjs.org) & [React 19](https://react.dev)
-* **Bahasa**: [TypeScript 5](https://www.typescriptlang.org) (Strict Mode)
-* **Styling**: [Tailwind CSS v4](https://tailwindcss.com) (CSS-first configuration)
-* **Animasi**: [Motion (Framer Motion v13)](https://motion.dev) & [GSAP](https://gsap.com)
-* **Komponen UI**: [Base UI](https://base-ui.com), [Phosphor Icons](https://phosphoricons.com), [Lucide Icons](https://lucide.dev)
-* **Diagram & Grafik**: [Recharts](https://recharts.org)
-* **Notifikasi Toast**: [Sonner](https://sonner.emilkowal.ski)
-* **Containerization**: Docker & Docker Compose (Multi-stage build)
+Kaya Story Photography Platform adalah monorepo berskala enterprise yang dirancang untuk mengelola seluruh aspek operasional studio foto. Solusi ini menghubungkan etalase publik yang elegan dengan sistem backend tangguh yang mengatur pemesanan (booking), pengelolaan kalender studio, pembayaran terintegrasi, dan Mini CRM via WhatsApp — semuanya dalam satu ekosistem modern.
 
 ---
 
-## 🗺 Struktur Halaman & Rute
+## 🚀 Quick Start
 
-Setelah aplikasi berjalan, berikut daftar halaman yang dapat diakses:
+Hanya punya waktu 5 menit? Jalankan environment secara instan menggunakan Docker.
 
-| Bagian | Rute / URL | Penjelasan Fungsi |
-| :--- | :--- | :--- |
-| **Landing Page** | `http://localhost:3000/` | Halaman beranda utama: katalog paket foto wisuda, ulasan klien, galeri interaktif, dan modal checkout booking bertahap. |
-| **Dashboard Admin** | `http://localhost:3000/admin` | Ringkasan metrik statistik studio (total omset, jumlah pemesanan) dan grafik pendapatan bulanan. |
-| **Manajemen Booking** | `http://localhost:3000/admin/bookings` | Daftar reservasi pelanggan, filter status, pencarian, dan verifikasi bukti transfer manual. |
-| **Kalender Sesi** | `http://localhost:3000/admin/calendar` | Jadwal sesi pemotretan studio per tanggal dan jam, serta penanda hari libur studio (*blackout dates*). |
-| **Paket Layanan** | `http://localhost:3000/admin/packages` | Pengelolaan paket foto (tambah paket baru, ubah harga, kuota master edit, durasi sesi). |
-| **Invoice Digital** | `http://localhost:3000/admin/invoices` | Daftar invoice resmi yang otomatis terbit saat pembayaran diverifikasi, dilengkapi fungsi cetak PDF. |
-| **Mini CRM WhatsApp** | `http://localhost:3000/admin/crm` | Ruang obrolan pelanggan, pengelompokan label kategori dinamis, dan proteksi anti-ban jendela pesan 24 jam. |
-| **Pengaturan Studio** | `http://localhost:3000/admin/settings` | Navigasi 2 kolom: Profil studio, Metode Pembayaran Dual Mode (Gateway vs BCA), Koneksi WAHA, Template Builder, dan Notifikasi Email SMTP. |
-
----
-
-## 💻 Panduan Setup 1: Tanpa Docker (Lokal / Node.js)
-
-Gunakan cara ini jika Anda ingin menjalankan aplikasi langsung di komputer lokal menggunakan Node.js.
-
-### 1. Prasyarat Sistem
-Pastikan komputer Anda sudah terpasang:
-* **Node.js**: Versi `20.x` atau lebih baru (Disarankan versi LTS). Cek dengan `node -v`.
-* **npm**: Versi `10.x` atau lebih baru. Cek dengan `npm -v`.
-
-### 2. Langkah-Langkah Menjalankan:
-
-#### Langkah 1: Siapkan Berkas Environment
-Salin berkas template environment `.env.example` menjadi `.env.local`:
 ```bash
-cp .env.example .env.local
-```
-*(Nilai bawaan sudah siap pakai untuk pengujian lokal `http://localhost:3000`)*.
+# 1. Clone repositori
+git clone https://github.com/kayastory/photography.git
+cd photography
 
-#### Langkah 2: Install Dependensi
-Jalankan perintah berikut untuk mengunduh semua paket library:
-```bash
-npm install
+# 2. Siapkan file environment
+cp .env.example .env
+
+# 3. Jalankan seluruh infrastruktur dan aplikasi (Docker diwajibkan)
+docker compose -f infra/docker-compose.yml up -d
+docker compose up -d --build
+
+# 4. Selesai! Buka di browser:
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:3002
 ```
 
-#### Langkah 3: Jalankan Development Server
-Nyalakan server development dengan fitur *hot-reloading* (halaman otomatis ter-update saat kode disimpan):
-```bash
-npm run dev
+---
+
+## 📁 Struktur Monorepo
+
+```tree
+photography/
+├── apps/
+│   ├── api/                     # Backend NestJS 11 + Prisma ORM
+│   │   ├── prisma/              # Skema database & migrasi
+│   │   ├── src/                 # Kode sumber controller & service
+│   │   ├── Dockerfile.dev       # Hot-reload development container
+│   │   └── package.json
+│   └── web/                     # Frontend Next.js 16 (App Router)
+│       ├── app/                 # Halaman publik & admin dashboard
+│       ├── components/          # Komponen UI (Tailwind & Shadcn)
+│       ├── Dockerfile.dev       # Hot-reload development container
+│       └── package.json
+├── infra/
+│   └── docker-compose.yml       # PostgreSQL 17 & Redis 7 via dev-network
+├── docs/                        # Dokumentasi Proyek Terpusat
+│   ├── backend/                 # PRD, Arsitektur, ERD, API Specs, & 6 ADRs
+│   └── frontend/                # 5 Dokumen Spesifikasi Desain Fitur Studio
+├── docker-compose.yml           # Root compose (menjalankan apps/api & apps/web)
+├── CONTRIBUTING.md              # Panduan kontribusi tim & 5 golden rules
+├── .env.example                 # Template environment variables
+└── package.json                 # Workspace helper scripts
 ```
-
-Buka peramban (browser) dan akses:  
-👉 **`http://localhost:3000`**
-
-### 3. Perintah Lain yang Berguna:
-* `npm run build` — Melakukan kompilasi dan optimasi kode untuk produksi.
-* `npm run start` — Menjalankan server hasil build produksi (wajib jalankan `npm run build` terlebih dahulu).
-* `npm run lint` — Memeriksa standar kode dan potensi kesalahan menggunakan ESLint.
 
 ---
 
-## 🐳 Panduan Setup 2: Menggunakan Docker
+## ⚙️ Konfigurasi Environment
 
-Gunakan cara ini jika Anda tidak ingin menginstall Node.js di komputer lokal, atau ingin lingkungan yang terisolasi dan identik dengan server produksi.
+File `.env` di root direktori mengatur variabel berbasis **URL** untuk memastikan fleksibilitas dalam deployment dan routing proxy.
 
-### 1. Prasyarat Sistem
-* Pastikan **Docker Desktop** (atau Docker Engine di Linux) sudah terpasang dan sedang berjalan. Cek dengan:
+```env
+# ==============================================================================
+# Photography Monorepo Environment Variables
+# ==============================================================================
+
+# Application URLs
+API_URL=http://localhost:3002
+WEB_URL=http://localhost:3000
+
+# Infrastructure & Database (Terhubung via dev-network di dalam Docker)
+DATABASE_URL="postgresql://root:root@dev-postgres:5432/photography_db?schema=public"
+REDIS_URL="redis://dev-redis:6379"
+
+# Frontend Public URLs (Akan dibaca oleh browser)
+NEXT_PUBLIC_API_URL=http://localhost:3002
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+---
+
+## 🐳 Panduan Setup 1: Menggunakan Docker (Direkomendasikan)
+
+> [!TIP]
+> Metode ini adalah pilihan terbaik. Anda tidak perlu menginstal Node.js, Prisma, atau PostgreSQL di komputer. Seluruh dependensi terisolasi sempurna di dalam container.
+
+### 1. Prasyarat
+Pastikan **Docker Desktop** (macOS / Windows) atau **Docker Engine** (Linux) berjalan.
 ```bash
-docker --version
 docker compose version
 ```
 
----
+### 2. Langkah Setup
 
-### A. Mode Development (Hot-Reload)
-Mode ini menggunakan konfigurasi `docker-compose.yml` dengan *volume mounting*. Setiap perubahan kode di editor Anda akan langsung terdeteksi tanpa perlu build ulang kontainer.
+1. **Jalankan Infrastruktur Data (PostgreSQL & Redis)**
+   *Mengapa? API kita membutuhkan database dan cache eksternal untuk menyimpan data pengguna dan sesi antrian (BullMQ).*
+   ```bash
+   docker compose -f infra/docker-compose.yml up -d
+   ```
+   
+2. **Jalankan Aplikasi Web dan API**
+   *Mengapa? Perintah ini membangun image frontend dan backend. Container API akan otomatis menjalankan `prisma generate` dan `prisma db push` sebelum start.*
+   ```bash
+   docker compose up -d --build
+   ```
 
-#### 1. Jalankan Kontainer Development:
+3. **Cek Log (Opsional)**
+   *Mengapa? Untuk memastikan Prisma berhasil terhubung dan server NestJS telah siap menerima request.*
+   ```bash
+   docker compose logs -f api
+   ```
+
+### ✅ Verifikasi Docker Setup
+
+Pastikan API berjalan dan merespon:
 ```bash
-docker compose up
+curl -X GET http://localhost:3002/health
+# Expected Response:
+# {"status": "ok", "database": "connected", "redis": "connected"}
 ```
 
-Jika ingin menjalankannya di latar belakang (*background/detached mode*):
+Pastikan Frontend Next.js berjalan:
 ```bash
+curl -I http://localhost:3000
+# Expected Response:
+# HTTP/1.1 200 OK
+# X-Powered-By: Next.js
+```
+
+---
+
+## 💻 Panduan Setup 2: Lokal Tanpa Docker (Native)
+
+Gunakan metode ini jika Anda membutuhkan akses langsung ke Node.js runtime (misalnya untuk debugging intensif dengan VSCode debugger).
+
+### 1. Prasyarat
+- **Node.js**: `v20.x` LTS atau lebih baru.
+- **Infrastruktur berjalan**: Pastikan PostgreSQL (`localhost:5432`) dan Redis (`localhost:6379`) aktif. Anda tetap bisa menggunakan container `infra/` dari Docker untuk ini.
+
+### 2. Langkah Setup Backend (`apps/api`)
+
+1. **Instal dependensi**
+   *Mengapa? Mengunduh seluruh paket NestJS, Prisma, dan library pendukung.*
+   ```bash
+   cd apps/api
+   npm install
+   ```
+
+2. **Siapkan `.env` lokal**
+   *Mengapa? Karena kita tidak menggunakan docker network, `dev-postgres` tidak akan dikenali. Kita harus mengarahkannya ke `localhost`.*
+   ```bash
+   cp .env.example .env
+   # Ganti DATABASE_URL menjadi: postgresql://root:root@localhost:5432/photography_db?schema=public
+   # Ganti REDIS_URL menjadi: redis://localhost:6379
+   ```
+
+3. **Sinkronisasi Skema Database**
+   *Mengapa? Menerapkan skema tabel dari `schema.prisma` langsung ke dalam PostgreSQL yang berjalan.*
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+4. **Jalankan Backend**
+   ```bash
+   npm run start:dev
+   ```
+
+### 3. Langkah Setup Frontend (`apps/web`)
+
+1. **Instal dependensi frontend**
+   ```bash
+   cd apps/web
+   npm install
+   ```
+
+2. **Jalankan Frontend Server**
+   ```bash
+   npm run dev
+   ```
+
+### ✅ Verifikasi Lokal Setup
+
+Uji endpoint API lokal Anda:
+```bash
+curl -X GET http://localhost:3002/docs-json
+# Expected Response:
+# JSON dari Swagger OpenAPI document.
+```
+
+---
+
+## 🔗 URL Referensi Sistem
+
+| Komponen | URL Akses | Keterangan |
+| :--- | :--- | :--- |
+| **Landing Page Publik** | [http://localhost:3000](http://localhost:3000) | Katalog paket foto, ulasan, & checkout |
+| **Admin Dashboard** | [http://localhost:3000/admin](http://localhost:3000/admin) | Metrik pendapatan, daftar booking, kalender |
+| **Admin Mini CRM** | [http://localhost:3000/admin/crm](http://localhost:3000/admin/crm) | Obrolan WhatsApp & penanda anti-ban |
+| **API Base URL** | [http://localhost:3002](http://localhost:3002) | NestJS REST API Gateway |
+| **API Health Check** | [http://localhost:3002/health](http://localhost:3002/health) | Ping status server & database |
+| **API Swagger Docs** | [http://localhost:3002/docs](http://localhost:3002/docs) | OpenAPI Interactive Documentation |
+| **Prisma Studio** | `npx prisma studio` (via API) | GUI Manajemen Data Database |
+
+---
+
+## 🔄 Development Workflow
+
+Saat mengembangkan fitur baru, kami menerapkan alur kerja standar (GitHub Flow):
+
+```mermaid
+gitGraph
+   commit id: "Initial"
+   branch feat/payment
+   checkout feat/payment
+   commit id: "Add logic"
+   commit id: "Add tests"
+   checkout main
+   merge feat/payment
+```
+
+1. **Sinkronisasi**: Tarik pembaruan terbaru (`git pull origin main`).
+2. **Branching**: Buat branch baru untuk fitur atau bug (`git checkout -b feat/nama-fitur`).
+3. **Pengembangan**: Kembangkan kode, baca spesifikasi dari folder `docs/`.
+4. **Commit**: Gunakan pesan Conventional Commits (`feat(web): update cart UI`).
+5. **PR**: Ajukan Pull Request ke `main` dan minta review rekan kerja.
+
+---
+
+## ❓ Troubleshooting & Pertanyaan Umum
+
+### 1. Error Port Sudah Digunakan
+**Pesan Error:** `Error: listen EADDRINUSE: address already in use :::3000`
+**Penyebab:** Ada aplikasi atau sisa proses Next.js/NestJS yang masih berjalan di latar belakang.
+**Solusi:**
+```bash
+# macOS/Linux: Temukan proses dan matikan
+lsof -i :3000
+kill -9 <PID>
+```
+
+### 2. Prisma Gagal Terhubung ke Database (Docker)
+**Pesan Error:** `PrismaClientInitializationError: Can't reach database server at dev-postgres:5432`
+**Penyebab:** Container infrastruktur PostgreSQL belum berjalan atau berada di Docker network yang berbeda.
+**Solusi:**
+Pastikan `infra/docker-compose.yml` telah dijalankan terlebih dahulu dan cek keberadaan network:
+```bash
+docker compose -f infra/docker-compose.yml up -d
+docker network ls | grep dev-network
+```
+
+### 3. Hot Reload Tidak Berfungsi di macOS (Docker Desktop)
+**Pesan Error:** *Tidak ada error, tetapi perubahan file React tidak muncul di browser.*
+**Penyebab:** Limitasi file-watching pada file system mount Docker Desktop macOS.
+**Solusi:**
+Pastikan `WATCHPACK_POLLING=true` aktif di file compose. Jika masih gagal, paksa restart watcher:
+```bash
+docker compose restart web
+```
+
+### 4. Gagal Menjalankan Build Image
+**Pesan Error:** `failed to solve: rpc error: code = Unknown desc = failed to compute cache key`
+**Penyebab:** Ada perubahan konfigurasi paket, tetapi Docker menggunakan cache image lama yang korup.
+**Solusi:**
+Build ulang image tanpa cache:
+```bash
+docker compose build --no-cache
 docker compose up -d
 ```
 
-#### 2. Akses Aplikasi:
-Buka browser di:  
-👉 **`http://localhost:3000`**
-
-#### 3. Perintah Tambahan untuk Mode Development:
-* **Melihat log aktivitas**:
-  ```bash
-  docker compose logs -f web
-  ```
-* **Menghentikan kontainer**:
-  ```bash
-  docker compose down
-  ```
-* **Build ulang (jika baru saja menambah dependensi di `package.json`)**:
-  ```bash
-  docker compose up --build
-  ```
-
----
-
-### B. Mode Production (Build Optimal)
-Mode ini menggunakan `docker-compose.prod.yml` dengan *multi-stage build* dan fitur Next.js *standalone output* yang menghasilkan ukuran image sangat ringan dan performa maksimal.
-
-#### 1. Jalankan Kontainer Production:
+### 5. Redis Timeout pada BullMQ
+**Pesan Error:** `Error: connect ETIMEDOUT at TCPConnectWrap.afterConnect` pada module BullMQ.
+**Penyebab:** Koneksi ke Redis lambat atau `dev-redis` mati secara mendadak.
+**Solusi:**
+Restart service Redis dari folder infrastruktur.
 ```bash
-docker compose -f docker-compose.prod.yml up --build -d
-```
-
-#### 2. Akses Aplikasi:
-Buka browser di:  
-👉 **`http://localhost:3000`**
-
-#### 3. Menghentikan Kontainer Production:
-```bash
-docker compose -f docker-compose.prod.yml down
+docker compose -f infra/docker-compose.yml restart redis
 ```
 
 ---
 
-## 📚 Dokumentasi Spesifikasi Teknis (Specs)
+## 📚 Dokumentasi Spesifikasi Terpusat
 
-Aplikasi ini dirancang menggunakan standar spesifikasi teknis modular. Seluruh dokumen spesifikasi tersimpan di folder `docs/superpowers/specs/` dan saling terhubung satu sama lain:
+Seluruh panduan teknis yang detail, keputusan arsitektur, dan referensi desain dapat ditemukan di folder `docs/`:
 
-1. 📄 [`docs/superpowers/specs/2026-09-08-unified-mock-data-layer-design.md`](./docs/superpowers/specs/2026-09-08-unified-mock-data-layer-design.md)  
-   **Dokumen Induk**: Arsitektur master data layer (`localStorage`), event listener sinkronisasi antar tab, navigasi pengaturan 2 kolom, dan tombol reset pabrik khusus mode development.
-
-2. 📄 [`docs/superpowers/specs/2026-09-08-dual-payment-mode-design.md`](./docs/superpowers/specs/2026-09-08-dual-payment-mode-design.md)  
-   **Modul Pembayaran**: Mode Gateway (Midtrans/Xendit) vs Transfer Manual BCA, alur checkout 4 langkah (*Preview Order*, sinyal anti-scam, upload struk transfer, dan konfirmasi WhatsApp CS 1-klik).
-
-3. 📄 [`docs/superpowers/specs/2026-09-08-waha-mini-crm-design.md`](./docs/superpowers/specs/2026-09-08-waha-mini-crm-design.md)  
-   **Modul Komunikasi & CRM**: Integrasi engine WAHA QR, pembacaan riwayat chat dari sesi aktif, sistem label/kategori kustom dinamis, dan proteksi anti-ban jendela pesan 24 jam.
-
-4. 📄 [`docs/superpowers/specs/2026-09-08-whatsapp-template-builder-design.md`](./docs/superpowers/specs/2026-09-08-whatsapp-template-builder-design.md)  
-   **Modul WhatsApp Template Builder**: Antarmuka visual penyusunan template pesan WhatsApp dengan simulator smartphone live dan tombol tag variabel dinamis 1-klik.
-
-5. 📄 [`docs/superpowers/specs/2026-09-08-email-smtp-and-template-builder-design.md`](./docs/superpowers/specs/2026-09-08-email-smtp-and-template-builder-design.md)  
-   **Modul Email SMTP & Builder**: Pengaturan koneksi server SMTP, pengiriman otomatis invoice digital ke email pelanggan, dan builder email responsif (Desktop & Mobile).
+- 📄 **[PRD & Business Logic](docs/backend/01-PRD.md)**
+- 📄 **[Arsitektur & Message Queue](docs/backend/02-ARCHITECTURE.md)**
+- 📄 **[Skema Database (ERD)](docs/backend/03-DATABASE-ERD.md)**
+- 📄 **[Spesifikasi API Endpoint](docs/backend/04-API-SPECIFICATION.md)**
+- 📄 **[Frontend Design Specs](docs/frontend/superpowers/specs/)**
 
 ---
 
-## 🤝 Panduan Kontribusi (Contributing)
+## 🤝 Panduan Kontribusi
 
-Kami menyambut kontribusi dari seluruh anggota tim developer! Sebelum mulai membuat branch atau menulis kode:
-* Baca panduan lengkap di 📄 [`CONTRIBUTING.md`](./CONTRIBUTING.md).
-* **Ringkasan 5 Aturan Emas**:
-  1. **Wajib Baca Dokumen Spesifikasi** di `docs/superpowers/specs/` sebelum menulis kode.
-  2. **Dilarang Commit Langsung ke `main`** — Buat branch fitur (`feat/...`, `fix/...`, dll.).
-  3. **Patuhi Pemisahan Komponen Global vs Lokal** (`@/components/ui/` vs folder lokal fitur).
-  4. **Gunakan Format Conventional Commits** (`feat:`, `fix:`, `docs:`, dll.).
-  5. **Wajib Lolos Uji Build & Linting** sebelum mengajukan Pull Request (tersedia opsi **Docker Compose** maupun **Build Lokal** di [`CONTRIBUTING.md`](./CONTRIBUTING.md)).
+Untuk mempelajari tentang *Golden Rules*, struktur format pesan commit, dan daftar centang Pull Request, harap baca dengan saksama:
 
----
-
-## ❓ Troubleshooting & Kendala Umum
-
-### 1. Port 3000 Sudah Digunakan (*Port in Use*)
-Jika muncul pesan error `Port 3000 is already in use`:
-* **Di Mac / Linux**: Cari dan matikan proses yang menggunakan port 3000:
-  ```bash
-  lsof -i :3000
-  kill -9 <PID_PROSES>
-  ```
-* Atau jalankan Next.js di port lain:
-  ```bash
-  npm run dev -- -p 3001
-  ```
-
-### 2. Perubahan Kode Tidak Terdeteksi di Docker (Khusus macOS)
-Konfigurasi `docker-compose.yml` sudah dilengkapi dengan `WATCHPACK_POLLING=true`. Jika perubahan masih tidak terbaca:
-* Pastikan Docker Desktop memiliki izin akses file sharing ke folder project Anda (*Docker Settings -> Resources -> File Sharing*).
-* Lakukan restart kontainer dengan `docker compose restart web`.
-
-### 3. Mengembalikan Data Pengujian ke Kondisi Awal (Reset Mock Data)
-Jika data pesanan atau paket di browser Anda sudah terlalu banyak setelah pengujian:
-* Masuk ke halaman **Settings** (`/admin/settings`).
-* Pilih sub-menu **Pemeliharaan & Simulator Data**.
-* Klik tombol merah **"Reset ke Data Awal Pabrik"** (tombol ini otomatis muncul jika server dijalankan pada mode development).
-* Seluruh data di `localStorage` akan kembali bersih seperti kondisi awal pemasangan.
+👉 **[CONTRIBUTING.md](CONTRIBUTING.md)**
