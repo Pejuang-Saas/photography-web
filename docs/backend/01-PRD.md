@@ -1,7 +1,11 @@
 # 📄 Product Requirements Document (PRD) — Backend Service
 ## Photography Web & Studio Management Platform (Kaya Story Semarang)
 
-- **Versi**: 1.0.0
+### Version History
+| Versi | Tanggal | Penulis | Deskripsi Perubahan |
+| :--- | :--- | :--- | :--- |
+| **1.0.0** | 2026-09-15 | System Architect | Inisialisasi dokumen PRD Backend Service Kaya Story |
+
 - **Status**: Ready for Implementation
 - **Tech Stack**: NestJS 11, Prisma ORM 6.x, PostgreSQL 17, Redis 7, WAHA (WhatsApp HTTP API), Docker Compose
 - **Monorepo Path**: `apps/api` (Backend) $\leftrightarrow$ `apps/web` (Frontend)
@@ -22,6 +26,14 @@ Dokumen ini mendefinisikan seluruh kebutuhan fungsional (*Functional Requirement
 4. **Perlindungan Anti-Ban WhatsApp**: Menerapkan aturan kepatuhan jendela layanan pelanggan 24 jam (*24-hour messaging window*) pada modul Mini CRM untuk melindungi nomor WhatsApp studio dari pemblokiran Meta.
 5. **Zero Local Overhead**: Seluruh backend, prisma migration, database postgres, dan caching redis berjalan sepenuhnya terisolasi di dalam Docker tanpa mengotori host mesin lokal dengan `node_modules`.
 
+### 1.3 Out of Scope (Di Luar Cakupan v1.0.0)
+Fitur-fitur berikut tidak termasuk dalam rilis MVP (v1) ini:
+- Aplikasi Mobile Native (iOS / Android).
+- Sistem loyalitas pelanggan (Loyalty points, referral codes).
+- Multi-studio / Multi-branch management (hanya mendukung 1 lokasi di Tembalang).
+- Rekonsiliasi akuntansi otomatis dengan Bank (hanya menggunakan Payment Gateway atau validasi manual).
+- AI Auto-editing atau Face Recognition untuk pemilihan foto otomatis.
+
 ---
 
 ## 2. Peran Pengguna (User Personas & RBAC)
@@ -38,99 +50,158 @@ Dokumen ini mendefinisikan seluruh kebutuhan fungsional (*Functional Requirement
 ## 3. Kebutuhan Fungsional per Modul (Core Functional Modules)
 
 ### 3.1 Modul 1: Autentikasi, Otorisasi, & Manajemen Pengguna
-- **FR-AUTH-001**: Admin login menggunakan email dan password terenkripsi (`bcrypt` dengan salt round minimal 10).
-- **FR-AUTH-002**: Menghasilkan JWT Access Token (durasi 15 menit) dan Refresh Token (durasi 7 hari) yang disimpan dengan rotasi token pada database/Redis.
-- **FR-AUTH-003**: Guard rute berbasis peran (`@Roles('ADMIN', 'PHOTOGRAPHER')`) untuk seluruh endpoint yang berada di bawah prefix `/admin/*`.
-- **FR-AUTH-004**: Profil admin saat ini (`GET /admin/auth/me`) untuk inisialisasi sesi frontend.
+**Overview:** Modul ini menangani keamanan akses sistem, otentikasi admin dan fotografer, serta penerbitan token berbasis standar JWT untuk komunikasi stateless antara frontend dan backend.
+
+- **FR-AUTH-001**: Admin login menggunakan email dan password terenkripsi.
+  - **Acceptance Criteria**: Password wajib di-hash menggunakan `bcrypt` dengan salt round minimal 10. Jika email/password salah, sistem mengembalikan status 401 Unauthorized tanpa memberi tahu apakah email terdaftar.
+- **FR-AUTH-002**: Menghasilkan JWT Access Token (durasi 15 menit) dan Refresh Token (durasi 7 hari) yang disimpan dengan rotasi token.
+  - **Acceptance Criteria**: Setiap login sukses menerbitkan dua token. Endpoint refresh token akan mengeluarkan Access Token baru menggunakan Refresh Token yang valid. Refresh Token dicabut saat logout.
+- **FR-AUTH-003**: Guard rute berbasis peran (`@Roles('ADMIN', 'PHOTOGRAPHER')`) untuk rute `/admin/*`.
+  - **Acceptance Criteria**: Pengguna dengan peran PHOTOGRAPHER tidak bisa mengakses rute khusus ADMIN. Sistem mengembalikan status 403 Forbidden.
+- **FR-AUTH-004**: Profil saat ini (`GET /admin/auth/me`) untuk inisialisasi sesi frontend.
+  - **Acceptance Criteria**: Mengembalikan data user login tanpa menyertakan field password.
+
+**Business Constraints**: Sesi aktif maksimal hanya 1 perangkat per admin.
+**Integration Points**: Terintegrasi dengan guard/middleware global di seluruh controller backend.
 
 ### 3.2 Modul 2: Katalog Paket Layanan & Addon Studio
-Sesuai dengan data `INITIAL_PACKAGES` pada `apps/web/lib/mock-data.ts`:
-- **FR-PKG-001**: Menyajikan daftar paket foto aktif untuk landing page publik (`GET /packages`) dengan kategori:
-  - `Solo` (misal: Solo Kebaya Signature)
-  - `Squad` (misal: Duo Bestie Graduation, Squad Circle 4-6 Orang)
-  - `Family` (misal: Family Heritage Portrait)
-  - `Cinematic` (misal: 35mm Analog Film Experience)
-- **FR-PKG-002**: Setiap paket memiliki atribut: `price`, `durationMinutes`, `maxPeople`, `editedPhotos`, `allRawIncluded` (boolean), `slug`, dan `isActive`.
-- **FR-PKG-003**: Pengelolaan Addon Studio (Frame Kayu 12R, Express Edit 24 Jam, Extra 5 Edited Photos, Album Eksklusif Kulit) dengan harga dinamis.
-- **FR-PKG-004**: CRUD Paket & Addon khusus Admin dengan revalidasi otomatis ke katalog publik.
+**Overview:** Mengelola seluruh data layanan, harga, deskripsi, serta ketersediaan add-on yang bisa dipesan pelanggan pada halaman booking.
+
+- **FR-PKG-001**: Menyajikan daftar paket foto aktif untuk landing page publik (`GET /packages`).
+  - **Acceptance Criteria**: Mendukung filter kategori (`Solo`, `Squad`, `Family`, `Cinematic`). Hanya menampilkan paket yang `isActive=true`.
+- **FR-PKG-002**: Struktur atribut paket detail.
+  - **Acceptance Criteria**: Harus memiliki atribut: `price`, `durationMinutes`, `maxPeople`, `editedPhotos`, `allRawIncluded`, `slug`, dan `isActive`.
+- **FR-PKG-003**: Pengelolaan Addon Studio.
+  - **Acceptance Criteria**: Admin dapat menambah variasi addon beserta harga, dan menonaktifkan addon yang kehabisan stok (seperti Frame Kayu 12R).
+- **FR-PKG-004**: CRUD Paket & Addon khusus Admin dengan revalidasi otomatis.
+  - **Acceptance Criteria**: Endpoint Admin (POST/PUT/DELETE) harus membersihkan cache Redis terkait katalog (`DEL cache:packages`).
+
+**Business Constraints**: Harga tidak bisa diset di bawah nilai operasional minimum.
+**Integration Points**: Diperlukan oleh Modul 3 (Kalkulasi slot berdasarkan durasi) dan Modul 5 (Invoice).
 
 ### 3.3 Modul 3: Reservasi, Kalender, & Engine Slot Sesi Studio
-- **FR-BKG-001 (Kalkulasi Ketersediaan Slot)**: Endpoint publik `GET /bookings/availability?date=YYYY-MM-DD` menghitung ketersediaan slot jam operasional (08:00 - 18:00) berdasarkan:
-  - Durasi paket yang dipilih.
-  - Sesi booking yang sudah berstatus `CONFIRMED` atau `PENDING_VERIFICATION`.
-  - Daftar hari/jam libur studio (*Blackout Dates*).
-- **FR-BKG-002 (Pencegahan Double Booking Atomik)**: Saat pelanggan melakukan submit booking (`POST /bookings`), backend membuka transaksi database (`prisma.$transaction`) dengan row-level lock atau constraint unik `[sessionDate, timeSlot, location]` untuk mencegah race condition.
-- **FR-BKG-003 (Penomoran Booking Unik)**: Format kode pemesanan terstandarisasi: `KYA-YYYY-XXX` (misal: `KYA-2026-081`).
+**Overview:** Core engine aplikasi yang menangani pendaftaran sesi baru, validasi tanggal ketersediaan, serta pencegahan bentrok jadwal (double-booking).
+
+- **FR-BKG-001 (Kalkulasi Ketersediaan Slot)**: Publik `GET /bookings/availability?date=YYYY-MM-DD`.
+  - **Acceptance Criteria**: Menghitung sisa slot dari jam 08:00 - 18:00, mengabaikan slot yang sudah `CONFIRMED` atau `PENDING_VERIFICATION`, mempertimbangkan durasi paket, dan merespons `[]` jika tanggal masuk *Blackout Date*.
+- **FR-BKG-002 (Pencegahan Double Booking Atomik)**:
+  - **Acceptance Criteria**: Database transaction wajib menggunakan *row-level lock* (`SELECT ... FOR UPDATE`) dan/atau *unique constraint*. Jika slot sudah diambil detik terakhir, kembalikan 409 Conflict.
+- **FR-BKG-003 (Penomoran Booking Unik)**:
+  - **Acceptance Criteria**: Format kode pemesanan otomatis menjadi `KYA-YYYY-XXX` dan ter-increment dengan benar.
 - **FR-BKG-004 (Status Siklus Booking)**:
-  - `PENDING_VERIFICATION`: Pelanggan sudah checkout dan mengunggah bukti bayar, menunggu aksi admin.
-  - `CONFIRMED`: Pembayaran terverifikasi, jadwal terkunci, invoice terbit.
-  - `COMPLETED`: Sesi pemotretan dan penyerahan file foto telah selesai.
-  - `CANCELLED`: Dibatalkan oleh pelanggan atau kedaluwarsa tanpa bukti bayar.
-- **FR-BKG-005 (Blackout Dates Management)**: Admin dapat menambahkan penanda libur studio (misal: Idul Fitri, Renovasi Studio, Libur Tahun Baru) yang otomatis menutup seluruh ketersediaan slot di tanggal tersebut.
+  - **Acceptance Criteria**: Sistem harus melacak status transaksi: `PENDING_VERIFICATION`, `CONFIRMED`, `COMPLETED`, `CANCELLED`.
+- **FR-BKG-005 (Blackout Dates Management)**:
+  - **Acceptance Criteria**: Admin bisa menandai rentang tanggal libur, dan slot pada tanggal tersebut seketika hilang dari UI booking.
+
+**Business Constraints**: Jam operasional terbatas, dan satu slot hanya untuk satu fotografer (saat ini sistem single studio).
+**Integration Points**: Modul 4 (Pembayaran) dan Notifikasi WAHA.
 
 ### 3.4 Modul 4: Dual Payment & Verifikasi Transfer Anti-Scam
-Mengacu langsung pada spesifikasi frontend `docs/frontend/superpowers/specs/2026-09-08-dual-payment-mode-design.md`:
-- **FR-PAY-001 (Mode Pembayaran Dinamis)**: Sistem mendukung 2 mode yang dapat diaktifkan/dinonaktifkan admin:
-  1. *Mode Manual*: Transfer Bank BCA, Mandiri, BRI, BSI, atau Static QRIS.
-  2. *Mode Otomatis (Gateway)*: Midtrans / Xendit (Virtual Account, Gopay, ShopeePay, QRIS Dinamis).
-- **FR-PAY-002 (Kalkulasi Pembayaran)**: Mendukung pembayaran bertahap (Down Payment / DP minimal 50% atau Lunas 100%).
-- **FR-PAY-003 (Upload Bukti Transfer)**: Endpoint `POST /bookings/:id/payment-proof` menerima berkas gambar (JPG, PNG, WebP maksimal 5MB), memvalidasi signature file (anti-malware), dan menyimpannya ke penyimpanan terproteksi.
-- **FR-PAY-004 (Verifikasi Admin)**: Admin dapat menyetujui (`POST /admin/bookings/:id/verify-payment`) dengan mencantumkan nominal riil yang masuk ke rekening mutasi bank dan memilih status (`PAID_DP` atau `PAID_FULL`).
-- **FR-PAY-005 (Penolakan Bukti Transfer)**: Admin dapat menolak bukti transfer palsu/buram (`POST /admin/bookings/:id/reject-payment`) dengan alasan wajib (*rejection reason*). Sistem otomatis memicu pesan WhatsApp ke pelanggan agar mengunggah ulang bukti transfer yang benar.
+**Overview:** Sistem penerimaan pembayaran baik melalui unggahan bukti transfer manual yang diaudit admin, maupun gateway instan.
+
+- **FR-PAY-001 (Mode Pembayaran Dinamis)**:
+  - **Acceptance Criteria**: Konfigurasi database dapat mengalihkan antara mode manual dan gateway secara *on-the-fly*.
+- **FR-PAY-002 (Kalkulasi Pembayaran)**:
+  - **Acceptance Criteria**: Harus menghitung subtotal + addon, dan mengizinkan pelanggan memilih Down Payment (DP) 50% atau Lunas.
+- **FR-PAY-003 (Upload Bukti Transfer)**:
+  - **Acceptance Criteria**: Endpoint `POST` memeriksa MIME type (`image/jpeg`, `image/png`, `image/webp`), ukuran < 5MB. Mengembalikan status sukses dengan URL berkas ke frontend.
+- **FR-PAY-004 (Verifikasi Admin)**:
+  - **Acceptance Criteria**: Admin menyetujui, mencatat nominal riil, dan status berubah ke `CONFIRMED`. Otomatis memicu Job Queue untuk Invoicing.
+- **FR-PAY-005 (Penolakan Bukti Transfer)**:
+  - **Acceptance Criteria**: Jika ditolak, status tetap `PENDING_VERIFICATION`, kolom alasan penolakan diisi, dan webhook WhatsApp dikirim agar user re-upload.
+
+**Business Constraints**: Bukti transfer wajib diunggah dalam tempo 1x24 jam sejak booking dibuat.
+**Integration Points**: Terintegrasi ke Modul 3 (ubah status) dan Modul 5 (generate invoice).
 
 ### 3.5 Modul 5: Penerbitan Invoice Resmi & Dokumen Digital
-- **FR-INV-001**: Terbit otomatis ketika booking dinyatakan `CONFIRMED` dengan kode penomoran resmi: `INV-KYA-YYYY-XXX` (contoh: `INV-KYA-2026-083`).
-- **FR-INV-002**: Kompilasi dokumen PDF Invoice beresolusi tinggi memuat:
-  - Header Logo Kaya Story Studio Tembalang & Alamat Fisik.
-  - Detail Wisudawan: Nama, No WA, Email, Universitas & Fakultas.
-  - Rincian Paket, Addon, Durasi Sesi, dan Tanggal/Jam Pemotretan.
-  - Rincian Keuangan: Subtotal, Diskon, Total Bayar, Nominal Terbayar, dan Sisa Tagihan (jika DP).
-  - Tanda tangan digital / stempel stiker "LUNAS" / "DP DITERIMA".
+**Overview:** Engine penghasil PDF dokumen tagihan legal dan resmi secara background (asynchronous) setelah pembayaran lunas atau DP dibayar.
+
+- **FR-INV-001 (Kode Invoice)**:
+  - **Acceptance Criteria**: Saat status berubah ke `CONFIRMED`, sistem otomatis men-*generate* nomor seperti `INV-KYA-2026-083`.
+- **FR-INV-002 (Kompilasi PDF)**:
+  - **Acceptance Criteria**: Men-generate PDF berisikan rincian pesanan lengkap, header studio, tanda tangan LUNAS/DP, dan disimpan ke storage, mereturn URL permanen.
+
+**Business Constraints**: Dokumen tidak dapat diubah (immutable) setelah digenerate.
+**Integration Points**: Worker PDF Generator dan Modul 4 (Pembayaran).
 
 ### 3.6 Modul 6: Integrasi WAHA (WhatsApp HTTP API) & Mini CRM Anti-Ban
-Mengacu langsung pada spesifikasi `docs/frontend/superpowers/specs/2026-09-08-waha-mini-crm-design.md`:
-- **FR-CRM-001 (Status Sesi WAHA)**: Endpoint `GET /admin/waha/status` memonitor status container `dev-waha`: `STARTING`, `SCAN_QR_CODE`, `WORKING`, `FAILED`, `STOPPED`.
-- **FR-CRM-002 (Inisialisasi & Scan QR)**: Menyediakan QR Code visual untuk proses pairing WhatsApp Web studio.
-- **FR-CRM-003 (Ingestion Webhook Chat Masuk)**: Endpoint `POST /webhooks/waha` menerima payload obrolan pelanggan, menyinkronkan data kontak dengan pemesanan pelanggan berdasarkan nomor telepon (`customerPhone`), dan mencatat timestamp pesan terakhir pelanggan (`lastCustomerMessageAt`).
+**Overview:** Menyambungkan backend dengan WhatsApp resmi menggunakan engine WAHA untuk pengiriman notifikasi otomatis dan obrolan 2 arah via admin dashboard.
+
+- **FR-CRM-001 (Status Sesi WAHA)**:
+  - **Acceptance Criteria**: Admin UI dapat memonitor status container WAHA (STARTING, SCAN_QR_CODE, dll) secara realtime (via polling/SSE).
+- **FR-CRM-002 (Inisialisasi & Scan QR)**:
+  - **Acceptance Criteria**: Jika terputus, backend mereturn base64 image dari WAHA ke dashboard untuk dipindai ulang.
+- **FR-CRM-003 (Ingestion Webhook Chat Masuk)**:
+  - **Acceptance Criteria**: Webhook dari WAHA disimpan ke database, memperbarui flag `lastCustomerMessageAt`.
 - **FR-CRM-004 (Proteksi Jendela Layanan 24 Jam Anti-Ban)**:
-  - *Jendela Aktif ($\le 24$ Jam sejak chat masuk terakhir)*: Admin bebas mengirim pesan teks interaktif apa pun (*free-form text*).
-  - *Jendela Terkunci ($> 24$ Jam)*: Backend menolak pengiriman pesan bebas. Admin hanya diperbolehkan mengirim pesan yang menggunakan **Template Resmi Terdaftar** (misal template pengingat H-1 atau invoice resmi) demi mencegah nomor WhatsApp studio di-banned oleh sistem meta anti-spam.
-- **FR-CRM-005 (Kategori & Label Dinamis)**: Setiap chat dapat diberi tag: `Prospek Baru`, `Menunggu Transfer`, `Jadwal Dekat`, `Selesai Foto`, `Komplain/Revisi`.
+  - **Acceptance Criteria**: Pesan manual admin (`free-form`) akan diblokir dengan 403 jika `lastCustomerMessageAt` > 24 jam. Hanya API template yang diloloskan.
+- **FR-CRM-005 (Kategori & Label Dinamis)**:
+  - **Acceptance Criteria**: Chat bisa di-tag sesuai siklus booking pelanggan.
+
+**Business Constraints**: Menghindari pemblokiran WhatsApp dengan kepatuhan meta-policy (24h window).
+**Integration Points**: Modul 7 (Template) dan Modul 3 (Sinkronisasi profil pelanggan berdasar no HP).
 
 ### 3.7 Modul 7: Template Engine (WhatsApp & Email SMTP)
-Mengacu pada `2026-09-08-whatsapp-template-builder-design.md` dan `2026-09-08-email-smtp-and-template-builder-design.md`:
-- **FR-TPL-001 (Parser Tag Variabel)**: Engine parser mengenali dan mengganti tag variabel dinamis berikut:
-  - `{{customerName}}`: Nama lengkap pemesan
-  - `{{bookingCode}}`: Kode booking studio (contoh: KYA-2026-081)
-  - `{{sessionDate}}`: Tanggal pemotretan terformat (contoh: 25 Agustus 2026)
-  - `{{timeSlot}}`: Jam sesi (contoh: 09:00 - 10:00 WIB)
-  - `{{packageName}}`: Nama paket yang dipilih
-  - `{{totalPrice}}`: Total biaya dalam format Rupiah
-  - `{{invoiceNumber}}`: Nomor invoice resmi
-  - `{{paymentStatus}}`: Status pembayaran (Lunas / DP Rp xxx)
-  - `{{location}}`: Lokasi studio / outdoor
-  - `{{rejectionReason}}`: Catatan penolakan bukti bayar
-- **FR-TPL-002 (Email SMTP Dispatcher)**: Backend mengonfigurasi koneksi SMTP kustom (`host`, `port`, `secure`, `user`, `password`, `fromName`, `fromEmail`) dengan fasilitas tes koneksi (`POST /admin/settings/email/test-connection`).
-- **FR-TPL-003**: Pengiriman otomatis email konfirmasi disertai lampiran file PDF Invoice saat pembayaran diverifikasi.
+**Overview:** Modul penampung format dasar pesan broadcast/notifikasi agar admin bisa mengubah bahasa/kalimat tanpa mengubah kode.
+
+- **FR-TPL-001 (Parser Tag Variabel)**:
+  - **Acceptance Criteria**: Engine men-*replace* placeholder seperti `{{customerName}}`, `{{timeSlot}}`, `{{invoiceNumber}}` dengan nilai asli pelanggan.
+- **FR-TPL-002 (Email SMTP Dispatcher)**:
+  - **Acceptance Criteria**: Dapat mengatur dan menguji koneksi SMTP dari dashboard, dan menyimpan log pengiriman email berhasil/gagal.
+- **FR-TPL-003**: Pengiriman email/wa via BullMQ Queue.
+  - **Acceptance Criteria**: Background worker mengirim pesan + file pdf invoice otomatis dengan rate limiting dan auto-retry jika gagal.
+
+**Business Constraints**: Pesan template WA (ketika >24 jam) harus disesuaikan jika API resmi membutuhkan approval meta (sementara WAHA cukup menggunakan struktur pesan biasa).
+**Integration Points**: Seluruh proses notifikasi (Booking Sukses, Ingatkan Pembayaran, Tolak Bukti Transfer).
 
 ### 3.8 Modul 8: Profil Studio & Pengaturan Global
-- **FR-SET-001**: Menyimpan data profil studio (`nama`, `tagline`, `alamatLengkap`, `koordinatMaps`, `whatsappCS`, `instagram`, `nomorRekeningBCA`, `atasNamaBCA`).
-- **FR-SET-002**: Endpoint publik `GET /studio-profile` untuk konsumsi dinamis komponen Navbar, Footer, dan Campus Marquee di frontend.
+**Overview:** Penyimpanan metadata global aplikasi, akun bank studio, dan data presentasional frontend.
+
+- **FR-SET-001**: Menyimpan data profil studio (`nama`, `tagline`, `alamatLengkap`, `whatsappCS`, dll).
+  - **Acceptance Criteria**: Bisa diedit oleh admin via API `PUT /settings`.
+- **FR-SET-002**: Endpoint publik `GET /studio-profile`.
+  - **Acceptance Criteria**: Respons di-cache dan digunakan untuk render frontend footer/navbar.
+
+**Integration Points**: Redis Caching, Frontend SSR.
 
 ---
 
-## 4. Kebutuhan Non-Fungsional (Non-Functional Requirements)
+## 4. Aturan Bisnis Khusus (Business Rules)
+1. **BR-001 (Booking Lock)**: Sebuah slot waktu diblokir sementara (*soft-lock*) selama 15 menit saat pengguna mencapai halaman checkout untuk mencegah *race condition* dengan pengguna lain. Jika checkout tidak selesai dalam 15 menit, lock dilepas otomatis (via Redis TTL).
+2. **BR-002 (Tempo Pembayaran)**: Pemesanan yang masuk dan memilih pembayaran manual akan kedaluwarsa secara otomatis dalam 24 jam jika tidak ada bukti transfer yang diunggah. Cron job/Worker akan mengubah statusnya menjadi `CANCELLED`.
+3. **BR-003 (Sisa Pembayaran)**: Jika pelanggan memilih DP 50%, sisa pembayaran wajib diselesaikan di studio secara langsung (Tunai/QRIS) pada hari-H pemotretan.
+4. **BR-004 (Aturan 24-Jam WA)**: Admin tidak dapat mengirimkan balasan ketik bebas (*free-form*) kepada nomor yang tidak membalas atau chatnya terakhir kali lewat dari 24 jam, guna menjaga keamanan nomor WA dari ban.
 
-### 4.1 Performa & Skalabilitas
+---
+
+## 5. Katalog Kode Kesalahan (Error Codes Table)
+Sistem menggunakan penomoran error spesifik yang dapat dilacak di frontend:
+
+| HTTP Status | Error Code | Deskripsi Skenario |
+| :--- | :--- | :--- |
+| `409` | `SLOT_UNAVAILABLE` | Pelanggan mencoba booking di slot waktu yang sudah dipesan. |
+| `409` | `LOCK_TIMEOUT` | Gagal mendapatkan *row-level lock* database dalam waktu yang ditentukan. |
+| `400` | `PAYMENT_PROOF_INVALID` | Berkas unggahan bukan gambar atau ukurannya melampaui batas (5MB). |
+| `400` | `BOOKING_EXPIRED` | Pelanggan mencoba mengunggah bukti bayar pada pesanan yang telah kedaluwarsa. |
+| `403` | `WAHA_WINDOW_LOCKED` | Admin mencoba mengirim pesan non-template >24 jam sejak interaksi terakhir pelanggan. |
+| `422` | `INVALID_TRANSITION` | Admin mencoba memindahkan status booking yang dilarang (misal dari `COMPLETED` ke `PENDING_VERIFICATION`). |
+| `404` | `BOOKING_NOT_FOUND` | ID / Kode pemesanan tidak ada di database. |
+| `401` | `UNAUTHORIZED_ACCESS` | Token JWT tidak ada, kadaluwarsa, atau tidak valid. |
+
+---
+
+## 6. Kebutuhan Non-Fungsional (Non-Functional Requirements)
+
+### 6.1 Performa & Skalabilitas
 - **NFR-PERF-001**: Waktu respons P95 untuk endpoint read (`GET /packages`, `GET /bookings/availability`) wajib di bawah 100ms menggunakan bantuan cache Redis.
 - **NFR-PERF-002**: Pengiriman WhatsApp dan perenderan PDF Invoice wajib didelegasikan ke *Background Worker Queue* (BullMQ + Redis) agar tidak memblokir thread HTTP utama.
 
-### 4.2 Keamanan (Security)
+### 6.2 Keamanan (Security)
 - **NFR-SEC-001**: Proteksi Cross-Origin Resource Sharing (CORS) hanya menerima origin yang didefinisikan pada environment variable `WEB_URL`.
 - **NFR-SEC-002**: Global Rate Limiting menggunakan `nestjs-throttler` (maksimal 60 request/menit untuk API publik, dan 5 request/menit untuk upload bukti transfer).
 - **NFR-SEC-003**: Sanitasi input dan proteksi injeksi SQL 100% menggunakan parameter binding Prisma ORM dan DTO validation pipe.
 
-### 4.3 Ketersediaan & Infrastruktur
+### 6.3 Ketersediaan & Infrastruktur
 - **NFR-INFRA-001**: Terhubung ke Docker network bersama `dev-network` memanfaatkan container `dev-postgres` (Port 5432) dan `dev-redis` (Port 6379).
 - **NFR-INFRA-002**: Health check endpoint `/health` memvalidasi latensi koneksi aktif ke PostgreSQL dan Redis secara periodik.
 - **NFR-INFRA-003**: Tidak ada pembuatan berkas `node_modules` pada host lokal developer.

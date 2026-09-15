@@ -257,7 +257,131 @@ Untuk memastikan respons API di bawah 100ms dan mencegah lock persaingan saat ri
 
 ---
 
-## 3. Representasi Prisma Schema Produksi (`schema.prisma`)
+## 3. Data Dictionary
+
+Berikut adalah detail lengkap setiap tabel beserta kolom-kolomnya yang esensial.
+
+### Tabel `users`
+Tabel yang menyimpan data kredensial dan profil user di dalam sistem (Admin, Staff, Photographer).
+
+| Column | Type | Nullable | Default | Business Meaning |
+|---|---|---|---|---|
+| `id` | UUID | No | `uuid_generate_v4()` | Primary Key unik tiap user. |
+| `email` | String | No | - | Email login (Unique). |
+| `password_hash`| String | No | - | Bcrypt hash untuk keamanan password. |
+| `name` | String | No | - | Nama lengkap user. |
+| `role` | Enum | No | `STAFF` | Peran user: `ADMIN`, `PHOTOGRAPHER`, `STAFF`. |
+| `avatar_url` | String | Yes | - | URL untuk foto profil user. |
+
+### Tabel `packages`
+Tabel untuk mengatur paket pemotretan yang ditawarkan studio.
+
+| Column | Type | Nullable | Default | Business Meaning |
+|---|---|---|---|---|
+| `id` | UUID | No | `uuid_generate_v4()` | Primary Key paket. |
+| `slug` | String | No | - | Identifier human-readable untuk URL paket (Unique). |
+| `category` | Enum | No | - | Kategori paket (`Solo`, `Squad`, `Family`, `Cinematic`). |
+| `price` | Int | No | - | Harga dasar paket. |
+| `duration_minutes` | Int | No | - | Durasi sesi foto dalam menit. |
+
+### Tabel `bookings`
+Tabel utama yang menyimpan seluruh data reservasi.
+
+| Column | Type | Nullable | Default | Business Meaning |
+|---|---|---|---|---|
+| `id` | UUID | No | `uuid_generate_v4()` | Primary Key booking. |
+| `booking_code` | String | No | - | Kode unik KYA-YYYY-XXX untuk pelanggan (Unique). |
+| `customer_phone` | String | No | - | Nomor WA pelanggan. |
+| `total_price` | Int | No | - | Total harga (Paket + Addons). |
+| `session_date` | Date | No | - | Tanggal pelaksanaan sesi foto. |
+| `status` | Enum | No | `PENDING_VERIFICATION` | Status reservasi. |
+
+---
+
+## 4. Seeder Data
+
+Berikut adalah contoh SQL query untuk inisialisasi awal (seeder) saat aplikasi pertama kali dijalankan.
+
+```sql
+-- Insert Studio Settings
+INSERT INTO studio_settings (id, studio_name, tagline, whatsapp_number, is_manual_active, updated_at) 
+VALUES ('default-studio', 'Kaya Story Photography', 'Semarang graduation & portrait studio', '6281234567890', true, NOW());
+
+-- Insert Initial Admin
+INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at)
+VALUES (gen_random_uuid(), 'admin@kayastory.com', '$2b$10$supersecret', 'Admin Utama', 'ADMIN', NOW(), NOW());
+
+-- Insert Initial Packages
+INSERT INTO packages (id, name, slug, category, price, duration_minutes, max_people, edited_photos, created_at, updated_at)
+VALUES (gen_random_uuid(), 'Solo Kebaya Signature', 'solo-kebaya', 'Solo', 450000, 45, 1, 10, NOW(), NOW());
+
+-- Insert Initial Addon
+INSERT INTO addons (id, name, price, is_active, created_at, updated_at)
+VALUES (gen_random_uuid(), 'Cetak 10R Kayu', 150000, true, NOW(), NOW());
+```
+
+---
+
+## 5. Common Query Patterns (Prisma)
+
+Berikut adalah beberapa pattern query utama yang sering digunakan di backend.
+
+### 5.1 Cek Ketersediaan Slot Waktu
+```typescript
+const isSlotAvailable = await prisma.booking.findFirst({
+  where: {
+    sessionDate: targetDate,
+    timeSlot: targetSlot,
+    status: {
+      in: ['CONFIRMED', 'PENDING_VERIFICATION']
+    }
+  }
+});
+```
+
+### 5.2 Verifikasi Pembayaran & Auto Update
+```typescript
+const booking = await prisma.booking.update({
+  where: { id: bookingId },
+  data: {
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID_FULL',
+    invoice: {
+      create: {
+        invoiceNumber: generateInvoiceNumber(),
+        subtotal: 450000,
+        totalAmount: 450000,
+        paidAmount: 450000,
+        balanceDue: 0
+      }
+    }
+  }
+});
+```
+
+### 5.3 Cek Status Jendela 24 Jam CRM
+```typescript
+const chat = await prisma.crmChat.findUnique({
+  where: { phoneNumber: customerPhone }
+});
+const isLocked = dayjs().diff(dayjs(chat.lastCustomerMessageAt), 'hours') >= 24;
+```
+
+---
+
+## 6. Migration Strategy
+
+Pengelolaan perubahan skema database dibagi ke dalam pendekatan Dev dan Prod:
+
+- **Local / Development**: Menggunakan `npx prisma migrate dev --name <nama_migrasi>`. Ini akan otomatis melakukan reset pada db lokal jika ada konflik atau drift.
+- **Production**:
+  1. Build artifact menyimpan file `.sql` dari folder `prisma/migrations`.
+  2. Saat CD/Deployment, jalankan `npx prisma migrate deploy` untuk mengaplikasikan migrasi secara aman ke database Production tanpa reset data.
+  3. Gunakan `npx prisma db push` HANYA untuk environment non-produksi seperti staging sandbox (bila dibutuhkan).
+
+---
+
+## 7. Representasi Prisma Schema Produksi (`schema.prisma`)
 
 Berikut rancangan skema Prisma lengkap yang disiapkan untuk tahap implementasi di `apps/api/prisma/schema.prisma`:
 

@@ -4,13 +4,78 @@
 - **Base URL Public**: `http://localhost:3002/api/v1`
 - **Internal Docker URL**: `http://photography-api:3000/api/v1`
 - **Interactive Documentation**: Swagger UI tersedia di `http://localhost:3002/docs`
-- **Autentikasi**: Bearer Token (`Authorization: Bearer <JWT_ACCESS_TOKEN>`)
 
 ---
 
-## 1. Modul Autentikasi (`/api/v1/auth`)
+## 1. Global Headers & Authentication
 
-### 1.1 Login Admin
+Sistem menggunakan skema autentikasi Bearer JWT. Token didapatkan dari endpoint `/auth/login` dan harus disertakan di dalam setiap *request* yang membutuhkan autentikasi (Admin/Staff access).
+
+**Contoh Header:**
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+## 2. Standard Error Codes Catalogue
+
+Apabila terjadi kesalahan, API akan membalas dengan struktur respon gagal standar.
+
+| HTTP Status | Error Code | Deskripsi |
+|---|---|---|
+| `400` | `BAD_REQUEST` | Input dari klien tidak sesuai format (validasi gagal). |
+| `401` | `UNAUTHORIZED` | Token hilang atau tidak valid. |
+| `403` | `FORBIDDEN` | Pengguna tidak memiliki akses. (Misal: `CRM_24H_WINDOW_LOCKED`). |
+| `404` | `NOT_FOUND` | Data/Resource yang dicari tidak ditemukan. |
+| `429` | `TOO_MANY_REQUESTS` | Melebihi limit *Rate Limiting*. |
+| `500` | `INTERNAL_SERVER_ERROR` | Terjadi kesalahan pada internal server. |
+
+**Contoh Error Response:**
+```json
+{
+  "success": false,
+  "statusCode": 403,
+  "message": "Jendela interaksi 24 jam telah terkunci untuk kontak ini.",
+  "errorCode": "CRM_24H_WINDOW_LOCKED"
+}
+```
+
+---
+
+## 3. Pagination & Rate Limiting
+
+### Pagination
+Semua endpoint berjenis list menggunakan parameter query `page` dan `limit` dengan pembungkus (*envelope*) struktur pagination.
+
+**Contoh Query:** `GET /admin/bookings?page=1&limit=10`
+
+**Contoh Response Envelope:**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": [...],
+  "meta": {
+    "total": 55,
+    "page": 1,
+    "lastPage": 6,
+    "limit": 10
+  }
+}
+```
+
+### Rate Limiting
+Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
+- `POST /auth/login` : 5 req / menit / IP
+- `POST /bookings` : 10 req / menit / IP
+- Endpoint lain standar 60 req / menit / IP
+
+---
+
+## 4. Modul Autentikasi (`/api/v1/auth`)
+
+### 4.1 Login Admin
 - **Method / Endpoint**: `POST /auth/login`
 - **Akses**: Public
 - **Request Body**:
@@ -28,7 +93,6 @@
     "message": "Login berhasil",
     "data": {
       "accessToken": "eyJhbGciOiJIUzI1NiIsIn...",
-      "refreshToken": "dGhpcy1pcy1hLXJlZnJl...",
       "user": {
         "id": "usr-01",
         "name": "Bima Satria",
@@ -38,14 +102,23 @@
     }
   }
   ```
+- **Error Response `401 Unauthorized`**:
+  ```json
+  {
+    "success": false,
+    "statusCode": 401,
+    "message": "Email atau password salah",
+    "errorCode": "UNAUTHORIZED"
+  }
+  ```
 
 ---
 
-## 2. Modul Katalog Paket & Addon (`/api/v1/packages`)
+## 5. Modul Katalog Paket & Addon (`/api/v1/packages`)
 
-### 2.1 Ambil Semua Paket Aktif (Katalog Publik)
+### 5.1 Ambil Semua Paket Aktif (Katalog Publik)
 - **Method / Endpoint**: `GET /packages`
-- **Query Params**: `?category=Solo` *(opsional: Solo, Squad, Family, Cinematic)*
+- **Query Params**: `?category=Solo` *(opsional)*
 - **Response `200 OK`**:
   ```json
   {
@@ -68,11 +141,87 @@
   }
   ```
 
+### 5.2 (Admin) Get All Packages
+- **Method**: `GET /admin/packages`
+- **Akses**: Admin
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "data": [
+      {
+        "id": "pkg-1",
+        "name": "Solo Kebaya",
+        "isActive": true
+      }
+    ],
+    "meta": { "total": 10, "page": 1, "lastPage": 1, "limit": 10 }
+  }
+  ```
+
+### 5.3 (Admin) Create Package
+- **Method**: `POST /admin/packages`
+- **Akses**: Admin
+- **Request Body**:
+  ```json
+  {
+    "name": "Couple Package",
+    "slug": "couple-package",
+    "category": "Squad",
+    "price": 500000,
+    "durationMinutes": 60,
+    "maxPeople": 2,
+    "editedPhotos": 15
+  }
+  ```
+- **Response `201 Created`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 201,
+    "data": { "id": "pkg-2", "name": "Couple Package" }
+  }
+  ```
+- **Error Response `400 Bad Request`**:
+  ```json
+  {
+    "success": false,
+    "statusCode": 400,
+    "message": "Slug sudah digunakan",
+    "errorCode": "BAD_REQUEST"
+  }
+  ```
+
+### 5.4 (Admin) Update Package
+- **Method**: `PUT /admin/packages/:id`
+- **Akses**: Admin
+- **Request Body**: (Opsional field yang ingin diupdate)
+  ```json
+  { "price": 550000, "isActive": false }
+  ```
+- **Response `200 OK`**:
+  ```json
+  { "success": true, "statusCode": 200, "data": { "id": "pkg-2", "price": 550000, "isActive": false } }
+  ```
+
+### 5.5 (Admin) Delete Package
+- **Method**: `DELETE /admin/packages/:id`
+- **Akses**: Admin
+- **Response `200 OK`**:
+  ```json
+  { "success": true, "statusCode": 200, "message": "Paket berhasil dihapus secara sistem (soft delete)" }
+  ```
+- **Error Response `404 Not Found`**:
+  ```json
+  { "success": false, "statusCode": 404, "message": "Paket tidak ditemukan", "errorCode": "NOT_FOUND" }
+  ```
+
 ---
 
-## 3. Modul Reservasi & Checkout (`/api/v1/bookings`)
+## 6. Modul Reservasi & Checkout (`/api/v1/bookings`)
 
-### 3.1 Cek Ketersediaan Slot Waktu Sesi
+### 6.1 Cek Ketersediaan Slot Waktu Sesi
 - **Method / Endpoint**: `GET /bookings/availability`
 - **Query Params**: `?date=2026-08-25&packageId=pkg-1`
 - **Response `200 OK`**:
@@ -85,17 +234,19 @@
       "isBlackoutDate": false,
       "slots": [
         { "timeSlot": "09:00 - 10:00", "available": false, "reason": "Booked" },
-        { "timeSlot": "10:30 - 11:30", "available": true },
-        { "timeSlot": "13:00 - 14:00", "available": true },
-        { "timeSlot": "15:00 - 16:00", "available": true }
+        { "timeSlot": "10:30 - 11:30", "available": true }
       ]
     }
   }
   ```
+- **Error Response `400 Bad Request`**:
+  ```json
+  { "success": false, "statusCode": 400, "message": "Tanggal diperlukan", "errorCode": "BAD_REQUEST" }
+  ```
 
-### 3.2 Pembuatan Booking Baru (Step 1-3 Checkout)
+### 6.2 Pembuatan Booking Baru (Step 1-3 Checkout)
 - **Method / Endpoint**: `POST /bookings`
-- **Akses**: Public (Throttled: Max 10 req/menit)
+- **Akses**: Public
 - **Request Body**:
   ```json
   {
@@ -103,13 +254,13 @@
     "customerName": "Anisa Rahmawati",
     "customerPhone": "081234567890",
     "customerEmail": "anisa.rahma@gmail.com",
-    "university": "Universitas Diponegoro (Undip)",
-    "faculty": "Fakultas Ekonomika dan Bisnis",
+    "university": "Universitas Diponegoro",
+    "faculty": "Ekonomi",
     "sessionDate": "2026-08-25",
     "timeSlot": "10:30 - 11:30",
-    "location": "Studio Kayastory (Tembalang)",
-    "addonIds": ["ad-1", "ad-2"],
-    "notes": "Mau tone warm vintage 35mm, bawa 2 kebaya ganti."
+    "location": "Studio Tembalang",
+    "addonIds": ["ad-1"],
+    "notes": "Tone warm"
   }
   ```
 - **Response `201 Created`**:
@@ -117,7 +268,7 @@
   {
     "success": true,
     "statusCode": 201,
-    "message": "Pemesanan berhasil dibuat, silakan lakukan pembayaran",
+    "message": "Pemesanan berhasil",
     "data": {
       "bookingId": "c8b4f102-...",
       "bookingCode": "KYA-2026-081",
@@ -132,181 +283,194 @@
     }
   }
   ```
+- **Error Response `409 Conflict`**:
+  ```json
+  { "success": false, "statusCode": 409, "message": "Slot waktu sudah dipesan", "errorCode": "SLOT_UNAVAILABLE" }
+  ```
 
-### 3.3 Unggah Bukti Pembayaran (Step 4 Checkout)
-- **Method / Endpoint**: `POST /bookings/:id/payment-proof`
-- **Content-Type**: `multipart/form-data`
-- **Body Form**:
-  - `file`: (File gambar bukti transfer, maks 5MB)
-  - `paymentBank`: "BCA (A.N. Anisa Rahmawati)"
-  - `paymentAmount`: 645000
+### 6.3 Get Booking By ID / Code
+- **Method**: `GET /bookings/:id`
 - **Response `200 OK`**:
   ```json
   {
     "success": true,
     "statusCode": 200,
-    "message": "Bukti pembayaran berhasil diunggah, menunggu verifikasi admin studio",
     "data": {
       "bookingCode": "KYA-2026-081",
-      "paymentStatus": "WAITING_CONFIRMATION"
-    }
-  }
-  ```
-
-### 3.4 Verifikasi Pembayaran oleh Admin
-- **Method / Endpoint**: `POST /admin/bookings/:id/verify-payment`
-- **Header**: `Authorization: Bearer <TOKEN>`
-- **Request Body**:
-  ```json
-  {
-    "verifiedAmount": 645000,
-    "isFull": true
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Pembayaran dikonfirmasi. Invoice terbit dan otomatis dikirim via WhatsApp & Email.",
-    "data": {
-      "invoiceNumber": "INV-KYA-2026-081",
+      "customerName": "Anisa Rahmawati",
+      "sessionDate": "2026-08-25",
+      "timeSlot": "10:30 - 11:30",
       "status": "CONFIRMED",
       "paymentStatus": "PAID_FULL"
     }
   }
   ```
+- **Error Response `404 Not Found`**:
+  ```json
+  { "success": false, "statusCode": 404, "message": "Booking tidak ditemukan", "errorCode": "NOT_FOUND" }
+  ```
 
-### 3.5 Penolakan Bukti Pembayaran oleh Admin
-- **Method / Endpoint**: `POST /admin/bookings/:id/reject-payment`
-- **Request Body**:
+### 6.4 (Admin) Get All Bookings
+- **Method**: `GET /admin/bookings`
+- **Akses**: Admin
+- **Query Params**: `?status=CONFIRMED&page=1&limit=20&search=KYA-2026-081`
+- **Response `200 OK`**:
   ```json
   {
-    "reason": "Nominal transfer tidak sesuai (kurang Rp 50.000) atau bukti transfer buram."
+    "success": true,
+    "statusCode": 200,
+    "data": [
+      {
+        "id": "...",
+        "bookingCode": "KYA-2026-081",
+        "customerName": "Anisa Rahmawati",
+        "status": "CONFIRMED"
+      }
+    ],
+    "meta": { "total": 100, "page": 1, "lastPage": 5, "limit": 20 }
   }
+  ```
+
+### 6.5 Unggah Bukti Pembayaran (Step 4 Checkout)
+- **Method**: `POST /bookings/:id/payment-proof`
+- **Content-Type**: `multipart/form-data`
+- **Body Form**: `file`, `paymentBank`, `paymentAmount`
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Bukti pembayaran diunggah",
+    "data": { "paymentStatus": "WAITING_CONFIRMATION" }
+  }
+  ```
+
+### 6.6 (Admin) Verifikasi Pembayaran
+- **Method**: `POST /admin/bookings/:id/verify-payment`
+- **Akses**: Admin
+- **Request Body**:
+  ```json
+  { "verifiedAmount": 645000, "isFull": true }
   ```
 - **Response `200 OK`**:
   ```json
   {
     "success": true,
     "statusCode": 200,
-    "message": "Bukti transfer ditolak. Notifikasi perbaikan telah dikirim ke WhatsApp pemesan.",
+    "message": "Pembayaran dikonfirmasi",
+    "data": { "invoiceNumber": "INV-KYA-2026-081", "status": "CONFIRMED", "paymentStatus": "PAID_FULL" }
+  }
+  ```
+
+---
+
+## 7. Modul Invoices & Notifikasi
+
+### 7.1 (Admin) Get All Invoices
+- **Method**: `GET /admin/invoices`
+- **Akses**: Admin
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "data": [
+      { "invoiceNumber": "INV-KYA-2026-081", "totalAmount": 645000, "status": "PAID_FULL" }
+    ],
+    "meta": { "total": 50, "page": 1, "lastPage": 3, "limit": 20 }
+  }
+  ```
+
+### 7.2 (Admin) Get Notifications
+- **Method**: `GET /admin/notifications`
+- **Akses**: Admin
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "data": [
+      { "id": "notif-1", "title": "New Booking", "message": "Booking KYA-2026-081 created", "read": false }
+    ]
+  }
+  ```
+
+---
+
+## 8. Modul WAHA & Mini CRM (`/api/v1/admin/crm`)
+
+### 8.1 (Admin) Generate QR Code WAHA
+- **Method**: `POST /admin/waha/qr`
+- **Akses**: Admin
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "data": { "qrBase64": "data:image/png;base64,iVBORw0K..." }
+  }
+  ```
+
+### 8.2 (Admin) Update Chat Tag
+- **Method**: `PUT /admin/crm/chats/:id/tag`
+- **Akses**: Admin
+- **Request Body**: `{ "activeTag": "Menunggu Transfer" }`
+- **Response `200 OK`**:
+  ```json
+  { "success": true, "statusCode": 200, "message": "Tag diubah", "data": { "activeTag": "Menunggu Transfer" } }
+  ```
+
+### 8.3 Kirim Pesan WhatsApp CRM
+- **Method**: `POST /admin/crm/chats/:id/send`
+- **Akses**: Admin
+- **Request Body**:
+  ```json
+  { "messageType": "FREE_FORM", "content": "Halo kak" }
+  ```
+- **Error Response `403 Forbidden` (Jendela 24 jam terkunci)**:
+  ```json
+  { "success": false, "statusCode": 403, "message": "Jendela interaksi 24 jam terkunci", "errorCode": "CRM_24H_WINDOW_LOCKED" }
+  ```
+
+---
+
+## 9. Modul Pengaturan & Template
+
+### 9.1 (Admin) Get All Templates
+- **Method**: `GET /admin/templates`
+- **Akses**: Admin
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "data": [
+      { "id": "tpl-1", "code": "BOOKING_CREATED", "name": "Notif Booking", "type": "EMAIL" }
+    ]
+  }
+  ```
+
+### 9.2 (Admin) Update Template
+- **Method**: `PUT /admin/templates/:id`
+- **Akses**: Admin
+- **Request Body**: `{ "content": "Halo {{customerName}}, pesanan Anda..." }`
+- **Response `200 OK`**:
+  ```json
+  { "success": true, "statusCode": 200, "message": "Template diupdate" }
+  ```
+
+### 9.3 Get Studio Profile
+- **Method**: `GET /studio-profile`
+- **Akses**: Public
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
     "data": {
-      "status": "PENDING_VERIFICATION",
-      "paymentStatus": "REJECTED"
+      "studioName": "Kaya Story Photography",
+      "whatsappNumber": "6281234567890",
+      "address": "Jl. Banjarsari No. 48"
     }
-  }
-  ```
-
----
-
-## 4. Modul WAHA & Mini CRM (`/api/v1/admin/crm` & `/api/v1/webhooks`)
-
-### 4.1 Cek Status Engine WAHA
-- **Method / Endpoint**: `GET /admin/waha/status`
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "status": "WORKING",
-      "session": "default",
-      "connectedPhone": "6281234567890"
-    }
-  }
-  ```
-
-### 4.2 Webhook Masuk dari WAHA
-- **Method / Endpoint**: `POST /webhooks/waha`
-- **Akses**: Public (Divalidasi dengan Shared Secret Header)
-- **Payload Event WAHA**:
-  ```json
-  {
-    "event": "message",
-    "session": "default",
-    "payload": {
-      "id": "false_6281234567890@c.us_3EB0...",
-      "from": "6281234567890@c.us",
-      "body": "Halo kak, apakah slot tanggal 25 masih bisa?",
-      "timestamp": 1726418400
-    }
-  }
-  ```
-- **Logika Internal Backend**:
-  1. Ekstrak nomor HP pengirim.
-  2. Cari entitas `crm_chats` atau buat baru jika belum ada.
-  3. Perbarui `last_customer_message_at = NOW()` (Membuka jendela interaksi 24 jam).
-  4. Simpan pesan ke `crm_messages`.
-
-### 4.3 Kirim Pesan WhatsApp CRM (Dengan Validasi Jendela 24 Jam Anti-Ban)
-- **Method / Endpoint**: `POST /admin/crm/chats/:id/send`
-- **Request Body**:
-  ```json
-  {
-    "messageType": "FREE_FORM",
-    "content": "Halo kak Anisa, slotnya masih aman yaa, silakan langsung diamankan di website."
-  }
-  ```
-- **Response jika Jendela > 24 Jam (`403 Forbidden`)**:
-  ```json
-  {
-    "success": false,
-    "statusCode": 403,
-    "message": "Jendela interaksi 24 jam telah terkunci untuk kontak ini. Gunakan template resmi terdaftar untuk menyapa pelanggan kembali.",
-    "errorCode": "CRM_24H_WINDOW_LOCKED"
-  }
-  ```
-- **Request Body jika Jendela Terkunci (Menggunakan Template Resmi)**:
-  ```json
-  {
-    "messageType": "TEMPLATE",
-    "templateCode": "REMINDER_H_MIN_1",
-    "variables": {
-      "customerName": "Anisa Rahmawati",
-      "timeSlot": "09:00 WIB"
-    }
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Pesan template resmi berhasil dikirim melalui WAHA"
-  }
-  ```
-
----
-
-## 5. Modul Invoices & Dokumen PDF (`/api/v1/invoices`)
-
-### 5.1 Unduh File PDF Invoice
-- **Method / Endpoint**: `GET /invoices/:invoiceNumber/pdf`
-- **Akses**: Public (Menggunakan invoice token atau booking code)
-- **Response**: `Content-Type: application/pdf` (Binary Stream File)
-
----
-
-## 6. Modul Pengaturan & Profil Studio (`/api/v1/admin/settings`)
-
-### 6.1 Uji Koneksi Server Email SMTP
-- **Method / Endpoint**: `POST /admin/settings/email/test-connection`
-- **Request Body**:
-  ```json
-  {
-    "smtpHost": "smtp.gmail.com",
-    "smtpPort": 587,
-    "smtpSecure": false,
-    "smtpUser": "studio.kayastory@gmail.com",
-    "smtpPassword": "app-password-rahasia",
-    "targetEmail": "owner@kayastory.com"
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Koneksi SMTP berhasil dan email uji coba telah terkirim."
   }
   ```
