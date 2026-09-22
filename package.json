@@ -15,6 +15,7 @@
     "api:exec": "docker compose exec api",
     "api:prisma:migrate": "docker compose exec api npx prisma migrate dev",
     "api:prisma:studio": "docker compose exec api npx prisma studio",
-    "api:prisma:push": "docker compose exec api npx prisma db push"
+    "api:prisma:push": "docker compose exec api npx prisma db push",
+    "api:auth:create-admin": "docker compose exec api npm run auth:create-admin"
   }
 }

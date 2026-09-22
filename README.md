@@ -4,7 +4,7 @@
   ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)
   ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
   ![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)
-  ![Node.js](https://img.shields.io/badge/node->=20.0.0-339933.svg?style=for-the-badge&logo=nodedotjs&logoColor=white)
+  ![Node.js](https://img.shields.io/badge/node->=22.22.1-339933.svg?style=for-the-badge&logo=nodedotjs&logoColor=white)
 
   <p><strong>Sistem Manajemen Studio & Website Resmi Kaya Story (Semarang)</strong></p>
 
@@ -34,6 +34,7 @@ cd photography
 
 # 2. Siapkan file environment
 cp .env.example .env
+# Isi BETTER_AUTH_SECRET di .env dengan nilai acak dari: openssl rand -base64 32
 
 # 3. Jalankan seluruh infrastruktur dan aplikasi (Docker diwajibkan)
 docker compose -f infra/docker-compose.yml up -d
@@ -94,6 +95,7 @@ REDIS_URL="redis://dev-redis:6379"
 # Frontend Public URLs (Akan dibaca oleh browser)
 NEXT_PUBLIC_API_URL=http://localhost:3002
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+BETTER_AUTH_SECRET=<nilai-acak-minimal-32-karakter>
 ```
 
 ---
@@ -153,7 +155,7 @@ curl -I http://localhost:3000
 Gunakan metode ini jika Anda membutuhkan akses langsung ke Node.js runtime (misalnya untuk debugging intensif dengan VSCode debugger).
 
 ### 1. Prasyarat
-- **Node.js**: `v20.x` LTS atau lebih baru.
+- **Node.js**: `v22.22.1` atau lebih baru untuk backend Better Auth.
 - **Infrastruktur berjalan**: Pastikan PostgreSQL (`localhost:5432`) dan Redis (`localhost:6379`) aktif. Anda tetap bisa menggunakan container `infra/` dari Docker untuk ini.
 
 ### 2. Langkah Setup Backend (`apps/api`)

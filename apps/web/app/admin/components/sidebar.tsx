@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAdmin } from '@/lib/admin-context';
+import type { AdminUser } from '@/lib/admin-auth';
 import {
   LayoutDashboard,
   CalendarDays,
@@ -12,14 +13,13 @@ import {
   Layers,
   ArrowUpRight,
   ShieldCheck,
-  Camera,
   Settings2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ user }: { user: AdminUser }) {
   const pathname = usePathname();
   const { bookings } = useAdmin();
 
@@ -163,14 +163,14 @@ export default function AdminSidebar() {
 
         <div className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/60 p-2.5 shadow-2xs">
           <Avatar className="size-7 border border-amber-500/30">
-            <AvatarImage src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" />
+            <AvatarImage src={user.image ?? undefined} />
             <AvatarFallback className="bg-amber-500/20 text-xs font-bold text-amber-700 dark:text-amber-300">
-              KS
+              {user.name?.slice(0, 2).toUpperCase() ?? 'KS'}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col overflow-hidden">
-            <span className="truncate text-xs font-bold text-zinc-900 dark:text-white">Bima Satria</span>
-            <span className="truncate text-[10px] text-zinc-500">Studio Owner</span>
+            <span className="truncate text-xs font-bold text-zinc-900 dark:text-white">{user.name ?? user.email}</span>
+            <span className="truncate text-[10px] text-zinc-500">Administrator Studio</span>
           </div>
           <ShieldCheck className="size-3.5 text-amber-500 shrink-0" />
         </div>

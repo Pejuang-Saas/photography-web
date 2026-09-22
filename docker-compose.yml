@@ -12,6 +12,8 @@ services:
       - PORT=3000
       - API_URL=${API_URL:-http://localhost:3002}
       - WEB_URL=${WEB_URL:-http://localhost:3000}
+      - BETTER_AUTH_URL=${API_URL:-http://localhost:3002}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - DATABASE_URL=${DATABASE_URL:-postgresql://root:root@dev-postgres:5432/photography_db?schema=public}
       - REDIS_URL=${REDIS_URL:-redis://dev-redis:6379}
     volumes:
@@ -39,6 +41,7 @@ services:
       - WATCHPACK_POLLING=true
       - NEXT_PUBLIC_SITE_URL=${WEB_URL:-http://localhost:3000}
       - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:3002}
+      - API_INTERNAL_URL=http://photography-api:3000
     env_file:
       - path: ./apps/web/.env
         required: false

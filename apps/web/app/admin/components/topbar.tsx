@@ -11,7 +11,7 @@ import {
   Calendar,
   CreditCard,
   MessageSquare,
-  Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,12 +28,15 @@ import {
 } from '@/components/ui/sheet';
 import AdminSidebar from './sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
+import type { AdminUser } from '@/lib/admin-auth';
 
 interface AdminTopbarProps {
   onOpenNewBooking?: () => void;
+  onSignOut: () => void;
+  user: AdminUser;
 }
 
-export default function AdminTopbar({ onOpenNewBooking }: AdminTopbarProps) {
+export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: AdminTopbarProps) {
   const pathname = usePathname();
   const { notifications, unreadCount, markAllNotificationsRead, setSelectedBooking, bookings } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,7 +77,7 @@ export default function AdminTopbar({ onOpenNewBooking }: AdminTopbarProps) {
             }
           />
           <SheetContent side="left" className="p-0 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 w-64">
-            <AdminSidebar />
+            <AdminSidebar user={user} />
           </SheetContent>
         </Sheet>
 
@@ -179,6 +182,17 @@ export default function AdminTopbar({ onOpenNewBooking }: AdminTopbarProps) {
 
         {/* Theme Toggle */}
         <ThemeToggle />
+
+        <Button
+          onClick={onSignOut}
+          variant="ghost"
+          size="icon"
+          title="Keluar"
+          className="size-8 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+        >
+          <LogOut className="size-4" />
+          <span className="sr-only">Keluar</span>
+        </Button>
 
         {/* Quick Add Booking Action */}
         <Button

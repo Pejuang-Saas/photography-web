@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Install libc6-compat for alpine glibc compatibility if needed
 RUN apk add --no-cache libc6-compat
