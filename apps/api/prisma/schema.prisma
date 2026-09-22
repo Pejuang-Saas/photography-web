@@ -88,3 +88,102 @@ model Photo {
 
   @@map("photos")
 }
+
+model MediaAsset {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  url       String
+  filename  String
+  mimeType  String   @map("mime_type")
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  galleryItems GalleryItem[]
+  testimonials Testimonial[]
+
+  @@map("media_assets")
+}
+
+model GalleryCategory {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  galleryItems GalleryItem[]
+
+  @@map("gallery_categories")
+}
+
+model GalleryItem {
+  id           String    @id @default(uuid())
+  title        String
+  altText      String    @map("alt_text")
+  caption      String?
+  location     String?
+  categoryId   String?   @map("category_id")
+  mediaAssetId String    @map("media_asset_id")
+  sortOrder    Int       @default(0) @map("sort_order")
+  isFeatured   Boolean   @default(false) @map("is_featured")
+  isPublished  Boolean   @default(false) @map("is_published")
+  publishedAt  DateTime? @map("published_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  category   GalleryCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  mediaAsset MediaAsset       @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@index([categoryId])
+  @@index([isPublished, sortOrder])
+  @@map("gallery_items")
+}
+
+model MarqueeItem {
+  id        String   @id @default(uuid())
+  text      String
+  linkUrl   String?  @map("link_url")
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("marquee_items")
+}
+
+model Testimonial {
+  id           String   @id @default(uuid())
+  customerName String   @map("customer_name")
+  customerRole String?  @map("customer_role")
+  university   String?
+  quote        String
+  rating       Int      @default(5)
+  mediaAssetId String?  @map("media_asset_id")
+  sortOrder    Int      @default(0) @map("sort_order")
+  isPublished  Boolean  @default(false) @map("is_published")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  mediaAsset MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+
+  @@index([isPublished, sortOrder])
+  @@map("testimonials")
+}
+
+model FaqItem {
+  id          String   @id @default(uuid())
+  question    String
+  answer      String
+  sortOrder   Int      @default(0) @map("sort_order")
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isPublished, sortOrder])
+  @@map("faq_items")
+}

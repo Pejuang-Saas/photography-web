@@ -14,6 +14,7 @@ import { AppService } from './app.service';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { auth } from './auth/auth';
 import { AdminAuthController } from './auth/admin-auth.controller';
+import { CmsModule } from './cms/cms.module';
 
 function positiveInteger(
   configService: ConfigService,
@@ -69,6 +70,7 @@ function positiveInteger(
     }),
     PrismaModule,
     AuthModule.forRoot({ auth }),
+    CmsModule,
   ],
   controllers: [AppController, AdminAuthController],
   providers: [
