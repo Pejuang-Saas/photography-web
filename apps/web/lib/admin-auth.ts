@@ -10,10 +10,15 @@ export type AdminUser = {
   role?: string | null;
 };
 
-const apiUrl =
-  process.env.API_INTERNAL_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  'http://localhost:3002';
+function getApiUrl() {
+  if (process.env.API_INTERNAL_URL) return process.env.API_INTERNAL_URL;
+
+  if (process.env.HOSTNAME === '0.0.0.0') {
+    return 'http://photography-api:3000';
+  }
+
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3002';
+}
 
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
   const requestHeaders = await headers();
@@ -21,13 +26,17 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
 
   if (!cookie) return null;
 
-  const response = await fetch(`${apiUrl}/admin/auth/me`, {
-    headers: { cookie },
-    cache: 'no-store',
-  });
+  try {
+    const response = await fetch(`${getApiUrl()}/admin/auth/me`, {
+      headers: { cookie },
+      cache: 'no-store',
+    });
 
-  if (!response.ok) return null;
+    if (!response.ok) return null;
 
-  const data = (await response.json()) as { user: AdminUser };
-  return data.user;
+    const data = (await response.json()) as { user: AdminUser };
+    return data.user;
+  } catch {
+    return null;
+  }
 }

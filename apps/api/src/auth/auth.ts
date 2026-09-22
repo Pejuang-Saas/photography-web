@@ -30,6 +30,8 @@ export const auth = betterAuth({
   plugins: [admin()],
   rateLimit: {
     enabled: true,
+    window: 60,
+    max: 60,
     customRules: {
       '/sign-in/email': { window: 60, max: 5 },
     },
