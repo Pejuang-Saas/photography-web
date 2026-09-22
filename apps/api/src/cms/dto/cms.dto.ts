@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
@@ -10,6 +10,11 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+
+const toBoolean = ({ value }: { value: unknown }) => {
+  if (typeof value === 'string') return value === 'true';
+  return value;
+};
 
 export class CreateGalleryCategoryDto {
   @IsString()
@@ -147,6 +152,90 @@ export class UpdateGalleryItemDto {
   isFeatured?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+}
+
+export class CreateGalleryItemUploadDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(160)
+  title: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(250)
+  altText: string;
+
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  caption?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  location?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  sortOrder?: number;
+
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  isFeatured?: boolean;
+
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  isPublished?: boolean;
+}
+
+export class UpdateGalleryItemUploadDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(160)
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(250)
+  altText?: string;
+
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  caption?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  location?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  sortOrder?: number;
+
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  isFeatured?: boolean;
+
+  @IsOptional()
+  @Transform(toBoolean)
   @IsBoolean()
   isPublished?: boolean;
 }

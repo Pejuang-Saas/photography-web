@@ -18,11 +18,13 @@ import {
   CreateFaqItemDto,
   CreateGalleryCategoryDto,
   CreateGalleryItemDto,
+  CreateGalleryItemUploadDto,
   CreateMarqueeItemDto,
   CreateTestimonialDto,
   UpdateFaqItemDto,
   UpdateGalleryCategoryDto,
   UpdateGalleryItemDto,
+  UpdateGalleryItemUploadDto,
   UpdateMarqueeItemDto,
   UpdateTestimonialDto,
 } from './dto/cms.dto';
@@ -76,9 +78,30 @@ export class CmsController {
     return this.cmsService.createGalleryItem(dto);
   }
 
+  @Post('gallery/items/upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  createGalleryItemWithImage(
+    @Body() dto: CreateGalleryItemUploadDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Image file is required');
+    return this.cmsService.createGalleryItemWithImage(dto, file);
+  }
+
   @Patch('gallery/items/:id')
   updateGalleryItem(@Param('id') id: string, @Body() dto: UpdateGalleryItemDto) {
     return this.cmsService.updateGalleryItem(id, dto);
+  }
+
+  @Patch('gallery/items/:id/upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  updateGalleryItemWithImage(
+    @Param('id') id: string,
+    @Body() dto: UpdateGalleryItemUploadDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Image file is required');
+    return this.cmsService.updateGalleryItemWithImage(id, dto, file);
   }
 
   @Delete('gallery/items/:id')

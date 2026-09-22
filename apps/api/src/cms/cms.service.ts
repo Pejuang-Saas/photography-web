@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,11 +10,13 @@ import {
   CreateFaqItemDto,
   CreateGalleryCategoryDto,
   CreateGalleryItemDto,
+  CreateGalleryItemUploadDto,
   CreateMarqueeItemDto,
   CreateTestimonialDto,
   UpdateFaqItemDto,
   UpdateGalleryCategoryDto,
   UpdateGalleryItemDto,
+  UpdateGalleryItemUploadDto,
   UpdateMarqueeItemDto,
   UpdateTestimonialDto,
 } from './dto/cms.dto';
@@ -43,24 +46,44 @@ export class CmsService {
 
   async uploadMedia(file: UploadedImage) {
     const upload = await this.storage.uploadCmsImage(file);
-    return this.prisma.mediaAsset.create({ data: upload });
+
+    try {
+      return await this.prisma.$transaction((tx) =>
+        tx.mediaAsset.create({ data: upload }),
+      );
+    } catch (error) {
+      await this.removeUploadedObject(upload.key);
+      throw error;
+    }
   }
 
   async removeMedia(id: string) {
-    const asset = await this.prisma.mediaAsset.findUnique({ where: { id } });
-    if (!asset) throw new NotFoundException('Media asset not found');
+    const asset = await this.prisma.$transaction(async (tx) => {
+      const mediaAsset = await tx.mediaAsset.findUnique({ where: { id } });
+      if (!mediaAsset) throw new NotFoundException('Media asset not found');
 
-    const [galleryItems, testimonials] = await Promise.all([
-      this.prisma.galleryItem.count({ where: { mediaAssetId: id } }),
-      this.prisma.testimonial.count({ where: { mediaAssetId: id } }),
-    ]);
+      const [galleryItems, testimonials] = await Promise.all([
+        tx.galleryItem.count({ where: { mediaAssetId: id } }),
+        tx.testimonial.count({ where: { mediaAssetId: id } }),
+      ]);
 
-    if (galleryItems || testimonials) {
-      throw new ConflictException('Media asset is still used by CMS content');
+      if (galleryItems || testimonials) {
+        throw new ConflictException('Media asset is still used by CMS content');
+      }
+
+      await tx.mediaAsset.delete({ where: { id } });
+      return mediaAsset;
+    });
+
+    try {
+      await this.storage.deleteObject(asset.key);
+    } catch (error) {
+      await this.prisma.mediaAsset.create({ data: asset });
+      throw new InternalServerErrorException(
+        'Storage deletion failed. Media metadata was restored.',
+        { cause: error },
+      );
     }
-
-    await this.storage.deleteObject(asset.key);
-    await this.prisma.mediaAsset.delete({ where: { id } });
   }
 
   listCategories() {
@@ -114,6 +137,32 @@ export class CmsService {
     });
   }
 
+  async createGalleryItemWithImage(
+    dto: CreateGalleryItemUploadDto,
+    file: UploadedImage,
+  ) {
+    if (dto.categoryId) await this.requireCategory(dto.categoryId);
+
+    const upload = await this.storage.uploadCmsImage(file);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const mediaAsset = await tx.mediaAsset.create({ data: upload });
+        return tx.galleryItem.create({
+          data: {
+            ...dto,
+            mediaAssetId: mediaAsset.id,
+            publishedAt: dto.isPublished ? new Date() : undefined,
+          },
+          include: galleryInclude,
+        });
+      });
+    } catch (error) {
+      await this.removeUploadedObject(upload.key);
+      throw error;
+    }
+  }
+
   async updateGalleryItem(id: string, dto: UpdateGalleryItemDto) {
     const current = await this.prisma.galleryItem.findUnique({ where: { id } });
     if (!current) throw new NotFoundException('Gallery item not found');
@@ -133,6 +182,40 @@ export class CmsService {
       },
       include: galleryInclude,
     });
+  }
+
+  async updateGalleryItemWithImage(
+    id: string,
+    dto: UpdateGalleryItemUploadDto,
+    file: UploadedImage,
+  ) {
+    const current = await this.requireGalleryItem(id);
+    if (dto.categoryId) await this.requireCategory(dto.categoryId);
+
+    const upload = await this.storage.uploadCmsImage(file);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const mediaAsset = await tx.mediaAsset.create({ data: upload });
+        return tx.galleryItem.update({
+          where: { id },
+          data: {
+            ...dto,
+            mediaAssetId: mediaAsset.id,
+            publishedAt:
+              dto.isPublished === undefined
+                ? undefined
+                : dto.isPublished
+                  ? current.publishedAt ?? new Date()
+                  : null,
+          },
+          include: galleryInclude,
+        });
+      });
+    } catch (error) {
+      await this.removeUploadedObject(upload.key);
+      throw error;
+    }
   }
 
   async removeGalleryItem(id: string) {
@@ -267,5 +350,14 @@ export class CmsService {
     const item = await this.prisma.faqItem.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('FAQ item not found');
     return item;
+  }
+
+  private async removeUploadedObject(key: string) {
+    try {
+      await this.storage.deleteObject(key);
+    } catch {
+      // The original database error remains the useful response. Storage cleanup
+      // can be retried safely because object keys are generated uniquely.
+    }
   }
 }

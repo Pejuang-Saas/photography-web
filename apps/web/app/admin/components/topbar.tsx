@@ -48,6 +48,7 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
     if (pathname.startsWith('/admin/invoices')) return 'Invoice & Pembayaran';
     if (pathname.startsWith('/admin/packages')) return 'Paket Layanan';
     if (pathname.startsWith('/admin/settings')) return 'Pengaturan & Integrasi Sistem';
+    if (pathname.startsWith('/admin/cms/gallery')) return 'CMS · Gallery Landing Page';
     return 'Admin Dashboard';
   };
 
@@ -77,7 +78,7 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
             }
           />
           <SheetContent side="left" className="p-0 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 w-64">
-            <AdminSidebar user={user} />
+            <AdminSidebar user={user} mobile />
           </SheetContent>
         </Sheet>
 

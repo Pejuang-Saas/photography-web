@@ -18,4 +18,4 @@ Use the returned `id` as `mediaAssetId` when creating a gallery item or optional
 | Testimonials | `GET`, `POST` `/admin/cms/testimonials` | `PATCH`, `DELETE` `/admin/cms/testimonials/:id` |
 | FAQs | `GET`, `POST` `/admin/cms/faqs` | `PATCH`, `DELETE` `/admin/cms/faqs/:id` |
 
-Gallery `categoryId` is optional. Deleting a category only clears it from its gallery items. Publishing is controlled by `isPublished`; published gallery items receive `publishedAt` automatically.
+Gallery `categoryId` is optional. Deleting a category only clears it from its gallery items. Publishing is controlled by `isPublished`; published gallery items receive `publishedAt` automatically. The Gallery form uses `POST /admin/cms/gallery/items/upload` and `PATCH /admin/cms/gallery/items/:id/upload` so the object upload, media metadata, and gallery record are handled as one compensated transaction.

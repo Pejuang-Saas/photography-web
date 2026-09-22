@@ -14,12 +14,20 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Settings2,
+  Images,
+  PanelsTopLeft,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
-export default function AdminSidebar({ user }: { user: AdminUser }) {
+export default function AdminSidebar({
+  user,
+  mobile = false,
+}: {
+  user: AdminUser;
+  mobile?: boolean;
+}) {
   const pathname = usePathname();
   const { bookings } = useAdmin();
 
@@ -64,7 +72,10 @@ export default function AdminSidebar({ user }: { user: AdminUser }) {
   ];
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 lg:flex transition-colors duration-150">
+    <aside className={cn(
+      'w-64 flex-col border-r border-zinc-200/80 bg-white transition-colors duration-150 dark:border-zinc-800/80 dark:bg-zinc-950',
+      mobile ? 'flex min-h-full' : 'fixed inset-y-0 left-0 z-30 hidden lg:flex',
+    )}>
       {/* Brand Header */}
       <div className="flex h-14 items-center justify-between border-b border-zinc-200/80 dark:border-zinc-800/80 px-5">
         <Link href="/admin" className="flex items-center gap-2.5 group">
@@ -133,6 +144,28 @@ export default function AdminSidebar({ user }: { user: AdminUser }) {
               </Link>
             );
           })}
+        </nav>
+
+        <div className="mb-2 mt-7 px-3 text-[11px] font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">
+          Konten Website
+        </div>
+        <nav className="space-y-1">
+          <div className="flex items-center gap-3 px-3 py-2 text-sm font-bold text-zinc-700 dark:text-zinc-300">
+            <PanelsTopLeft className="size-4 text-amber-500" />
+            CMS
+          </div>
+          <Link
+            href="/admin/cms/gallery"
+            className={cn(
+              'ml-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150',
+              pathname.startsWith('/admin/cms/gallery')
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/30'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+            )}
+          >
+            <Images className="size-4" />
+            Gallery
+          </Link>
         </nav>
 
         {/* WhatsApp Gateway Status Card */}

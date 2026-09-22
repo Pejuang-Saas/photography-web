@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AdminProvider } from '@/lib/admin-context';
 import type { AdminUser } from '@/lib/admin-auth';
 import { authClient } from '@/lib/auth-client';
+import { QueryProvider } from '@/lib/query-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import AdminSidebar from './components/sidebar';
@@ -33,6 +34,7 @@ export default function AdminShell({
   };
 
   return (
+    <QueryProvider>
     <AdminProvider>
       <TooltipProvider>
         <div className="min-h-screen bg-zinc-50 text-zinc-900 antialiased transition-colors duration-150 dark:bg-zinc-950 dark:text-zinc-100">
@@ -62,5 +64,6 @@ export default function AdminShell({
         </div>
       </TooltipProvider>
     </AdminProvider>
+    </QueryProvider>
   );
 }
