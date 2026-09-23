@@ -3,17 +3,17 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Eye, EyeOff, ImageIcon, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon, Plus, RotateCcw, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cmsApi, type GalleryItem } from '@/lib/cms-api';
-import { CmsDeleteDialog } from '../../components/cms-delete-dialog';
 import { CmsPageHeader } from '../../components/cms-page-header';
 import { CmsErrorState } from '../../components/cms-state';
 import { CmsOrderActions } from '../../components/cms-order-actions';
+import { CmsRowActions } from '../../components/cms-row-actions';
 
 const PAGE_SIZE = 12;
 
@@ -34,9 +34,7 @@ function GalleryCard({ item, index, total, onDelete, onReorder, onPublish, isDel
           <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500"><span className={`size-1.5 rounded-full ${item.isPublished ? 'bg-emerald-500' : 'bg-zinc-400'}`} />{item.isPublished ? 'Terbit' : 'Draft'}</span>
           <div className="flex shrink-0 items-center gap-0.5">
             <CmsOrderActions isFirst={index === 0} isLast={index === total - 1} isPending={isReordering} onMoveUp={() => onReorder('up')} onMoveDown={() => onReorder('down')} />
-            <Button variant="ghost" size="icon-sm" aria-label={item.isPublished ? `Unpublish ${item.title}` : `Publish ${item.title}`} title={item.isPublished ? 'Unpublish' : 'Publish'} disabled={isPublishing} onClick={onPublish} className="size-7 text-zinc-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/40">{item.isPublished ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}</Button>
-            <Link href={`/admin/cms/gallery/${item.id}/edit`} aria-label={`Edit ${item.title}`} className="inline-flex size-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:hover:bg-zinc-800 dark:hover:text-white"><Pencil className="size-3.5" /></Link>
-            <CmsDeleteDialog title={item.title} onConfirm={onDelete} isPending={isDeleting} trigger={<Button variant="ghost" size="icon-sm" aria-label={`Hapus ${item.title}`} className="size-7 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"><Trash2 className="size-3.5" /></Button>} />
+            <CmsRowActions title={item.title} entityLabel="foto gallery" isPublished={item.isPublished} onTogglePublish={onPublish} isPublishPending={isPublishing} onEdit={() => window.location.assign(`/admin/cms/gallery/${item.id}/edit`)} onDelete={onDelete} isDeletePending={isDeleting} />
           </div>
         </div>
       </div>

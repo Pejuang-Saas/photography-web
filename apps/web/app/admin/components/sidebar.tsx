@@ -77,7 +77,7 @@ export default function AdminSidebar({
 
   return (
     <aside className={cn(
-      'w-60 flex-col border-r border-zinc-200/80 bg-white shadow-[1px_0_0_rgba(15,23,42,0.02)] transition-colors duration-150 dark:border-zinc-800/80 dark:bg-zinc-950',
+      'w-60 flex-col border-r border-zinc-200/80 bg-white shadow-[1px_0_0_rgba(15,23,42,0.02)] transition-colors duration-150 dark:border-[#293548] dark:bg-[#121923]',
       mobile ? 'flex min-h-full' : 'fixed inset-y-0 left-0 z-30 hidden lg:flex',
     )}>
       {/* Brand Header */}

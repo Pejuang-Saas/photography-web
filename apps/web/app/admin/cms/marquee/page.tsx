@@ -1,18 +1,18 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, Eye, EyeOff, Megaphone, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ExternalLink, Megaphone, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cmsApi, type MarqueeItem } from '@/lib/cms-api';
-import { CmsDeleteDialog } from '../../components/cms-delete-dialog';
 import { CmsPageHeader } from '../../components/cms-page-header';
 import { CmsErrorState } from '../../components/cms-state';
 import { CmsPagination, CmsTable, CmsTableSkeleton } from '../../components/cms-table';
 import { CmsOrderActions } from '../../components/cms-order-actions';
+import { CmsRowActions } from '../../components/cms-row-actions';
 import { MarqueeDialog } from './marquee-dialog';
 
 const PAGE_SIZE = 10;
@@ -34,9 +34,9 @@ export default function MarqueePage() {
   const openCreate = () => { setEditing(undefined); setDialogOpen(true); };
   const openEdit = (item: MarqueeItem) => { setEditing(item); setDialogOpen(true); };
   const columns = [
-    { key: 'text', header: 'Teks marquee', render: (item: MarqueeItem) => <div className="min-w-0"><p className="max-w-xl truncate font-semibold text-zinc-900 dark:text-white">{item.text}</p>{item.linkUrl && <a href={item.linkUrl} target="_blank" rel="noreferrer" className="mt-1 flex max-w-xl items-center gap-1 truncate text-xs text-zinc-500 hover:text-amber-600"><ExternalLink className="size-3 shrink-0" />{item.linkUrl}</a>}</div> },
-    { key: 'status', header: 'Status', render: (item: MarqueeItem) => <Badge className={item.isActive ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-500'}>{item.isActive ? 'Aktif' : 'Nonaktif'}</Badge> },
-    { key: 'actions', header: '', className: 'text-right', render: (item: MarqueeItem) => { const index = items.findIndex((entry) => entry.id === item.id); return <div className="flex justify-end gap-1"><CmsOrderActions isFirst={index <= 0} isLast={index === items.length - 1} isPending={reorder.isPending} onMoveUp={() => reorder.mutate({ id: item.id, direction: 'up' })} onMoveDown={() => reorder.mutate({ id: item.id, direction: 'down' })} /><Button variant="ghost" size="icon-sm" aria-label={item.isActive ? `Nonaktifkan ${item.text}` : `Aktifkan ${item.text}`} title={item.isActive ? 'Nonaktifkan' : 'Aktifkan'} disabled={publish.isPending} onClick={() => publish.mutate({ item, isActive: !item.isActive })} className="text-zinc-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/40">{item.isActive ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}</Button><Button variant="ghost" size="sm" onClick={() => openEdit(item)} className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white"><Pencil className="mr-1 size-3.5" />Edit</Button><CmsDeleteDialog title={item.text} entityLabel="marquee" onConfirm={() => remove.mutate(item.id)} isPending={remove.isPending} trigger={<Button variant="ghost" size="icon-sm" aria-label={`Hapus ${item.text}`} className="text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"><Trash2 className="size-3.5" /></Button>} /></div>; } },
+    { key: 'text', header: 'Teks marquee', sortable: true, sortValue: (item: MarqueeItem) => item.text, render: (item: MarqueeItem) => <div className="min-w-0"><p className="max-w-xl truncate font-semibold text-zinc-900 dark:text-white">{item.text}</p>{item.linkUrl && <a href={item.linkUrl} target="_blank" rel="noreferrer" className="mt-1 flex max-w-xl items-center gap-1 truncate text-xs text-zinc-500 hover:text-amber-600"><ExternalLink className="size-3 shrink-0" />{item.linkUrl}</a>}</div> },
+    { key: 'status', header: 'Status', sortable: true, sortValue: (item: MarqueeItem) => item.isActive ? 1 : 0, render: (item: MarqueeItem) => <Badge className={item.isActive ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-500'}>{item.isActive ? 'Aktif' : 'Nonaktif'}</Badge> },
+    { key: 'actions', header: '', className: 'text-right', render: (item: MarqueeItem) => { const index = items.findIndex((entry) => entry.id === item.id); return <div className="flex justify-end gap-1"><CmsOrderActions isFirst={index <= 0} isLast={index === items.length - 1} isPending={reorder.isPending} onMoveUp={() => reorder.mutate({ id: item.id, direction: 'up' })} onMoveDown={() => reorder.mutate({ id: item.id, direction: 'down' })} /><CmsRowActions title={item.text} entityLabel="marquee" isPublished={item.isActive} publishLabel="Aktifkan" onTogglePublish={() => publish.mutate({ item, isActive: !item.isActive })} isPublishPending={publish.isPending} onEdit={() => openEdit(item)} onDelete={() => remove.mutate(item.id)} isDeletePending={remove.isPending} /></div>; } },
   ];
   const emptyContent = <div className="flex flex-col items-center justify-center gap-2 py-6"><Megaphone className="size-7 text-zinc-300 dark:text-zinc-600" /><p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{search ? 'Marquee tidak ditemukan' : 'Belum ada marquee'}</p><p className="text-xs text-zinc-500">{search ? 'Ubah kata kunci pencarian.' : 'Tambahkan teks marquee pertama.'}</p>{!search && <Button size="sm" onClick={openCreate} className="mt-1 bg-amber-500 text-zinc-950 hover:bg-amber-600"><Plus className="mr-1 size-3.5" />Tambah marquee</Button>}</div>;
 

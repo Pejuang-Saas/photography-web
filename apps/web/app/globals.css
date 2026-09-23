@@ -4,6 +4,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Compact table actions matching the CMS data table reference. */
+table[data-slot='table'] tbody td:last-child button[data-slot='button'] {
+  border: 1px solid var(--border);
+  border-radius: 0.4375rem;
+  background: var(--background);
+  box-shadow: none;
+  color: var(--muted-foreground);
+}
+@media (prefers-color-scheme: dark) {
+  .dark table[data-slot='table'] tbody td:last-child button[data-slot='button'] {
+    border-color: #334155;
+    background: #151c28;
+  }
+  .dark table[data-slot='table'] tbody td:last-child button[data-slot='button']:hover:not(:disabled) { background: #202b3b; }
+}
+.dark table[data-slot='table'] tbody td:last-child button[data-slot='button'] { border-color: #334155; background: #151c28; }
+.dark table[data-slot='table'] tbody td:last-child button[data-slot='button']:hover:not(:disabled) { background: #202b3b; }
+table[data-slot='table'] tbody td:last-child button[data-slot='button']:hover:not(:disabled) {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+table[data-slot='table'] tbody td:last-child button[data-slot='button']:disabled { opacity: 0.35; }
+table[data-slot='table'] tbody td:last-child button[data-slot='button']:has(svg.lucide-trash-2) { color: #dc2626; }
+table[data-slot='table'] tbody td:last-child button[data-slot='button']:has(svg.lucide-trash-2):hover:not(:disabled) { border-color: #fecaca; background: #fef2f2; color: #dc2626; }
+
 @theme inline {
   --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

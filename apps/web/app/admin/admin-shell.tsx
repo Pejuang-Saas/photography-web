@@ -37,7 +37,7 @@ export default function AdminShell({
     <QueryProvider>
     <AdminProvider>
       <TooltipProvider>
-        <div className="min-h-screen bg-[#f3f4f6] text-zinc-900 antialiased transition-colors duration-150 dark:bg-zinc-950 dark:text-zinc-100">
+        <div className="min-h-screen bg-[#f5f6f8] text-zinc-900 antialiased transition-colors duration-150 dark:bg-[#0f141d] dark:text-zinc-100">
           <AdminSidebar user={user} />
           <div className="flex min-h-screen flex-col lg:pl-60">
             <AdminTopbar
