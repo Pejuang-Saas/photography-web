@@ -42,13 +42,17 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
   const [searchQuery, setSearchQuery] = useState('');
 
   const getPageTitle = () => {
-    if (pathname === '/admin') return 'Dashboard Overview';
+    if (pathname === '/admin') return 'Dashboard';
     if (pathname.startsWith('/admin/bookings')) return 'Manajemen Reservasi & Verifikasi';
     if (pathname.startsWith('/admin/calendar')) return 'Kalender Jadwal Studio';
     if (pathname.startsWith('/admin/invoices')) return 'Invoice & Pembayaran';
     if (pathname.startsWith('/admin/packages')) return 'Paket Layanan';
     if (pathname.startsWith('/admin/settings')) return 'Pengaturan & Integrasi Sistem';
-    if (pathname.startsWith('/admin/cms/gallery')) return 'CMS · Gallery Landing Page';
+    if (pathname.startsWith('/admin/cms/categories')) return 'Kategori Gallery';
+    if (pathname.startsWith('/admin/cms/marquee')) return 'Marquee';
+    if (pathname.startsWith('/admin/cms/faq')) return 'FAQ';
+    if (pathname.startsWith('/admin/cms/testimonials')) return 'Testimonial';
+    if (pathname.startsWith('/admin/cms/gallery')) return 'Gallery Landing Page';
     return 'Admin Dashboard';
   };
 
@@ -62,7 +66,7 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 w-full items-center justify-between border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-950/90 px-4 sm:px-6 backdrop-blur-md transition-colors duration-150">
+    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-zinc-200/80 bg-white/95 px-4 backdrop-blur-md transition-colors duration-150 dark:border-zinc-800/80 dark:bg-zinc-950/95 sm:px-6">
       {/* Left: Mobile Menu Trigger + Title */}
       <div className="flex items-center gap-3">
         <Sheet>
@@ -77,14 +81,14 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
               </Button>
             }
           />
-          <SheetContent side="left" className="p-0 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 w-64">
+          <SheetContent side="left" className="w-60 border-zinc-200 bg-white p-0 dark:border-zinc-800 dark:bg-zinc-950">
             <AdminSidebar user={user} mobile />
           </SheetContent>
         </Sheet>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-400 hidden sm:inline">Kayastory /</span>
-          <h1 className="text-sm font-bold text-zinc-900 dark:text-white">
+          <span className="hidden text-xs text-zinc-400 sm:inline">Overview <span className="mx-1.5 text-zinc-300">/</span></span>
+          <h1 className="text-sm font-semibold text-zinc-900 dark:text-white">
             {getPageTitle()}
           </h1>
         </div>
@@ -92,13 +96,13 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
 
       {/* Right: Search + Notifications + Theme Toggle + Action */}
       <div className="flex items-center gap-2 sm:gap-2.5">
-        <div className="relative hidden md:block w-60">
+        <div className="relative hidden w-64 md:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400 dark:text-zinc-500" />
           <Input
             placeholder="Cari data booking..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 pl-9 pr-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:border-amber-500"
+            className="h-9 rounded-lg border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus-visible:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
           />
         </div>
 
@@ -199,7 +203,7 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
         <Button
           onClick={onOpenNewBooking}
           size="sm"
-          className="h-9 gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 text-xs font-bold text-zinc-950 shadow-md shadow-amber-500/20"
+          className="h-9 gap-1.5 rounded-lg bg-amber-500 px-3.5 text-xs font-bold text-zinc-950 shadow-sm shadow-amber-500/20 hover:bg-amber-600"
         >
           <Plus className="size-3.5" />
           <span className="hidden sm:inline">Tambah Booking</span>

@@ -21,12 +21,15 @@ import {
   CreateGalleryItemUploadDto,
   CreateMarqueeItemDto,
   CreateTestimonialDto,
+  CreateTestimonialUploadDto,
   UpdateFaqItemDto,
   UpdateGalleryCategoryDto,
   UpdateGalleryItemDto,
   UpdateGalleryItemUploadDto,
   UpdateMarqueeItemDto,
   UpdateTestimonialDto,
+  UpdateTestimonialUploadDto,
+  ReorderCmsItemDto,
 } from './dto/cms.dto';
 
 @Roles(['admin'])
@@ -110,6 +113,9 @@ export class CmsController {
     return this.cmsService.removeGalleryItem(id);
   }
 
+  @Patch('gallery/items/:id/reorder')
+  reorderGalleryItem(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderGalleryItem(id, dto.direction); }
+
   @Get('marquee')
   listMarqueeItems() {
     return this.cmsService.listMarqueeItems();
@@ -131,6 +137,9 @@ export class CmsController {
     return this.cmsService.removeMarqueeItem(id);
   }
 
+  @Patch('marquee/:id/reorder')
+  reorderMarqueeItem(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderMarqueeItem(id, dto.direction); }
+
   @Get('testimonials')
   listTestimonials() {
     return this.cmsService.listTestimonials();
@@ -141,9 +150,30 @@ export class CmsController {
     return this.cmsService.createTestimonial(dto);
   }
 
+  @Post('testimonials/upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  createTestimonialWithImage(
+    @Body() dto: CreateTestimonialUploadDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Image file is required');
+    return this.cmsService.createTestimonialWithImage(dto, file);
+  }
+
   @Patch('testimonials/:id')
   updateTestimonial(@Param('id') id: string, @Body() dto: UpdateTestimonialDto) {
     return this.cmsService.updateTestimonial(id, dto);
+  }
+
+  @Patch('testimonials/:id/upload')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  updateTestimonialWithImage(
+    @Param('id') id: string,
+    @Body() dto: UpdateTestimonialUploadDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Image file is required');
+    return this.cmsService.updateTestimonialWithImage(id, dto, file);
   }
 
   @Delete('testimonials/:id')
@@ -151,6 +181,9 @@ export class CmsController {
   removeTestimonial(@Param('id') id: string) {
     return this.cmsService.removeTestimonial(id);
   }
+
+  @Patch('testimonials/:id/reorder')
+  reorderTestimonial(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderTestimonial(id, dto.direction); }
 
   @Get('faqs')
   listFaqItems() {
@@ -172,4 +205,7 @@ export class CmsController {
   removeFaqItem(@Param('id') id: string) {
     return this.cmsService.removeFaqItem(id);
   }
+
+  @Patch('faqs/:id/reorder')
+  reorderFaq(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderFaqItem(id, dto.direction); }
 }

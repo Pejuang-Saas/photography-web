@@ -37,15 +37,15 @@ export default function AdminShell({
     <QueryProvider>
     <AdminProvider>
       <TooltipProvider>
-        <div className="min-h-screen bg-zinc-50 text-zinc-900 antialiased transition-colors duration-150 dark:bg-zinc-950 dark:text-zinc-100">
+        <div className="min-h-screen bg-[#f3f4f6] text-zinc-900 antialiased transition-colors duration-150 dark:bg-zinc-950 dark:text-zinc-100">
           <AdminSidebar user={user} />
-          <div className="flex min-h-screen flex-col lg:pl-64">
+          <div className="flex min-h-screen flex-col lg:pl-60">
             <AdminTopbar
               onOpenNewBooking={() => setIsNewBookingOpen(true)}
               onSignOut={handleSignOut}
               user={user}
             />
-            <main className="flex-1 w-full p-4 sm:p-6 lg:p-8">{children}</main>
+            <main className="flex-1 w-full p-4 sm:p-5 lg:p-7"><div className="mx-auto w-full max-w-[1600px]">{children}</div></main>
           </div>
           <BookingDetailModal />
           <InvoicePreviewModal />

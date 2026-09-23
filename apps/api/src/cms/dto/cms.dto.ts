@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -10,6 +11,11 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+
+export class ReorderCmsItemDto {
+  @IsIn(['up', 'down'])
+  direction: 'up' | 'down';
+}
 
 const toBoolean = ({ value }: { value: unknown }) => {
   if (typeof value === 'string') return value === 'true';
@@ -364,6 +370,20 @@ export class UpdateTestimonialDto {
   @IsInt()
   sortOrder?: number;
 
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+}
+
+export class CreateTestimonialUploadDto extends CreateTestimonialDto {
+  @Transform(toBoolean)
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+}
+
+export class UpdateTestimonialUploadDto extends UpdateTestimonialDto {
+  @Transform(toBoolean)
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;

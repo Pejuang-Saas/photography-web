@@ -37,10 +37,10 @@ export default function StatCard({
   };
 
   return (
-    <Card className="rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 p-4 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="rounded-lg border-zinc-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60">
       <CardContent className="p-0">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+          <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
             {title}
           </span>
           <div className={`flex size-8 items-center justify-center rounded-lg border ${getBadgeStyle()}`}>
@@ -49,7 +49,7 @@ export default function StatCard({
         </div>
 
         <div className="mt-3">
-          <div className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white font-mono">
+          <div className="text-[28px] font-semibold tracking-tight text-zinc-900 dark:text-white font-mono">
             {value}
           </div>
           <div className="mt-1.5 flex items-center gap-1.5 text-xs">

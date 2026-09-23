@@ -15,6 +15,10 @@ import {
   ShieldCheck,
   Settings2,
   Images,
+  FolderKanban,
+  Megaphone,
+  HelpCircle,
+  MessageSquareQuote,
   PanelsTopLeft,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -73,11 +77,11 @@ export default function AdminSidebar({
 
   return (
     <aside className={cn(
-      'w-64 flex-col border-r border-zinc-200/80 bg-white transition-colors duration-150 dark:border-zinc-800/80 dark:bg-zinc-950',
+      'w-60 flex-col border-r border-zinc-200/80 bg-white shadow-[1px_0_0_rgba(15,23,42,0.02)] transition-colors duration-150 dark:border-zinc-800/80 dark:bg-zinc-950',
       mobile ? 'flex min-h-full' : 'fixed inset-y-0 left-0 z-30 hidden lg:flex',
     )}>
       {/* Brand Header */}
-      <div className="flex h-14 items-center justify-between border-b border-zinc-200/80 dark:border-zinc-800/80 px-5">
+      <div className="flex h-16 items-center justify-between border-b border-zinc-200/80 dark:border-zinc-800/80 px-4">
         <Link href="/admin" className="flex items-center gap-2.5 group">
           <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-zinc-950 font-extrabold text-xs shadow-sm shadow-amber-500/20 group-hover:scale-105 transition-transform">
             K
@@ -96,8 +100,8 @@ export default function AdminSidebar({
       </div>
 
       {/* Navigation Links */}
-      <div className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="mb-2 px-3 text-[11px] font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">
+      <div className="flex-1 overflow-y-auto px-2.5 py-5">
+        <div className="mb-2 px-3 text-[10px] font-bold tracking-[0.14em] text-zinc-400 dark:text-zinc-500 uppercase">
           Menu Studio
         </div>
         <nav className="space-y-1">
@@ -113,9 +117,9 @@ export default function AdminSidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150',
+                  'group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
                   isActive
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/30 shadow-xs'
+                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
                 )}
               >
@@ -146,25 +150,73 @@ export default function AdminSidebar({
           })}
         </nav>
 
-        <div className="mb-2 mt-7 px-3 text-[11px] font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">
+        <div className="mb-2 mt-8 px-3 text-[10px] font-bold tracking-[0.14em] text-zinc-400 dark:text-zinc-500 uppercase">
           Konten Website
         </div>
         <nav className="space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2 text-sm font-bold text-zinc-700 dark:text-zinc-300">
+          <div className="flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">
             <PanelsTopLeft className="size-4 text-amber-500" />
             CMS
           </div>
           <Link
             href="/admin/cms/gallery"
             className={cn(
-              'ml-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150',
-              pathname.startsWith('/admin/cms/gallery')
-                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/30'
+              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+              (pathname === '/admin/cms/gallery' || (pathname.startsWith('/admin/cms/gallery/') && !pathname.startsWith('/admin/cms/gallery/categories')))
+                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
             )}
           >
             <Images className="size-4" />
             Gallery
+          </Link>
+          <Link
+            href="/admin/cms/categories"
+            className={cn(
+              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+              pathname.startsWith('/admin/cms/categories')
+                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+            )}
+          >
+            <FolderKanban className="size-4" />
+            Kategori Gallery
+          </Link>
+          <Link
+            href="/admin/cms/marquee"
+            className={cn(
+              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+              pathname.startsWith('/admin/cms/marquee')
+                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+            )}
+          >
+            <Megaphone className="size-4" />
+            Marquee
+          </Link>
+          <Link
+            href="/admin/cms/faq"
+            className={cn(
+              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+              pathname.startsWith('/admin/cms/faq')
+                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+            )}
+          >
+            <HelpCircle className="size-4" />
+            FAQ
+          </Link>
+          <Link
+            href="/admin/cms/testimonials"
+            className={cn(
+              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+              pathname.startsWith('/admin/cms/testimonials')
+                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+            )}
+          >
+            <MessageSquareQuote className="size-4" />
+            Testimonial
           </Link>
         </nav>
 

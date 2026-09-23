@@ -27,7 +27,7 @@ export function PackageBreakdownChart() {
   }, []);
 
   return (
-    <Card className="rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm flex flex-col justify-between">
+    <Card className="rounded-lg border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm flex flex-col justify-between">
       <CardHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
         <CardTitle className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
           <Camera className="size-4 text-amber-500" />

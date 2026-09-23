@@ -21,7 +21,6 @@ const gallerySchema = z.object({
   categoryId: z.string().optional(),
   caption: z.string().max(1000).optional(),
   location: z.string().max(160).optional(),
-  sortOrder: z.number().int('Urutan harus bilangan bulat.').min(0),
   isFeatured: z.boolean(),
   isPublished: z.boolean(),
 });
@@ -42,7 +41,7 @@ export function GalleryForm({ item }: { item?: GalleryItem }) {
     resolver: zodResolver(gallerySchema),
     defaultValues: {
       title: item?.title ?? '', altText: item?.altText ?? '', categoryId: item?.categoryId ?? '',
-      caption: item?.caption ?? '', location: item?.location ?? '', sortOrder: item?.sortOrder ?? 0,
+      caption: item?.caption ?? '', location: item?.location ?? '',
       isFeatured: item?.isFeatured ?? false, isPublished: item?.isPublished ?? false,
     },
   });
@@ -76,7 +75,7 @@ export function GalleryForm({ item }: { item?: GalleryItem }) {
     <form onSubmit={form.handleSubmit(submit)} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <section className="space-y-5 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/60">
         <div className="grid gap-5 sm:grid-cols-2"><label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">Judul<Input {...form.register('title')} className="mt-2" placeholder="Contoh: Wisuda Kebaya di Undip" /><FieldError message={form.formState.errors.title?.message} /></label><label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">Alt text<Input {...form.register('altText')} className="mt-2" placeholder="Deskripsi visual foto" /><FieldError message={form.formState.errors.altText?.message} /></label></div>
-        <div className="grid gap-5 sm:grid-cols-2"><label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">Kategori <span className="font-normal text-zinc-400">(opsional)</span><select {...form.register('categoryId')} className="mt-2 h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-950"><option value="">Tanpa kategori</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">Urutan tampil<Input type="number" min="0" {...form.register('sortOrder', { valueAsNumber: true })} className="mt-2" /><FieldError message={form.formState.errors.sortOrder?.message} /></label></div>
+        <div><label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">Kategori <span className="font-normal text-zinc-400">(opsional)</span><select {...form.register('categoryId')} className="mt-2 h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-950"><option value="">Tanpa kategori</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label></div>
         <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">Lokasi <span className="font-normal text-zinc-400">(opsional)</span><Input {...form.register('location')} className="mt-2" placeholder="Contoh: Universitas Diponegoro" /><FieldError message={form.formState.errors.location?.message} /></label>
         <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">Caption <span className="font-normal text-zinc-400">(opsional)</span><textarea {...form.register('caption')} rows={4} className="mt-2 w-full resize-y rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-950" placeholder="Cerita singkat di balik foto ini." /><FieldError message={form.formState.errors.caption?.message} /></label>
         <div className="flex flex-wrap gap-5 border-t border-zinc-100 pt-4 dark:border-zinc-800"><label className="flex cursor-pointer items-center gap-2 text-sm font-medium"><input type="checkbox" {...form.register('isFeatured')} className="size-4 accent-amber-500" />Tandai sebagai unggulan</label><label className="flex cursor-pointer items-center gap-2 text-sm font-medium"><input type="checkbox" {...form.register('isPublished')} className="size-4 accent-amber-500" />Publikasikan ke landing page</label></div>

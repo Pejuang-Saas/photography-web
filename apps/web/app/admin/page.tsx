@@ -6,7 +6,6 @@ import { useAdmin } from '@/lib/admin-context';
 import { formatRupiah } from '@/lib/mock-data';
 import StatCard from './components/stat-card';
 import { CustomerGrowthChart } from './components/customer-growth-chart';
-import { CampusAnalyticsChart } from './components/campus-analytics-chart';
 import { PackageBreakdownChart } from './components/package-breakdown-chart';
 import {
   Banknote,
@@ -14,9 +13,6 @@ import {
   Clock,
   ArrowUpRight,
   Camera,
-  Eye,
-  AlertCircle,
-  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,20 +29,18 @@ export default function AdminDashboardPage() {
   const totalBookingCount = bookings.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200/80 dark:border-zinc-800/80 pb-5">
+      <div className="flex flex-col gap-4 border-b border-zinc-200/80 pb-5 dark:border-zinc-800/80 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
-              Dashboard Analytics
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">
+              Halo, Admin 👋
             </h1>
-            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-xs font-semibold">
-              Live Data
-            </Badge>
+            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-xs font-semibold text-emerald-700 dark:text-emerald-400">Live Data</Badge>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Analitik reservasi customer, tren pendapatan studio, dan jadwal pemotretan.
+            Ringkasan performa reservasi dan aktivitas studio terbaru.
           </p>
         </div>
 
@@ -55,7 +49,7 @@ export default function AdminDashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="h-9 border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               <CalendarCheck className="size-3.5 mr-1.5 text-amber-500" />
               Kalender Studio
@@ -64,7 +58,7 @@ export default function AdminDashboardPage() {
           <Link href="/admin/bookings">
             <Button
               size="sm"
-              className="h-9 bg-amber-500 hover:bg-amber-600 text-xs font-bold text-zinc-950 shadow-md shadow-amber-500/20"
+              className="h-9 bg-amber-500 text-xs font-bold text-zinc-950 shadow-sm shadow-amber-500/20 hover:bg-amber-600"
             >
               <Clock className="size-3.5 mr-1.5" />
               Verifikasi ({pendingBookings.length})
@@ -74,7 +68,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Pendapatan"
           value={formatRupiah(totalRevenue + 24500000)}
@@ -113,41 +107,8 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      {/* Action Required Banner */}
-      {pendingBookings.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
-              <AlertCircle className="size-4" />
-            </div>
-            <div>
-              <h2 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
-                {pendingBookings.length} Bukti Transfer Perlu Diverifikasi
-              </h2>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-                Konfirmasi pembayaran untuk mengunci slot jadwal dan otomatis mengirim invoice resmi ke WhatsApp klien.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {pendingBookings.slice(0, 2).map((bk) => (
-              <Button
-                key={bk.id}
-                size="sm"
-                onClick={() => setSelectedBooking(bk)}
-                className="h-8 text-xs bg-amber-500 text-zinc-950 font-bold hover:bg-amber-600 shadow-sm"
-              >
-                <Eye className="size-3.5 mr-1" />
-                Review {bk.customerName.split(' ')[0]}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Main Charts Section (Recharts) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         {/* Left: Customer Growth & Revenue Chart (8 cols) */}
         <div className="lg:col-span-8">
           <CustomerGrowthChart />
@@ -159,15 +120,9 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Second Row: Campus Distribution Chart & Recent Bookings */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Campus Distribution Bar Chart (5 cols) */}
-        <div className="lg:col-span-5">
-          <CampusAnalyticsChart />
-        </div>
-
-        {/* Right: Recent Bookings Table (7 cols) */}
-        <Card className="lg:col-span-7 rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm">
+      {/* Recent Bookings */}
+      <div className="grid grid-cols-1 gap-4">
+        <Card className="rounded-lg border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between p-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
             <div>
               <CardTitle className="text-sm font-bold text-zinc-900 dark:text-white">

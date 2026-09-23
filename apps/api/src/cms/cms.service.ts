@@ -13,12 +13,14 @@ import {
   CreateGalleryItemUploadDto,
   CreateMarqueeItemDto,
   CreateTestimonialDto,
+  CreateTestimonialUploadDto,
   UpdateFaqItemDto,
   UpdateGalleryCategoryDto,
   UpdateGalleryItemDto,
   UpdateGalleryItemUploadDto,
   UpdateMarqueeItemDto,
   UpdateTestimonialDto,
+  UpdateTestimonialUploadDto,
 } from './dto/cms.dto';
 
 type UploadedImage = {
@@ -113,8 +115,17 @@ export class CmsService {
   }
 
   async removeCategory(id: string) {
-    await this.requireCategory(id);
-    await this.prisma.galleryCategory.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      const category = await tx.galleryCategory.findUnique({ where: { id } });
+      if (!category) throw new NotFoundException('Gallery category not found');
+
+      const galleryItems = await tx.galleryItem.count({ where: { categoryId: id } });
+      if (galleryItems > 0) {
+        throw new ConflictException('Gallery category is still used by gallery items');
+      }
+
+      await tx.galleryCategory.delete({ where: { id } });
+    });
   }
 
   listGalleryItems() {
@@ -223,6 +234,23 @@ export class CmsService {
     await this.prisma.galleryItem.delete({ where: { id } });
   }
 
+  async reorderGalleryItem(id: string, direction: 'up' | 'down') {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.galleryItem.findUnique({ where: { id } });
+      if (!current) throw new NotFoundException('Gallery item not found');
+      const ordered = await tx.galleryItem.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
+      for (const [index, item] of ordered.entries()) if (item.sortOrder !== index) await tx.galleryItem.update({ where: { id: item.id }, data: { sortOrder: index } });
+      current.sortOrder = ordered.findIndex((item) => item.id === id);
+      const neighbor = await tx.galleryItem.findFirst({
+        where: direction === 'up' ? { sortOrder: { lt: current.sortOrder } } : { sortOrder: { gt: current.sortOrder } },
+        orderBy: { sortOrder: direction === 'up' ? 'desc' : 'asc' },
+      });
+      if (!neighbor) return current;
+      await tx.galleryItem.update({ where: { id: neighbor.id }, data: { sortOrder: current.sortOrder } });
+      return tx.galleryItem.update({ where: { id }, data: { sortOrder: neighbor.sortOrder }, include: galleryInclude });
+    });
+  }
+
   listMarqueeItems() {
     return this.prisma.marqueeItem.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
@@ -243,6 +271,20 @@ export class CmsService {
     await this.prisma.marqueeItem.delete({ where: { id } });
   }
 
+  async reorderMarqueeItem(id: string, direction: 'up' | 'down') {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.marqueeItem.findUnique({ where: { id } });
+      if (!current) throw new NotFoundException('Marquee item not found');
+      const ordered = await tx.marqueeItem.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
+      for (const [index, item] of ordered.entries()) if (item.sortOrder !== index) await tx.marqueeItem.update({ where: { id: item.id }, data: { sortOrder: index } });
+      current.sortOrder = ordered.findIndex((item) => item.id === id);
+      const neighbor = await tx.marqueeItem.findFirst({ where: direction === 'up' ? { sortOrder: { lt: current.sortOrder } } : { sortOrder: { gt: current.sortOrder } }, orderBy: { sortOrder: direction === 'up' ? 'desc' : 'asc' } });
+      if (!neighbor) return current;
+      await tx.marqueeItem.update({ where: { id: neighbor.id }, data: { sortOrder: current.sortOrder } });
+      return tx.marqueeItem.update({ where: { id }, data: { sortOrder: neighbor.sortOrder } });
+    });
+  }
+
   listTestimonials() {
     return this.prisma.testimonial.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -261,6 +303,22 @@ export class CmsService {
     });
   }
 
+  async createTestimonialWithImage(dto: CreateTestimonialUploadDto, file: UploadedImage) {
+    const upload = await this.storage.uploadCmsImage(file);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const mediaAsset = await tx.mediaAsset.create({ data: upload });
+        return tx.testimonial.create({
+          data: { ...dto, mediaAssetId: mediaAsset.id, isPublished: dto.isPublished ?? false },
+          include: testimonialInclude,
+        });
+      });
+    } catch (error) {
+      await this.removeUploadedObject(upload.key);
+      throw error;
+    }
+  }
+
   async updateTestimonial(id: string, dto: UpdateTestimonialDto) {
     await this.requireTestimonial(id);
     if (dto.mediaAssetId) await this.requireMediaAsset(dto.mediaAssetId);
@@ -271,9 +329,41 @@ export class CmsService {
     });
   }
 
+  async updateTestimonialWithImage(id: string, dto: UpdateTestimonialUploadDto, file: UploadedImage) {
+    await this.requireTestimonial(id);
+    const upload = await this.storage.uploadCmsImage(file);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const mediaAsset = await tx.mediaAsset.create({ data: upload });
+        return tx.testimonial.update({
+          where: { id },
+          data: { ...dto, mediaAssetId: mediaAsset.id },
+          include: testimonialInclude,
+        });
+      });
+    } catch (error) {
+      await this.removeUploadedObject(upload.key);
+      throw error;
+    }
+  }
+
   async removeTestimonial(id: string) {
     await this.requireTestimonial(id);
     await this.prisma.testimonial.delete({ where: { id } });
+  }
+
+  async reorderTestimonial(id: string, direction: 'up' | 'down') {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.testimonial.findUnique({ where: { id } });
+      if (!current) throw new NotFoundException('Testimonial not found');
+      const ordered = await tx.testimonial.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
+      for (const [index, item] of ordered.entries()) if (item.sortOrder !== index) await tx.testimonial.update({ where: { id: item.id }, data: { sortOrder: index } });
+      current.sortOrder = ordered.findIndex((item) => item.id === id);
+      const neighbor = await tx.testimonial.findFirst({ where: direction === 'up' ? { sortOrder: { lt: current.sortOrder } } : { sortOrder: { gt: current.sortOrder } }, orderBy: { sortOrder: direction === 'up' ? 'desc' : 'asc' } });
+      if (!neighbor) return current;
+      await tx.testimonial.update({ where: { id: neighbor.id }, data: { sortOrder: current.sortOrder } });
+      return tx.testimonial.update({ where: { id }, data: { sortOrder: neighbor.sortOrder }, include: testimonialInclude });
+    });
   }
 
   listFaqItems() {
@@ -296,6 +386,20 @@ export class CmsService {
   async removeFaqItem(id: string) {
     await this.requireFaqItem(id);
     await this.prisma.faqItem.delete({ where: { id } });
+  }
+
+  async reorderFaqItem(id: string, direction: 'up' | 'down') {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.faqItem.findUnique({ where: { id } });
+      if (!current) throw new NotFoundException('FAQ item not found');
+      const ordered = await tx.faqItem.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
+      for (const [index, item] of ordered.entries()) if (item.sortOrder !== index) await tx.faqItem.update({ where: { id: item.id }, data: { sortOrder: index } });
+      current.sortOrder = ordered.findIndex((item) => item.id === id);
+      const neighbor = await tx.faqItem.findFirst({ where: direction === 'up' ? { sortOrder: { lt: current.sortOrder } } : { sortOrder: { gt: current.sortOrder } }, orderBy: { sortOrder: direction === 'up' ? 'desc' : 'asc' } });
+      if (!neighbor) return current;
+      await tx.faqItem.update({ where: { id: neighbor.id }, data: { sortOrder: current.sortOrder } });
+      return tx.faqItem.update({ where: { id }, data: { sortOrder: neighbor.sortOrder } });
+    });
   }
 
   private async uniqueCategorySlug(value: string, ignoreId?: string) {
