@@ -105,7 +105,9 @@ export default function ColorGradeSlider({
           {/* Center Handle Button */}
           <div
             className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-white/30 bg-black/85 text-accent shadow-xl backdrop-blur-md transition-transform duration-150 ${
-              isDragging ? 'scale-110 border-accent bg-accent text-accent-fg' : 'group-hover/slider:scale-105'
+              isDragging
+                ? 'scale-110 border-accent bg-accent text-accent-fg'
+                : 'group-hover/slider:scale-105'
             }`}
           >
             <SlidersHorizontal size={14} weight="bold" />

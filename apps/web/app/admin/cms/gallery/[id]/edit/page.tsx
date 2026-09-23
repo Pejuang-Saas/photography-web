@@ -12,8 +12,22 @@ export default function EditGalleryPage() {
   const { id } = useParams<{ id: string }>();
   const gallery = useQuery({ queryKey: ['cms', 'gallery'], queryFn: cmsApi.listGallery });
   if (gallery.isLoading) return <CmsLoadingState />;
-  if (gallery.isError) return <CmsErrorState message={gallery.error instanceof Error ? gallery.error.message : 'Terjadi kesalahan.'} retry={() => gallery.refetch()} />;
+  if (gallery.isError)
+    return (
+      <CmsErrorState
+        message={gallery.error instanceof Error ? gallery.error.message : 'Terjadi kesalahan.'}
+        retry={() => gallery.refetch()}
+      />
+    );
   const item = gallery.data?.find((entry) => entry.id === id);
-  if (!item) return <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900"><p className="text-zinc-500">Foto gallery tidak ditemukan.</p><Link href="/admin/cms/gallery"><Button className="mt-4">Kembali ke gallery</Button></Link></div>;
+  if (!item)
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
+        <p className="text-zinc-500">Foto gallery tidak ditemukan.</p>
+        <Link href="/admin/cms/gallery">
+          <Button className="mt-4">Kembali ke gallery</Button>
+        </Link>
+      </div>
+    );
   return <GalleryForm item={item} />;
 }

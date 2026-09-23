@@ -13,13 +13,15 @@
 Mengacu pada dokumen spesifikasi `docs/frontend/superpowers/specs/2026-09-08-dual-payment-mode-design.md`, sebagian besar mahasiswa wisudawan di Tembalang lebih menyukai transfer langsung ke rekening bank lokal (BCA/Mandiri) tanpa biaya admin gateway (Rp 2.000 - Rp 4.000). Di sisi lain, pelanggan keluarga atau pemesan mendadak menginginkan pembayaran instan (QRIS / Virtual Account otomatis).
 
 **Problem Statement**:
-Pembayaran manual rawan pemalsuan bukti bayar (*fake receipt* atau slip palsu) dan membutuhkan intervensi admin. Pembayaran otomatis mahal untuk beberapa kalangan. Kita harus mendesain sistem yang mewadahi keduanya tanpa membingungkan alur bisnis *booking state*.
+Pembayaran manual rawan pemalsuan bukti bayar (_fake receipt_ atau slip palsu) dan membutuhkan intervensi admin. Pembayaran otomatis mahal untuk beberapa kalangan. Kita harus mendesain sistem yang mewadahi keduanya tanpa membingungkan alur bisnis _booking state_.
 
 **Constraints**:
-- Bukti transfer manual (gambar/PDF) bisa berukuran besar dan berpotensi berupa *malware*.
-- Callback *Payment Gateway* harus tahan terhadap serangan replikasi data (membutuhkan idempoten & verifikasi signature).
+
+- Bukti transfer manual (gambar/PDF) bisa berukuran besar dan berpotensi berupa _malware_.
+- Callback _Payment Gateway_ harus tahan terhadap serangan replikasi data (membutuhkan idempoten & verifikasi signature).
 
 **Stakeholder Concerns**:
+
 - **Pelanggan Mahasiswa**: Tidak ingin ada biaya admin tambahan dari Gateway.
 - **Admin Keuangan**: Ingin memastikan tidak tertipu dengan tangkapan layar pembayaran yang di-edit.
 
@@ -27,40 +29,43 @@ Pembayaran manual rawan pemalsuan bukti bayar (*fake receipt* atau slip palsu) d
 
 - **Fleksibilitas Pelanggan**: Menyediakan pilihan hemat vs. instan.
 - **Keamanan Finansial**: Validasi eksplisit untuk menghindari penipuan transaksi palsu.
-- **Konsistensi State**: Terlepas dari metodenya, status pemesanan di *backend* harus bermuara pada status yang jelas (`PAID`, `REJECTED`, dll).
+- **Konsistensi State**: Terlepas dari metodenya, status pemesanan di _backend_ harus bermuara pada status yang jelas (`PAID`, `REJECTED`, dll).
 
 ## 3. Considered Options
 
-| Opsi | Pros (+) | Cons (-) |
-|---|---|---|
-| **Dual-Mode Terpadu (Manual + Gateway)** | Mewadahi 100% target demografi pelanggan, fleksibel disesuaikan *toggle settings* studio. | Alur bisnis kode *(business logic)* lebih kompleks karena mengurus dua jalur validasi. |
-| **Hanya Payment Gateway (Otomatis)** | Tanpa intervensi admin, tidak ada risiko struk palsu. | Harga akhir lebih mahal, kemungkinan konversi *booking* menurun dari segmen mahasiswa. |
-| **Hanya Manual Transfer (Upload)** | Tanpa biaya admin tambahan, sistem jauh lebih simpel dibangun. | Lambat (harus tunggu admin), pengalaman *booking* mendadak jadi terhambat, rawan *human error*. |
+| Opsi                                     | Pros (+)                                                                                  | Cons (-)                                                                                        |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Dual-Mode Terpadu (Manual + Gateway)** | Mewadahi 100% target demografi pelanggan, fleksibel disesuaikan _toggle settings_ studio. | Alur bisnis kode _(business logic)_ lebih kompleks karena mengurus dua jalur validasi.          |
+| **Hanya Payment Gateway (Otomatis)**     | Tanpa intervensi admin, tidak ada risiko struk palsu.                                     | Harga akhir lebih mahal, kemungkinan konversi _booking_ menurun dari segmen mahasiswa.          |
+| **Hanya Manual Transfer (Upload)**       | Tanpa biaya admin tambahan, sistem jauh lebih simpel dibangun.                            | Lambat (harus tunggu admin), pengalaman _booking_ mendadak jadi terhambat, rawan _human error_. |
 
 ## 4. Decision Outcome
 
-Kami memilih mengimplementasikan **Pemisahan Mode Pembayaran yang Dapat Dikonfigurasi** dan menyatukan alur *state*-nya di akhir proses.
+Kami memilih mengimplementasikan **Pemisahan Mode Pembayaran yang Dapat Dikonfigurasi** dan menyatukan alur _state_-nya di akhir proses.
 
 **Implementasi & Panduan**:
-1. **Toggle Settings**: Kolom `studio_settings.is_manual_active` dan `is_gateway_active` mengontrol metode yang ditawarkan di antarmuka *checkout*.
+
+1. **Toggle Settings**: Kolom `studio_settings.is_manual_active` dan `is_gateway_active` mengontrol metode yang ditawarkan di antarmuka _checkout_.
 2. **Validasi Berkas Bukti Transfer**:
-   - Pemeriksaan MIME Type via *Magic Bytes* (hanya menerima `image/jpeg`, `image/png`, `image/webp`).
+   - Pemeriksaan MIME Type via _Magic Bytes_ (hanya menerima `image/jpeg`, `image/png`, `image/webp`).
    - Batas ukuran file maksimal 5 MB.
 3. **Idempotensi Webhook Gateway**: Untuk mode gateway otomatis (Midtrans/Xendit), backend memvalidasi signature HMAC SHA512 dan mencatat `transaction_id` untuk menjamin bahwa callback yang sama tidak pernah memproses pemesanan dua kali.
 
 **Aturan Bisnis Verifikasi Pembayaran Manual (Business Rules):**
+
 1. Saat bukti transfer diunggah: status diset ke `WAITING_CONFIRMATION`.
 2. Admin wajib melihat sendiri (secara visual) gambar tersebut, mencocokkannya dengan mutasi rekening Bank.
-3. Admin **wajib memasukkan nominal verifikasi riil** (`verifiedAmount`) yang masuk, tidak boleh hanya menekan *Approve*. Jika tidak cocok dengan `expectedAmount`, backend memperingatkan *partial payment*.
+3. Admin **wajib memasukkan nominal verifikasi riil** (`verifiedAmount`) yang masuk, tidak boleh hanya menekan _Approve_. Jika tidak cocok dengan `expectedAmount`, backend memperingatkan _partial payment_.
 4. Jika ditolak: Wajib mengisi `reason` yang otomatis dikirim ke pelanggan via WhatsApp, dan status diubah ke `REJECTED` (memberi kesempatan pelanggan upload ulang tanpa membatalkan reservasi).
 
 **Strategi Kunci Idempotensi (Idempotency Strategy):**
-Setiap notifikasi Webhook dari payment gateway diikat dengan tabel `payment_logs` menggunakan *Unique Constraint* pada kombinasi `(gateway_provider, transaction_id)`.
+Setiap notifikasi Webhook dari payment gateway diikat dengan tabel `payment_logs` menggunakan _Unique Constraint_ pada kombinasi `(gateway_provider, transaction_id)`.
+
 ```typescript
 async handleGatewayWebhook(payload: WebhookPayload) {
   // 1. Verifikasi Signature (HMAC)
   this.verifySignature(payload);
-  
+
   // 2. Gunakan database transaksi (Unique Constraint mencegah duplikasi)
   await this.prisma.paymentLog.create({
     data: {
@@ -87,7 +92,7 @@ async handleGatewayWebhook(payload: WebhookPayload) {
 - **Pros (+)**:
   - Fleksibilitas maksimal untuk pelanggan wisuda dengan kebiasaan pembayaran berbeda.
   - Risiko penipuan struk palsu ditekan karena verifikasi nominal mutasi dilakukan secara sadar (eksplisit) oleh admin.
-  - Alur data bersih, *idempotent*, dan selaras 100% dengan modal *checkout* di frontend.
+  - Alur data bersih, _idempotent_, dan selaras 100% dengan modal _checkout_ di frontend.
 - **Cons (-)**:
   - Membutuhkan manajemen UI khusus bagi admin untuk mengulas gambar transfer manual.
   - Pekerjaan manual yang padat karya bagi staff keuangan jika volume pesanan sedang puncaknya di musim wisuda.

@@ -56,7 +56,12 @@ export default function FrameCounter() {
       className="fixed bottom-6 left-6 z-40 hidden md:flex items-center gap-3 rounded-full border border-white/15 bg-black/80 px-4 py-2 text-xs font-mono backdrop-blur-xl shadow-2xl"
     >
       <div className="flex items-center gap-2 text-accent">
-        <Aperture size={15} weight="bold" className="animate-spin" style={{ animationDuration: '20s' }} />
+        <Aperture
+          size={15}
+          weight="bold"
+          className="animate-spin"
+          style={{ animationDuration: '20s' }}
+        />
         <span className="font-bold">EXP // {activeSection.num}</span>
       </div>
 

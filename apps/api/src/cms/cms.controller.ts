@@ -114,7 +114,9 @@ export class CmsController {
   }
 
   @Patch('gallery/items/:id/reorder')
-  reorderGalleryItem(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderGalleryItem(id, dto.direction); }
+  reorderGalleryItem(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) {
+    return this.cmsService.reorderGalleryItem(id, dto.direction);
+  }
 
   @Get('marquee')
   listMarqueeItems() {
@@ -138,7 +140,9 @@ export class CmsController {
   }
 
   @Patch('marquee/:id/reorder')
-  reorderMarqueeItem(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderMarqueeItem(id, dto.direction); }
+  reorderMarqueeItem(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) {
+    return this.cmsService.reorderMarqueeItem(id, dto.direction);
+  }
 
   @Get('testimonials')
   listTestimonials() {
@@ -183,7 +187,9 @@ export class CmsController {
   }
 
   @Patch('testimonials/:id/reorder')
-  reorderTestimonial(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderTestimonial(id, dto.direction); }
+  reorderTestimonial(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) {
+    return this.cmsService.reorderTestimonial(id, dto.direction);
+  }
 
   @Get('faqs')
   listFaqItems() {
@@ -207,5 +213,7 @@ export class CmsController {
   }
 
   @Patch('faqs/:id/reorder')
-  reorderFaq(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) { return this.cmsService.reorderFaqItem(id, dto.direction); }
+  reorderFaq(@Param('id') id: string, @Body() dto: ReorderCmsItemDto) {
+    return this.cmsService.reorderFaqItem(id, dto.direction);
+  }
 }

@@ -88,14 +88,10 @@ export default function PackageCard({ pkg }: PackageCardProps) {
           <h3 className="text-xl font-bold text-fg group-hover:text-white transition-colors">
             {pkg.name}
           </h3>
-          <span className="text-xl font-black text-accent tracking-tight">
-            {pkg.price}
-          </span>
+          <span className="text-xl font-black text-accent tracking-tight">{pkg.price}</span>
         </div>
 
-        <p className="mt-2 text-xs leading-relaxed text-muted">
-          {pkg.summary}
-        </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted">{pkg.summary}</p>
 
         {/* Features List */}
         <div className="mt-6 border-t border-white/10 pt-5 flex-1">
@@ -117,7 +113,7 @@ export default function PackageCard({ pkg }: PackageCardProps) {
         {/* CTA Button with Nested Arrow Hover Physics */}
         <a
           href={`https://wa.me/?text=${encodeURIComponent(
-            `Halo Kayastory! Saya tertarik reservasi ${pkg.name} untuk wisuda.`
+            `Halo Kayastory! Saya tertarik reservasi ${pkg.name} untuk wisuda.`,
           )}`}
           target="_blank"
           rel="noopener noreferrer"

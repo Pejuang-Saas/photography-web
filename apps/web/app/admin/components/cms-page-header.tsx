@@ -34,18 +34,21 @@ export function CmsPageHeader({
           </Link>
         )}
         <div>
-          <h1 className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-white">{title}</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+            {title}
+          </h1>
           <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{description}</p>
         </div>
       </div>
-      {createAction ?? (createHref && createLabel && (
-        <Link href={createHref}>
-          <Button className="h-9 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-600">
-            <Plus className="mr-1.5 size-3.5" />
-            {createLabel}
-          </Button>
-        </Link>
-      ))}
+      {createAction ??
+        (createHref && createLabel && (
+          <Link href={createHref}>
+            <Button className="h-9 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-600">
+              <Plus className="mr-1.5 size-3.5" />
+              {createLabel}
+            </Button>
+          </Link>
+        ))}
     </div>
   );
 }

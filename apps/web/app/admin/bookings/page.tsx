@@ -3,15 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAdmin } from '@/lib/admin-context';
 import { formatRupiah } from '@/lib/mock-data';
-import {
-  Search,
-  Clock,
-  Calendar,
-  Download,
-  CreditCard,
-  MessageCircle,
-  Eye,
-} from 'lucide-react';
+import { Search, Clock, Calendar, Download, CreditCard, MessageCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +72,7 @@ export default function BookingsManagementPage() {
               filteredBookings
                 .map(
                   (b) =>
-                    `"${b.bookingCode}","${b.customerName}","${b.customerPhone}","${b.university}","${b.packageName}",${b.totalPrice},"${b.sessionDate}","${b.status}"`
+                    `"${b.bookingCode}","${b.customerName}","${b.customerPhone}","${b.university}","${b.packageName}",${b.totalPrice},"${b.sessionDate}","${b.status}"`,
                 )
                 .join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -143,7 +135,10 @@ export default function BookingsManagementPage() {
             />
           </div>
 
-          <Select value={selectedUniversity} onValueChange={(val) => val && setSelectedUniversity(val)}>
+          <Select
+            value={selectedUniversity}
+            onValueChange={(val) => val && setSelectedUniversity(val)}
+          >
             <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-800 dark:text-zinc-200">
               <SelectValue placeholder="Semua Kampus" />
             </SelectTrigger>
@@ -193,21 +188,27 @@ export default function BookingsManagementPage() {
                         <div className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
                           {booking.bookingCode}
                         </div>
-                        <div className="font-bold text-zinc-900 dark:text-white text-sm">{booking.customerName}</div>
+                        <div className="font-bold text-zinc-900 dark:text-white text-sm">
+                          {booking.customerName}
+                        </div>
                         <div className="font-mono text-[11px] text-zinc-500">
                           {booking.customerPhone}
                         </div>
                       </td>
 
                       <td className="p-3.5">
-                        <div className="text-zinc-900 dark:text-zinc-200 font-medium">{booking.university}</div>
+                        <div className="text-zinc-900 dark:text-zinc-200 font-medium">
+                          {booking.university}
+                        </div>
                         {booking.faculty && (
                           <div className="text-[11px] text-zinc-500">{booking.faculty}</div>
                         )}
                       </td>
 
                       <td className="p-3.5">
-                        <div className="text-zinc-800 dark:text-zinc-300 font-medium">{booking.packageName}</div>
+                        <div className="text-zinc-800 dark:text-zinc-300 font-medium">
+                          {booking.packageName}
+                        </div>
                         <div className="font-mono font-bold text-zinc-900 dark:text-white text-xs">
                           {formatRupiah(booking.totalPrice)}
                         </div>

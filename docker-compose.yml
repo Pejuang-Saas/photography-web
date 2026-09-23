@@ -6,7 +6,7 @@ services:
     container_name: photography-api
     restart: unless-stopped
     ports:
-      - "3002:3000"
+      - '3002:3000'
     environment:
       - NODE_ENV=development
       - PORT=3000
@@ -37,8 +37,8 @@ services:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
     ports:
-      - "9001:9000"
-      - "9002:9001"
+      - '9001:9000'
+      - '9002:9001'
     volumes:
       - minio-data:/data
     networks:
@@ -51,7 +51,7 @@ services:
     container_name: photography-web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       - ./apps/web:/app
       - /app/node_modules

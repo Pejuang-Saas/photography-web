@@ -1,5 +1,6 @@
 export type BookingStatus = 'PENDING_VERIFICATION' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
-export type PaymentStatus = 'UNPAID' | 'WAITING_CONFIRMATION' | 'PAID_DP' | 'PAID_FULL' | 'REJECTED';
+export type PaymentStatus =
+  'UNPAID' | 'WAITING_CONFIRMATION' | 'PAID_DP' | 'PAID_FULL' | 'REJECTED';
 export type PaymentMethod = 'BCA_TRANSFER' | 'MANDIRI_TRANSFER' | 'BRI_TRANSFER' | 'QRIS' | 'CASH';
 
 export interface BookingAddon {

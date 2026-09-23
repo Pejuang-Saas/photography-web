@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Date:** 2026-09-15  
 **Deciders:** Architecture Team, Frontend Team, Backend Team  
-**Technical Story:** Gallery — Customer Photo Selection UX  
+**Technical Story:** Gallery — Customer Photo Selection UX
 
 ---
 
@@ -21,22 +21,22 @@ Fitur seleksi foto menangani gallery dengan jumlah foto yang besar (100 hingga 1
 
 ## Decision Drivers
 
-| Driver | Penjelasan |
-| :--- | :--- |
-| **UX & Responsiveness** | Toggle foto harus instan. Delay akibat network request per klik tidak dapat diterima. |
-| **Session Resilience** | Customer harus bisa melanjutkan pilihan jika browser ditutup/crash. |
-| **Server Load** | Minimalisir write I/O ke PostgreSQL dan beban request ke NestJS. |
-| **Statelessness** | Server tetap stateless di antara toggle individual — tidak menyimpan session di memory. |
+| Driver                  | Penjelasan                                                                              |
+| :---------------------- | :-------------------------------------------------------------------------------------- |
+| **UX & Responsiveness** | Toggle foto harus instan. Delay akibat network request per klik tidak dapat diterima.   |
+| **Session Resilience**  | Customer harus bisa melanjutkan pilihan jika browser ditutup/crash.                     |
+| **Server Load**         | Minimalisir write I/O ke PostgreSQL dan beban request ke NestJS.                        |
+| **Statelessness**       | Server tetap stateless di antara toggle individual — tidak menyimpan session di memory. |
 
 ---
 
 ## Considered Options
 
-| Option | Pros | Cons |
-| :--- | :--- | :--- |
-| **A: Server-side per-click** (tiap toggle = 1 HTTP request) | Data selalu sinkron antara client dan DB | UI lag per klik; traffic sangat tinggi; tidak cocok untuk gallery 1000+ foto di VPS 2vCPU |
-| **B: Client-side state + debounced auto-save *(CHOSEN)*** | UX instan; beban server rendah (di-batch); mendukung resume via session token | Potensi kehilangan max 1.5 detik state terakhir jika browser crash sebelum debounce sempat terpanggil |
-| **C: Client-side only, save only on submit** | Paling hemat server call | Seluruh state hilang jika customer tidak sengaja reload atau browser crash sebelum submit |
+| Option                                                      | Pros                                                                          | Cons                                                                                                  |
+| :---------------------------------------------------------- | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| **A: Server-side per-click** (tiap toggle = 1 HTTP request) | Data selalu sinkron antara client dan DB                                      | UI lag per klik; traffic sangat tinggi; tidak cocok untuk gallery 1000+ foto di VPS 2vCPU             |
+| **B: Client-side state + debounced auto-save _(CHOSEN)_**   | UX instan; beban server rendah (di-batch); mendukung resume via session token | Potensi kehilangan max 1.5 detik state terakhir jika browser crash sebelum debounce sempat terpanggil |
+| **C: Client-side only, save only on submit**                | Paling hemat server call                                                      | Seluruh state hilang jika customer tidak sengaja reload atau browser crash sebelum submit             |
 
 ---
 
@@ -59,9 +59,9 @@ Pendekatan ini menyeimbangkan UX instan dengan persistensi data yang aman:
 
 ```typescript
 interface GallerySelectionState {
-  selectedIds: Set<string>;          // Set of photo UUIDs
-  isSubmitted: boolean;              // Lock UI setelah submit
-  sessionToken: string | null;       // Dari localStorage atau API response
+  selectedIds: Set<string>; // Set of photo UUIDs
+  isSubmitted: boolean; // Lock UI setelah submit
+  sessionToken: string | null; // Dari localStorage atau API response
   customerName: string;
 }
 ```
@@ -183,10 +183,9 @@ export function useSessionRestore(galleryToken: string) {
 ```typescript
 const handleSubmit = async () => {
   try {
-    const response = await fetch(
-      `/api/v1/g/${galleryToken}/selections/${sessionToken}/submit`,
-      { method: 'POST' }
-    );
+    const response = await fetch(`/api/v1/g/${galleryToken}/selections/${sessionToken}/submit`, {
+      method: 'POST',
+    });
     if (!response.ok) throw new Error('Submit failed');
     const data = await response.json();
     markSubmitted(); // Lock UI
@@ -201,13 +200,13 @@ const handleSubmit = async () => {
 
 ## Consequences
 
-| Tipe | Detail |
-| :--- | :--- |
-| ✅ Positive | Toggle foto terasa instan (zero network latency), counter update real-time di client |
-| ✅ Positive | Beban VPS sangat rendah — write ke DB hanya terjadi setiap 1.5 detik idle |
-| ✅ Positive | Session resume memungkinkan customer melanjutkan kapan saja |
+| Tipe        | Detail                                                                                              |
+| :---------- | :-------------------------------------------------------------------------------------------------- |
+| ✅ Positive | Toggle foto terasa instan (zero network latency), counter update real-time di client                |
+| ✅ Positive | Beban VPS sangat rendah — write ke DB hanya terjadi setiap 1.5 detik idle                           |
+| ✅ Positive | Session resume memungkinkan customer melanjutkan kapan saja                                         |
 | ⚠️ Negative | Potensi kehilangan state terakhir maksimal 1.5 detik jika browser crash tiba-tiba (dapat ditolerir) |
-| 📌 Note | Selection counter pada UI adalah client-side count (size of Set), bukan DB aggregate query |
+| 📌 Note     | Selection counter pada UI adalah client-side count (size of Set), bukan DB aggregate query          |
 
 ---
 

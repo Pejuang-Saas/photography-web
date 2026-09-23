@@ -40,7 +40,9 @@ export default function AdminSettingsPage() {
   const [testPhoneNumber, setTestPhoneNumber] = useState('081234567890');
 
   // Template message state
-  const [selectedTemplate, setSelectedTemplate] = useState<'NEW_BOOKING' | 'PAYMENT_VERIFIED' | 'REMINDER_H1' | 'PHOTO_DELIVERY'>('PAYMENT_VERIFIED');
+  const [selectedTemplate, setSelectedTemplate] = useState<
+    'NEW_BOOKING' | 'PAYMENT_VERIFIED' | 'REMINDER_H1' | 'PHOTO_DELIVERY'
+  >('PAYMENT_VERIFIED');
 
   const [templates, setTemplates] = useState({
     NEW_BOOKING: `Halo Kak *{customer_name}*! 👋\n\nTerima kasih telah memesan photoshoot wisuda bersama *Kayastory Photography* 🎓✨\n\n📋 *Rincian Booking:*\n• Kode: *{booking_code}*\n• Paket: *{package_name}*\n• Tanggal: *{session_date}*\n• Jam: *{session_time} WIB*\n• Lokasi: *{location}*\n• Total Tagihan: *{total_price}*\n\n💳 *Instruksi DP (50%):*\nSilakan transfer ke *BCA 8030-8819-20 (Bima Satria)*, lalu upload bukti transfer di link reservasi Anda:\n🔗 {invoice_url}\n\nSalam hangat,\n*Kayastory Studio Semarang*`,
@@ -109,7 +111,8 @@ export default function AdminSettingsPage() {
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Konfigurasi Baileys WhatsApp (Gratis/Self-hosted), notifikasi email SMTP, dan rekening studio.
+            Konfigurasi Baileys WhatsApp (Gratis/Self-hosted), notifikasi email SMTP, dan rekening
+            studio.
           </p>
         </div>
 
@@ -198,7 +201,8 @@ export default function AdminSettingsPage() {
                       className="h-9 font-mono text-xs rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950"
                     />
                     <p className="text-[10px] text-zinc-500">
-                      Endpoint server backend Baileys yang berjalan mandiri di VPS/server lokal Anda.
+                      Endpoint server backend Baileys yang berjalan mandiri di VPS/server lokal
+                      Anda.
                     </p>
                   </div>
 
@@ -222,10 +226,14 @@ export default function AdminSettingsPage() {
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-950/60 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-bold text-zinc-900 dark:text-white">
-                      Nomor WhatsApp Terhubung: <span className="font-mono text-amber-600 dark:text-amber-400">{waSenderPhone}</span>
+                      Nomor WhatsApp Terhubung:{' '}
+                      <span className="font-mono text-amber-600 dark:text-amber-400">
+                        {waSenderPhone}
+                      </span>
                     </div>
                     <div className="text-[11px] text-zinc-500 mt-0.5">
-                      Session ID: <span className="font-mono">kayastory-main-session</span> • Baileys Protocol: v6.7.0 (WS WebSocket)
+                      Session ID: <span className="font-mono">kayastory-main-session</span> •
+                      Baileys Protocol: v6.7.0 (WS WebSocket)
                     </div>
                   </div>
 
@@ -260,15 +268,23 @@ export default function AdminSettingsPage() {
                       {/* Simulated QR Pattern */}
                       <div className="size-full bg-zinc-900 flex flex-col justify-between p-2 rounded">
                         <div className="flex justify-between">
-                          <div className="size-7 bg-white rounded-xs p-1"><div className="size-full bg-zinc-900" /></div>
-                          <div className="size-7 bg-white rounded-xs p-1"><div className="size-full bg-zinc-900" /></div>
+                          <div className="size-7 bg-white rounded-xs p-1">
+                            <div className="size-full bg-zinc-900" />
+                          </div>
+                          <div className="size-7 bg-white rounded-xs p-1">
+                            <div className="size-full bg-zinc-900" />
+                          </div>
                         </div>
                         <div className="text-center font-mono text-[9px] text-white font-bold tracking-widest">
                           BAILEYS QR
                         </div>
                         <div className="flex justify-between">
-                          <div className="size-7 bg-white rounded-xs p-1"><div className="size-full bg-zinc-900" /></div>
-                          <div className="size-7 bg-white rounded-xs p-1"><div className="size-full bg-zinc-900" /></div>
+                          <div className="size-7 bg-white rounded-xs p-1">
+                            <div className="size-full bg-zinc-900" />
+                          </div>
+                          <div className="size-7 bg-white rounded-xs p-1">
+                            <div className="size-full bg-zinc-900" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -277,7 +293,8 @@ export default function AdminSettingsPage() {
                         Buka WhatsApp di HP & Scan QR Code Ini
                       </h4>
                       <p className="text-[11px] text-zinc-500 max-w-sm mx-auto mt-0.5">
-                        Buka WhatsApp &gt; Perangkat Tertaut &gt; Tautkan Perangkat. Sesi otomatis tersimpan aman di server lokal.
+                        Buka WhatsApp &gt; Perangkat Tertaut &gt; Tautkan Perangkat. Sesi otomatis
+                        tersimpan aman di server lokal.
                       </p>
                     </div>
                     <Button
@@ -451,7 +468,9 @@ export default function AdminSettingsPage() {
                 />
 
                 <div className="flex items-center justify-between text-xs text-zinc-500">
-                  <span>Mendukung format WhatsApp: <strong>*tebal*</strong>, <em>_miring_</em>, ~coret~</span>
+                  <span>
+                    Mendukung format WhatsApp: <strong>*tebal*</strong>, <em>_miring_</em>, ~coret~
+                  </span>
                   <Button
                     size="sm"
                     onClick={handleSaveSettings}
@@ -506,7 +525,10 @@ export default function AdminSettingsPage() {
                       .replace('{invoice_number}', 'INV-KYA-2026-014')
                       .replace('{photographer}', 'Bima Satria')
                       .replace('{invoice_url}', 'https://kayastory.id/inv/KYA-0814')
-                      .replace('{drive_url}', 'https://drive.google.com/drive/folders/kayastory-anisa')}
+                      .replace(
+                        '{drive_url}',
+                        'https://drive.google.com/drive/folders/kayastory-anisa',
+                      )}
                     <div className="flex items-center justify-end gap-1 text-[10px] text-zinc-400 mt-1">
                       <span>14:32</span>
                       <span className="text-sky-500 font-bold">✓✓</span>
@@ -603,14 +625,24 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 p-3 text-xs space-y-2">
-                  <div className="font-semibold text-zinc-900 dark:text-white">Trigger Notifikasi Otomatis:</div>
+                  <div className="font-semibold text-zinc-900 dark:text-white">
+                    Trigger Notifikasi Otomatis:
+                  </div>
                   <div className="space-y-1.5 text-zinc-600 dark:text-zinc-300">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" defaultChecked className="rounded border-zinc-300 text-amber-500 focus:ring-amber-500" />
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="rounded border-zinc-300 text-amber-500 focus:ring-amber-500"
+                      />
                       <span>Kirim invoice PDF ke email customer saat pembayaran diverifikasi</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" defaultChecked className="rounded border-zinc-300 text-amber-500 focus:ring-amber-500" />
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="rounded border-zinc-300 text-amber-500 focus:ring-amber-500"
+                      />
                       <span>Kirim notifikasi ke email admin saat ada reservasi baru masuk</span>
                     </label>
                   </div>
@@ -644,7 +676,9 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 p-3 text-xs space-y-1 text-zinc-500">
-                  <p>Email uji coba akan menyertakan ringkasan invoice simulasi dan status server.</p>
+                  <p>
+                    Email uji coba akan menyertakan ringkasan invoice simulasi dan status server.
+                  </p>
                 </div>
 
                 <Button
@@ -670,7 +704,8 @@ export default function AdminSettingsPage() {
                 Informasi Studio & Rekening Bank Resmi
               </CardTitle>
               <CardDescription className="text-xs text-zinc-500">
-                Informasi pembayaran yang tertera pada invoice digital dan pesan instruksi WhatsApp klien
+                Informasi pembayaran yang tertera pada invoice digital dan pesan instruksi WhatsApp
+                klien
               </CardDescription>
             </CardHeader>
 
@@ -704,7 +739,9 @@ export default function AdminSettingsPage() {
 
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 p-3.5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-zinc-900 dark:text-white">QRIS All Payment</span>
+                    <span className="font-bold text-zinc-900 dark:text-white">
+                      QRIS All Payment
+                    </span>
                     <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold">
                       Gopay/OVO/Dana
                     </Badge>

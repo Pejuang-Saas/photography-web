@@ -28,8 +28,7 @@ export class StorageService {
   constructor(configService: ConfigService) {
     this.bucket = configService.get<string>('S3_BUCKET') ?? 'photography-assets';
     this.publicUrl = (
-      configService.get<string>('S3_PUBLIC_URL') ??
-      `http://localhost:9001/${this.bucket}`
+      configService.get<string>('S3_PUBLIC_URL') ?? `http://localhost:9001/${this.bucket}`
     ).replace(/\/$/, '');
 
     this.client = new S3Client({
@@ -37,10 +36,8 @@ export class StorageService {
       endpoint: configService.get<string>('S3_ENDPOINT') ?? 'http://minio:9000',
       forcePathStyle: true,
       credentials: {
-        accessKeyId:
-          configService.get<string>('S3_ACCESS_KEY') ?? 'minioadmin',
-        secretAccessKey:
-          configService.get<string>('S3_SECRET_KEY') ?? 'minioadmin',
+        accessKeyId: configService.get<string>('S3_ACCESS_KEY') ?? 'minioadmin',
+        secretAccessKey: configService.get<string>('S3_SECRET_KEY') ?? 'minioadmin',
       },
     });
   }
@@ -74,9 +71,7 @@ export class StorageService {
 
   async deleteObject(key: string) {
     await this.ensureBucket();
-    await this.client.send(
-      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
   private async ensureBucket() {

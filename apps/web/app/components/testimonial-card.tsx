@@ -82,9 +82,7 @@ export default function TestimonialCard({ story }: TestimonialCardProps) {
             <span className="block font-mono text-xs font-bold uppercase tracking-wider text-fg group-hover:text-accent transition-colors">
               {story.author}
             </span>
-            <span className="block text-xs text-muted mt-0.5">
-              {story.campus}
-            </span>
+            <span className="block text-xs text-muted mt-0.5">{story.campus}</span>
           </div>
 
           {/* Gold Rating Stars */}

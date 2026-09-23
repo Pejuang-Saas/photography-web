@@ -32,8 +32,18 @@ export default function CalendarSchedulePage() {
   const [selectedPhotographer, setSelectedPhotographer] = useState('ALL');
 
   const monthNames = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
 
   const handlePrevMonth = () => {
@@ -94,7 +104,10 @@ export default function CalendarSchedulePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Select value={selectedPhotographer} onValueChange={(val) => val && setSelectedPhotographer(val)}>
+          <Select
+            value={selectedPhotographer}
+            onValueChange={(val) => val && setSelectedPhotographer(val)}
+          >
             <SelectTrigger className="h-9 w-44 rounded-xl border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-zinc-800 dark:text-zinc-200">
               <SelectValue placeholder="Semua Fotografer" />
             </SelectTrigger>
@@ -186,8 +199,8 @@ export default function CalendarSchedulePage() {
                         isToday
                           ? 'flex size-5 items-center justify-center rounded-full bg-amber-500 text-zinc-950 font-extrabold shadow-xs'
                           : isSelected
-                          ? 'text-amber-600 dark:text-amber-400 font-extrabold'
-                          : 'text-zinc-700 dark:text-zinc-400'
+                            ? 'text-amber-600 dark:text-amber-400 font-extrabold'
+                            : 'text-zinc-700 dark:text-zinc-400'
                       }`}
                     >
                       {day}
@@ -246,7 +259,9 @@ export default function CalendarSchedulePage() {
               <div className="py-12 text-center text-xs text-zinc-500 space-y-2">
                 <CalendarIcon className="size-8 text-zinc-400 dark:text-zinc-600 mx-auto" />
                 <p className="font-medium">Tidak ada jadwal pemotretan pada tanggal ini.</p>
-                <p className="text-[11px] text-zinc-400">Slot kosong tersedia untuk booking baru.</p>
+                <p className="text-[11px] text-zinc-400">
+                  Slot kosong tersedia untuk booking baru.
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -261,7 +276,9 @@ export default function CalendarSchedulePage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="font-bold text-zinc-900 dark:text-white text-xs">{bk.customerName}</div>
+                          <div className="font-bold text-zinc-900 dark:text-white text-xs">
+                            {bk.customerName}
+                          </div>
                           <div className="text-[11px] text-zinc-500">{bk.packageName}</div>
                         </div>
                         <Badge
@@ -290,7 +307,10 @@ export default function CalendarSchedulePage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
+                      <div
+                        className="flex items-center justify-between pt-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <span className="font-mono text-xs font-bold text-zinc-900 dark:text-white">
                           {formatRupiah(bk.totalPrice)}
                         </span>

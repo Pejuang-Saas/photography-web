@@ -64,7 +64,11 @@ export function CampusAnalyticsChart() {
                 }}
                 onMouseLeave={() => setHoverIndex(null)}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-zinc-100 dark:stroke-zinc-800" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  className="stroke-zinc-100 dark:stroke-zinc-800"
+                />
                 <XAxis
                   dataKey="campus"
                   axisLine={false}

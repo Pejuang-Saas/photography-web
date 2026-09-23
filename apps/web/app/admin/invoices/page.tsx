@@ -22,7 +22,9 @@ export default function InvoicesManagementPage() {
   const { bookings, setSelectedInvoice } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const invoiceList = bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'COMPLETED' || b.invoiceNumber);
+  const invoiceList = bookings.filter(
+    (b) => b.status === 'CONFIRMED' || b.status === 'COMPLETED' || b.invoiceNumber,
+  );
 
   const filteredInvoices = invoiceList.filter((inv) => {
     if (!searchQuery.trim()) return true;
@@ -31,7 +33,12 @@ export default function InvoicesManagementPage() {
     const name = inv.customerName.toLowerCase();
     const code = inv.bookingCode.toLowerCase();
     const phone = inv.customerPhone;
-    return invNum.includes(query) || name.includes(query) || code.includes(query) || phone.includes(query);
+    return (
+      invNum.includes(query) ||
+      name.includes(query) ||
+      code.includes(query) ||
+      phone.includes(query)
+    );
   });
 
   const handleResendWA = (inv: (typeof bookings)[0]) => {
@@ -87,7 +94,8 @@ export default function InvoicesManagementPage() {
                 </tr>
               ) : (
                 filteredInvoices.map((inv) => {
-                  const invoiceNum = inv.invoiceNumber || `INV-KYA-2026-${inv.bookingCode.slice(-3)}`;
+                  const invoiceNum =
+                    inv.invoiceNumber || `INV-KYA-2026-${inv.bookingCode.slice(-3)}`;
 
                   return (
                     <tr
@@ -110,12 +118,18 @@ export default function InvoicesManagementPage() {
                       </td>
 
                       <td className="p-3.5">
-                        <div className="font-bold text-zinc-900 dark:text-white text-xs">{inv.customerName}</div>
-                        <div className="text-[11px] text-zinc-500 font-mono">{inv.customerPhone}</div>
+                        <div className="font-bold text-zinc-900 dark:text-white text-xs">
+                          {inv.customerName}
+                        </div>
+                        <div className="text-[11px] text-zinc-500 font-mono">
+                          {inv.customerPhone}
+                        </div>
                       </td>
 
                       <td className="p-3.5">
-                        <div className="text-zinc-800 dark:text-zinc-200 font-medium">{inv.packageName}</div>
+                        <div className="text-zinc-800 dark:text-zinc-200 font-medium">
+                          {inv.packageName}
+                        </div>
                         <div className="text-[10px] text-zinc-500">{inv.location}</div>
                       </td>
 

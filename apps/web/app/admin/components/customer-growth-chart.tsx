@@ -34,7 +34,7 @@ export function CustomerGrowthChart() {
   }, []);
 
   return (
-      <Card className="rounded-lg border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm">
+    <Card className="rounded-lg border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm">
       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 gap-2 border-b border-zinc-100 dark:border-zinc-800/80">
         <div>
           <div className="flex items-center gap-2">
@@ -87,7 +87,11 @@ export function CustomerGrowthChart() {
                     <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-zinc-100 dark:stroke-zinc-800" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  className="stroke-zinc-100 dark:stroke-zinc-800"
+                />
                 <XAxis
                   dataKey="month"
                   axisLine={false}
@@ -106,7 +110,9 @@ export function CustomerGrowthChart() {
                       const data = payload[0].payload;
                       return (
                         <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 p-3 shadow-xl backdrop-blur-md text-xs">
-                          <p className="font-bold text-zinc-900 dark:text-white">Bulan {label} 2026</p>
+                          <p className="font-bold text-zinc-900 dark:text-white">
+                            Bulan {label} 2026
+                          </p>
                           <div className="mt-1.5 space-y-1">
                             <div className="flex items-center justify-between gap-4">
                               <span className="text-zinc-500 dark:text-zinc-400">Total Omset:</span>

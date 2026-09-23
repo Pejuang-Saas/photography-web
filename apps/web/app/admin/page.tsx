@@ -7,13 +7,7 @@ import { formatRupiah } from '@/lib/mock-data';
 import StatCard from './components/stat-card';
 import { CustomerGrowthChart } from './components/customer-growth-chart';
 import { PackageBreakdownChart } from './components/package-breakdown-chart';
-import {
-  Banknote,
-  CalendarCheck,
-  Clock,
-  ArrowUpRight,
-  Camera,
-} from 'lucide-react';
+import { Banknote, CalendarCheck, Clock, ArrowUpRight, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -37,7 +31,9 @@ export default function AdminDashboardPage() {
             <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">
               Halo, Admin 👋
             </h1>
-            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-xs font-semibold text-emerald-700 dark:text-emerald-400">Live Data</Badge>
+            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              Live Data
+            </Badge>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             Ringkasan performa reservasi dan aktivitas studio terbaru.
@@ -159,13 +155,17 @@ export default function AdminDashboardPage() {
                       onClick={() => setSelectedBooking(booking)}
                     >
                       <td className="p-3 pl-4">
-                        <div className="font-semibold text-zinc-900 dark:text-white">{booking.customerName}</div>
+                        <div className="font-semibold text-zinc-900 dark:text-white">
+                          {booking.customerName}
+                        </div>
                         <div className="text-[11px] text-zinc-500 truncate max-w-[150px]">
                           {booking.university}
                         </div>
                       </td>
                       <td className="p-3">
-                        <div className="text-zinc-800 dark:text-zinc-300 font-medium">{booking.packageName}</div>
+                        <div className="text-zinc-800 dark:text-zinc-300 font-medium">
+                          {booking.packageName}
+                        </div>
                         <div className="text-[11px] font-mono text-zinc-500">
                           {booking.sessionDate} • {booking.timeSlot}
                         </div>

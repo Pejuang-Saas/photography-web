@@ -72,8 +72,8 @@ export default function HeroEntrance() {
         variants={variants}
         className="mt-7 max-w-xl text-base sm:text-lg leading-relaxed text-muted font-normal"
       >
-        Spesialis fotografi wisuda di Semarang. Mengabadikan momen kelulusan,
-        kebaya, dan kebersamaan sahabat dalam estetika warna yang abadi.
+        Spesialis fotografi wisuda di Semarang. Mengabadikan momen kelulusan, kebaya, dan
+        kebersamaan sahabat dalam estetika warna yang abadi.
       </motion.p>
 
       {/* Action Buttons */}

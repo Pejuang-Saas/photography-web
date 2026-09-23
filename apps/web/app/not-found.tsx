@@ -41,12 +41,11 @@ export default function NotFound() {
             4<span className="text-accent">0</span>4
           </h1>
 
-          <p className="mt-4 text-base font-bold text-fg">
-            Frame ini tidak ada dalam rol film.
-          </p>
+          <p className="mt-4 text-base font-bold text-fg">Frame ini tidak ada dalam rol film.</p>
 
           <p className="mt-2 text-xs leading-relaxed text-muted">
-            Halaman yang kamu cari mungkin telah berpindah lokasi atau belum pernah terabadikan di arsip kami.
+            Halaman yang kamu cari mungkin telah berpindah lokasi atau belum pernah terabadikan di
+            arsip kami.
           </p>
 
           {/* Action Buttons */}
@@ -55,7 +54,11 @@ export default function NotFound() {
               href="/"
               className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full bg-accent px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.97] shadow-lg shadow-accent/20"
             >
-              <ArrowLeft size={14} weight="bold" className="transition-transform group-hover:-translate-x-1" />
+              <ArrowLeft
+                size={14}
+                weight="bold"
+                className="transition-transform group-hover:-translate-x-1"
+              />
               <span>Kembali ke Beranda</span>
             </Link>
 

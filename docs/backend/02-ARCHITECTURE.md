@@ -1,8 +1,9 @@
 # 🏛️ Spesifikasi Arsitektur Sistem Backend (System Architecture)
+
 ## Photography Platform Monorepo (Kaya Story Semarang)
 
 - **Versi**: 1.0.0
-- **Pola Desain**: *Modular Monolith with Domain-Driven Service Layer*
+- **Pola Desain**: _Modular Monolith with Domain-Driven Service Layer_
 - **Framework**: NestJS 11 (Express Adapter, TypeScript Strict Mode)
 - **Komunikasi Internal**: Docker Bridge Network (`dev-network`)
 
@@ -47,27 +48,28 @@ flowchart TD
     AdminDevice -->|"API Calls via CORS (Port 3002)"| NestApp
     Browser -->|"API Calls via CORS (Port 3002)"| NestApp
     PaymentGateway -->|"Webhook (Port 3002)"| NestApp
-    
+
     NextApp -->|"SSR / Server Action API Fetch"| NestApp
-    
+
     NestApp -->|"Prisma Client TCP (Port 5432)"| Postgres
     PDFWorker -->|"Prisma Client"| Postgres
     NotificationWorker -->|"Prisma Client"| Postgres
-    
+
     NestApp -->|"BullMQ & Cache (Port 6379)"| Redis
     PDFWorker <-->|"Consume Job (Port 6379)"| Redis
     NotificationWorker <-->|"Consume Job (Port 6379)"| Redis
-    
+
     NestApp -->|"HTTP Client (Port 3000/WAHA)"| WAHA
     NotificationWorker -->|"HTTP Client"| WAHA
     WAHA -->|"Webhook Callback (POST /webhooks/waha)"| NestApp
-    
+
     NotificationWorker -->|"SMTP TLS"| EmailSMTP
     WAHA -->|"Send Message Protocol"| MetaAPI
 ```
 
 ### Penjelasan Konektivitas Antar Kontainer:
-1. **Frontend $\rightarrow$ Backend**: Melalui domain publik `http://localhost:3002` (via Browser) atau alias kontainer internal `http://photography-api:3000` (saat Next.js melakukan *Server-Side Rendering / Route Handler*).
+
+1. **Frontend $\rightarrow$ Backend**: Melalui domain publik `http://localhost:3002` (via Browser) atau alias kontainer internal `http://photography-api:3000` (saat Next.js melakukan _Server-Side Rendering / Route Handler_).
 2. **Backend $\rightarrow$ Database**: Menggunakan URI internal `postgresql://root:root@dev-postgres:5432/photography_db?schema=public`.
 3. **Backend $\rightarrow$ Caching & Queue**: Menggunakan URI `redis://dev-redis:6379`.
 4. **Backend $\leftrightarrow$ WAHA (WhatsApp)**: Menggunakan REST API `http://dev-waha:3000` dan Webhook dua arah.
@@ -105,42 +107,48 @@ apps/api/src/
 
 ### 2.1 Tabel Tanggung Jawab Modul (Component Responsibility Table)
 
-| Modul NestJS | Tanggung Jawab (Responsibility) | Dependensi Internal Utama |
-| :--- | :--- | :--- |
-| **AuthModule** | Menangani verifikasi kredensial, hashing password (`bcrypt`), menerbitkan JWT (Access & Refresh), dan role-based access. | `PrismaModule`, `JwtModule` |
-| **PackagesModule** | CRUD paket dan addon studio. Menangani logika harga dinamis. Cache response via Redis. | `PrismaModule`, `CacheModule` |
-| **BookingsModule** | Inti bisnis kalender; menghitung availabilitas slot, atomic reservation lock, handle blackout dates. | `PrismaModule`, `NotificationsModule` |
-| **PaymentsModule** | Verifikasi pembayaran manual, parsing Midtrans webhook, mengelola file bukti transfer lokal/S3. | `PrismaModule`, `InvoicesModule`, `NotificationsModule` |
-| **InvoicesModule** | Generate PDF invoice dengan library `pdfkit`/`puppeteer`, penomoran invoice `INV-KYA-*`. | `PrismaModule`, `QueueModule` |
-| **CrmModule** | Sinkronisasi pesan WhatsApp WAHA, manajemen *24-hour window locking*, tagging obrolan. | `PrismaModule`, `WahaModule`, `TemplatesModule` |
-| **NotificationsModule** | *Producer & Consumer* BullMQ untuk memproses antrian WAHA & Email secara asinkron. Menangani *retry* & *Dead Letter*. | `QueueModule`, `WahaModule`, `TemplatesModule` |
+| Modul NestJS            | Tanggung Jawab (Responsibility)                                                                                          | Dependensi Internal Utama                               |
+| :---------------------- | :----------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------ |
+| **AuthModule**          | Menangani verifikasi kredensial, hashing password (`bcrypt`), menerbitkan JWT (Access & Refresh), dan role-based access. | `PrismaModule`, `JwtModule`                             |
+| **PackagesModule**      | CRUD paket dan addon studio. Menangani logika harga dinamis. Cache response via Redis.                                   | `PrismaModule`, `CacheModule`                           |
+| **BookingsModule**      | Inti bisnis kalender; menghitung availabilitas slot, atomic reservation lock, handle blackout dates.                     | `PrismaModule`, `NotificationsModule`                   |
+| **PaymentsModule**      | Verifikasi pembayaran manual, parsing Midtrans webhook, mengelola file bukti transfer lokal/S3.                          | `PrismaModule`, `InvoicesModule`, `NotificationsModule` |
+| **InvoicesModule**      | Generate PDF invoice dengan library `pdfkit`/`puppeteer`, penomoran invoice `INV-KYA-*`.                                 | `PrismaModule`, `QueueModule`                           |
+| **CrmModule**           | Sinkronisasi pesan WhatsApp WAHA, manajemen _24-hour window locking_, tagging obrolan.                                   | `PrismaModule`, `WahaModule`, `TemplatesModule`         |
+| **NotificationsModule** | _Producer & Consumer_ BullMQ untuk memproses antrian WAHA & Email secara asinkron. Menangani _retry_ & _Dead Letter_.    | `QueueModule`, `WahaModule`, `TemplatesModule`          |
 
 ---
 
 ## 3. Strategi Keamanan, Caching & Observabilitas
 
 ### 3.1 Security Architecture
+
 - **JWT & Stateless Flow**: Token dikirim via HTTP Authorization header (Bearer token). Access token berumur 15 menit, dikombinasikan dengan Refresh token rotasi berumur 7 hari. Backend tidak menyimpan sesi di memori (stateless).
 - **CORS (Cross-Origin Resource Sharing)**: Filter origin secara ketat berdasarkan env var `WEB_URL`. Permintaan dari origin anonim akan diblokir oleh layer NestJS middleware.
 - **Rate Limiting**: Dikonfigurasi global via `nestjs-throttler` terhubung ke Redis. Publik endpoint (misal list package) maksimal 60/menit per IP. API berat (upload bukti transfer) maksimal 5/menit per IP.
 - **SQL Injection Prevention**: Secara native ditangani oleh Prisma ORM parameter bindings, dikombinasikan dengan validasi rigid dari `class-validator` (ValidationPipe `whitelist: true`, membuang field tak dikenal).
 
 ### 3.2 Caching Strategy
+
 Menggunakan cache Redis untuk endpoint yang berat I/O namun frekuensi datanya jarang berubah.
+
 - **Tipe Caching**: HTTP Response Caching (menggunakan `@CacheKey()` dan `@CacheTTL()`).
-- **Data yang di-cache**: 
+- **Data yang di-cache**:
   - `GET /packages` (Katalog publik): TTL 24 jam.
   - `GET /studio-profile` (Global setting): TTL 24 jam.
   - `GET /bookings/availability` (Per tanggal): TTL 15 menit.
-- **Cache Invalidation**: Strategi *Event-driven invalidation*. Saat Admin melakukan `POST/PUT/DELETE` paket, backend menjalankan `redis.del('cache:packages')`.
+- **Cache Invalidation**: Strategi _Event-driven invalidation_. Saat Admin melakukan `POST/PUT/DELETE` paket, backend menjalankan `redis.del('cache:packages')`.
 
 ### 3.3 Error Handling Strategy
-Menggunakan *Global Exception Filter* milik NestJS (`@Catch()`). 
-- Menangkap error `PrismaClientKnownRequestError` (misal *unique constraint violation*) dan mengonversinya menjadi `409 Conflict` (bukan 500 Server Error).
+
+Menggunakan _Global Exception Filter_ milik NestJS (`@Catch()`).
+
+- Menangkap error `PrismaClientKnownRequestError` (misal _unique constraint violation_) dan mengonversinya menjadi `409 Conflict` (bukan 500 Server Error).
 - Menangkap error `HttpException` dan membungkusnya dalam Envelope format (struktur JSON konsisten) yang mencantumkan `errorCode` spesifik untuk membantu frontend.
-- Error yang fatal (`500`) tidak membocorkan stack trace ke *production output*, tapi dicatat (*logged*).
+- Error yang fatal (`500`) tidak membocorkan stack trace ke _production output_, tapi dicatat (_logged_).
 
 ### 3.4 Logging & Observability
+
 - **Structured Logging**: Menggunakan `nestjs-pino` untuk log berformat JSON, mempermudah konsumsi oleh sistem ELK/Datadog kelak.
 - **Request IDs**: Middleware menyematkan UUID kustom `x-request-id` untuk mengkorelasikan log request masuk hingga respons keluar.
 - **Health Checks**: Endpoint `GET /health` ditenagai oleh `@nestjs/terminus`, mengecek status prisma (`db.ping()`), status redis, status WAHA node.
@@ -173,7 +181,7 @@ sequenceDiagram
     API->>DB: INSERT Booking (Status: PENDING_VERIFICATION)
     API->>DB: COMMIT Transaction
     API-->>Web: 201 Created (bookingCode: KYA-2026-081, Rekening BCA Studio)
-    
+
     Customer->>Web: Transfer BCA & Upload Bukti Bayar (Struk)
     Web->>API: POST /bookings/:id/payment-proof (Multipart Form Data)
     API->>Storage: Validasi Magic Byte & Simpan Gambar Bukti
@@ -203,7 +211,7 @@ Mencegah pemblokiran nomor WhatsApp studio sesuai spesifikasi `2026-09-08-waha-m
 stateDiagram-v2
     [*] --> PesanMasuk: Pelanggan Mengirim Pesan WhatsApp
     PesanMasuk --> JendelaAktif: Webhook WAHA Diterima (Reset Timer 24 Jam)
-    
+
     state JendelaAktif {
         [*] --> BebasKirim: Durasi <= 24 Jam Sejak Pesan Terakhir
         BebasKirim --> BebasKirim: Admin Kirim Pesan Bebas (Free-form text)
@@ -225,7 +233,7 @@ stateDiagram-v2
 
 ## 5. Pola Antrian Latar Belakang (Asynchronous Worker Queue)
 
-Untuk menjaga latensi HTTP API tetap di bawah 100ms dan mencegah *timeout*, proses pekerjaan berat (*heavy I/O* / *external network calls*) didelegasikan ke **BullMQ** dengan Redis sebagai broker:
+Untuk menjaga latensi HTTP API tetap di bawah 100ms dan mencegah _timeout_, proses pekerjaan berat (_heavy I/O_ / _external network calls_) didelegasikan ke **BullMQ** dengan Redis sebagai broker:
 
 ```mermaid
 flowchart LR
@@ -259,13 +267,13 @@ flowchart LR
     Q1 --> W1
     Q2 --> W2
     Q3 --> W3
-    
+
     W1 -.->|Gagal setelah 3x retry| DLQ
     W2 -.->|Gagal setelah 3x retry| DLQ
 ```
 
 - **Retry Logic & Backoff Strategy**: Pekerjaan seperti mengirim pesan WhatsApp akan diulang maksimal 3x jika server WAHA terputus. Mekanisme pengulangan berbasis eksponensial (retry setelah 5 detik, lalu 15 detik, dst).
-- **Dead Letter Queue (DLQ)**: Jika antrian tetap gagal setelah percobaan terakhir, status pekerjaan dipindahkan ke antrian `failed` pada Redis yang akan dipantau sebagai log darurat (*alert*) untuk diperbaiki manual oleh developer, dan tidak hilang.
+- **Dead Letter Queue (DLQ)**: Jika antrian tetap gagal setelah percobaan terakhir, status pekerjaan dipindahkan ke antrian `failed` pada Redis yang akan dipantau sebagai log darurat (_alert_) untuk diperbaiki manual oleh developer, dan tidak hilang.
 
 ---
 
@@ -311,6 +319,7 @@ HTTP Response (atau GlobalHttpExceptionFilter jika terjadi error)
 Semua respons backend wajib menggunakan format pembungkus konsisten:
 
 ### Respons Sukses:
+
 ```json
 {
   "success": true,
@@ -328,6 +337,7 @@ Semua respons backend wajib menggunakan format pembungkus konsisten:
 ```
 
 ### Respons Gagal (Error):
+
 ```json
 {
   "success": false,

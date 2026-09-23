@@ -1,6 +1,5 @@
 export default function StructuredData() {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://photography-web-gules.vercel.app';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://photography-web-gules.vercel.app';
 
   const localBusinessSchema = {
     '@context': 'https://schema.org',
@@ -29,15 +28,7 @@ export default function StructuredData() {
     openingHoursSpecification: [
       {
         '@type': 'OpeningHoursSpecification',
-        dayOfWeek: [
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-          'Sunday',
-        ],
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
         opens: '08:00',
         closes: '21:00',
       },

@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -17,21 +17,44 @@ table[data-slot='table'] tbody td:last-child button[data-slot='button'] {
     border-color: #334155;
     background: #151c28;
   }
-  .dark table[data-slot='table'] tbody td:last-child button[data-slot='button']:hover:not(:disabled) { background: #202b3b; }
+  .dark
+    table[data-slot='table']
+    tbody
+    td:last-child
+    button[data-slot='button']:hover:not(:disabled) {
+    background: #202b3b;
+  }
 }
-.dark table[data-slot='table'] tbody td:last-child button[data-slot='button'] { border-color: #334155; background: #151c28; }
-.dark table[data-slot='table'] tbody td:last-child button[data-slot='button']:hover:not(:disabled) { background: #202b3b; }
+.dark table[data-slot='table'] tbody td:last-child button[data-slot='button'] {
+  border-color: #334155;
+  background: #151c28;
+}
+.dark table[data-slot='table'] tbody td:last-child button[data-slot='button']:hover:not(:disabled) {
+  background: #202b3b;
+}
 table[data-slot='table'] tbody td:last-child button[data-slot='button']:hover:not(:disabled) {
   background: var(--secondary);
   color: var(--foreground);
 }
-table[data-slot='table'] tbody td:last-child button[data-slot='button']:disabled { opacity: 0.35; }
-table[data-slot='table'] tbody td:last-child button[data-slot='button']:has(svg.lucide-trash-2) { color: #dc2626; }
-table[data-slot='table'] tbody td:last-child button[data-slot='button']:has(svg.lucide-trash-2):hover:not(:disabled) { border-color: #fecaca; background: #fef2f2; color: #dc2626; }
+table[data-slot='table'] tbody td:last-child button[data-slot='button']:disabled {
+  opacity: 0.35;
+}
+table[data-slot='table'] tbody td:last-child button[data-slot='button']:has(svg.lucide-trash-2) {
+  color: #dc2626;
+}
+table[data-slot='table']
+  tbody
+  td:last-child
+  button[data-slot='button']:has(svg.lucide-trash-2):hover:not(:disabled) {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
 
 @theme inline {
-  --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* ── 100% Authentic Kayastory Dark Luxury Tokens ── */
   --color-bg: #070707;
@@ -208,18 +231,30 @@ body {
 
 /* Infinite Scroll Animations */
 @keyframes filmScrollUp {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-50%); }
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
 }
 
 @keyframes filmScrollDown {
-  0% { transform: translateY(-50%); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 @keyframes tickerMarquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-film-up {
@@ -253,12 +288,17 @@ body {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-  transition: transform 0.25s var(--ease-out), border-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+  transition:
+    transform 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
 }
 
 .bezel-card:hover {
   border-color: rgba(217, 165, 33, 0.3);
-  box-shadow: 0 20px 40px -15px rgba(217, 165, 33, 0.08), 0 0 0 1px rgba(217, 165, 33, 0.15);
+  box-shadow:
+    0 20px 40px -15px rgba(217, 165, 33, 0.08),
+    0 0 0 1px rgba(217, 165, 33, 0.15);
   transform: translateY(-2px);
 }
 
@@ -266,12 +306,18 @@ body {
 .bezel-featured {
   background: linear-gradient(180deg, rgba(217, 165, 33, 0.12) 0%, rgba(217, 165, 33, 0.02) 100%);
   border: 1px solid rgba(217, 165, 33, 0.4);
-  box-shadow: 0 20px 50px -15px rgba(217, 165, 33, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 20px 50px -15px rgba(217, 165, 33, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Ambient Spotlight Glows */
 .glow-gold-top {
-  background: radial-gradient(ellipse 60% 40% at 50% -10%, rgba(217, 165, 33, 0.12), transparent 70%);
+  background: radial-gradient(
+    ellipse 60% 40% at 50% -10%,
+    rgba(217, 165, 33, 0.12),
+    transparent 70%
+  );
 }
 
 .glow-ambient-center {

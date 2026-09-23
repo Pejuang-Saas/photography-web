@@ -3,10 +3,7 @@
 import React, { useState } from 'react';
 import { useAdmin } from '@/lib/admin-context';
 import { formatRupiah } from '@/lib/mock-data';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,7 +22,8 @@ import {
 } from 'lucide-react';
 
 export default function BookingDetailModal() {
-  const { selectedBooking, setSelectedBooking, verifyPayment, rejectPayment, setSelectedInvoice } = useAdmin();
+  const { selectedBooking, setSelectedBooking, verifyPayment, rejectPayment, setSelectedInvoice } =
+    useAdmin();
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [isFullPayment, setIsFullPayment] = useState(true);
@@ -53,19 +51,28 @@ export default function BookingDetailModal() {
     switch (selectedBooking.status) {
       case 'PENDING_VERIFICATION':
         return (
-          <Badge variant="secondary" className="gap-1 font-normal text-xs bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
+          <Badge
+            variant="secondary"
+            className="gap-1 font-normal text-xs bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
+          >
             <Clock className="size-3" /> Menunggu Verifikasi
           </Badge>
         );
       case 'CONFIRMED':
         return (
-          <Badge variant="outline" className="gap-1 font-normal text-xs border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200">
+          <Badge
+            variant="outline"
+            className="gap-1 font-normal text-xs border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200"
+          >
             <CheckCircle2 className="size-3" /> Dikonfirmasi
           </Badge>
         );
       case 'COMPLETED':
         return (
-          <Badge variant="secondary" className="gap-1 font-normal text-xs bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400">
+          <Badge
+            variant="secondary"
+            className="gap-1 font-normal text-xs bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400"
+          >
             <CheckCircle2 className="size-3" /> Selesai
           </Badge>
         );
@@ -134,20 +141,28 @@ export default function BookingDetailModal() {
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-zinc-500 block text-[11px]">Nama Klien</span>
-                  <span className="font-semibold text-zinc-900 dark:text-white text-sm">{selectedBooking.customerName}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-white text-sm">
+                    {selectedBooking.customerName}
+                  </span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block text-[11px]">No. WhatsApp</span>
-                  <span className="font-mono font-medium text-zinc-800 dark:text-zinc-200">{selectedBooking.customerPhone}</span>
+                  <span className="font-mono font-medium text-zinc-800 dark:text-zinc-200">
+                    {selectedBooking.customerPhone}
+                  </span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block text-[11px]">Universitas</span>
-                  <span className="text-zinc-800 dark:text-zinc-200">{selectedBooking.university}</span>
+                  <span className="text-zinc-800 dark:text-zinc-200">
+                    {selectedBooking.university}
+                  </span>
                 </div>
                 {selectedBooking.faculty && (
                   <div>
                     <span className="text-zinc-500 block text-[11px]">Fakultas / Prodi</span>
-                    <span className="text-zinc-800 dark:text-zinc-300">{selectedBooking.faculty}</span>
+                    <span className="text-zinc-800 dark:text-zinc-300">
+                      {selectedBooking.faculty}
+                    </span>
                   </div>
                 )}
               </div>
@@ -158,10 +173,12 @@ export default function BookingDetailModal() {
               <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Calendar className="size-3.5" /> Paket Photoshoot & Jadwal
               </h3>
-              
+
               <div className="flex items-center justify-between text-xs p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
-                  <span className="font-semibold text-zinc-900 dark:text-white block">{selectedBooking.packageName}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-white block">
+                    {selectedBooking.packageName}
+                  </span>
                   <span className="text-[11px] text-zinc-500">Harga Paket Dasar</span>
                 </div>
                 <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
@@ -173,9 +190,14 @@ export default function BookingDetailModal() {
                 <div className="space-y-1.5">
                   <span className="text-[11px] font-medium text-zinc-500">Add-ons Tambahan:</span>
                   {selectedBooking.addons.map((addon) => (
-                    <div key={addon.id} className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded bg-zinc-100 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-300">
+                    <div
+                      key={addon.id}
+                      className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded bg-zinc-100 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-300"
+                    >
                       <span>+ {addon.name}</span>
-                      <span className="font-mono text-zinc-500 dark:text-zinc-400">{formatRupiah(addon.price)}</span>
+                      <span className="font-mono text-zinc-500 dark:text-zinc-400">
+                        {formatRupiah(addon.price)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -184,11 +206,15 @@ export default function BookingDetailModal() {
               <div className="grid grid-cols-2 gap-3 pt-2 text-xs border-t border-zinc-200 dark:border-zinc-800">
                 <div>
                   <span className="text-zinc-500 block text-[11px]">Tanggal Sesi</span>
-                  <span className="font-medium text-zinc-900 dark:text-white">{selectedBooking.sessionDate}</span>
+                  <span className="font-medium text-zinc-900 dark:text-white">
+                    {selectedBooking.sessionDate}
+                  </span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block text-[11px]">Slot Waktu</span>
-                  <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-200">{selectedBooking.timeSlot} WIB</span>
+                  <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-200">
+                    {selectedBooking.timeSlot} WIB
+                  </span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block text-[11px]">Lokasi</span>
@@ -208,13 +234,17 @@ export default function BookingDetailModal() {
 
               {selectedBooking.notes && (
                 <div className="rounded-lg bg-zinc-100 dark:bg-zinc-900/80 p-2.5 text-xs text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800">
-                  <span className="text-[10px] uppercase font-semibold text-zinc-500 block">Catatan Klien:</span>
+                  <span className="text-[10px] uppercase font-semibold text-zinc-500 block">
+                    Catatan Klien:
+                  </span>
                   {selectedBooking.notes}
                 </div>
               )}
 
               <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Total Biaya Reservasi:</span>
+                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                  Total Biaya Reservasi:
+                </span>
                 <span className="text-base font-mono font-bold text-zinc-900 dark:text-white">
                   {formatRupiah(selectedBooking.totalPrice)}
                 </span>
@@ -241,7 +271,9 @@ export default function BookingDetailModal() {
                     src={selectedBooking.paymentProofUrl}
                     alt="Bukti Transfer"
                     className={`w-full object-cover transition-transform duration-200 ${
-                      isZoomed ? 'scale-150 cursor-zoom-out' : 'h-52 cursor-zoom-in group-hover:scale-105'
+                      isZoomed
+                        ? 'scale-150 cursor-zoom-out'
+                        : 'h-52 cursor-zoom-in group-hover:scale-105'
                     }`}
                     onClick={() => setIsZoomed(!isZoomed)}
                   />
@@ -279,7 +311,8 @@ export default function BookingDetailModal() {
                     Verifikasi Pembayaran
                   </h4>
                   <p className="text-[11px] text-zinc-500 leading-normal mt-0.5">
-                    Kunci slot jadwal dan kirim invoice WhatsApp ke ({selectedBooking.customerPhone}).
+                    Kunci slot jadwal dan kirim invoice WhatsApp ke ({selectedBooking.customerPhone}
+                    ).
                   </p>
                 </div>
 

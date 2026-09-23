@@ -40,10 +40,10 @@ export default function StatCard({
     <Card className="rounded-lg border-zinc-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60">
       <CardContent className="p-0">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-            {title}
-          </span>
-          <div className={`flex size-8 items-center justify-center rounded-lg border ${getBadgeStyle()}`}>
+          <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{title}</span>
+          <div
+            className={`flex size-8 items-center justify-center rounded-lg border ${getBadgeStyle()}`}
+          >
             <Icon className="size-4" />
           </div>
         </div>
@@ -56,10 +56,16 @@ export default function StatCard({
             {change && (
               <span
                 className={`inline-flex items-center gap-0.5 font-semibold ${
-                  isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                  isPositive
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
                 }`}
               >
-                {isPositive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                {isPositive ? (
+                  <TrendingUp className="size-3" />
+                ) : (
+                  <TrendingDown className="size-3" />
+                )}
                 {change}
               </span>
             )}

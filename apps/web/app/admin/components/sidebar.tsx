@@ -36,7 +36,7 @@ export default function AdminSidebar({
   const { bookings } = useAdmin();
 
   const pendingCount = bookings.filter(
-    (b) => b.status === 'PENDING_VERIFICATION' || b.paymentStatus === 'WAITING_CONFIRMATION'
+    (b) => b.status === 'PENDING_VERIFICATION' || b.paymentStatus === 'WAITING_CONFIRMATION',
   ).length;
 
   const navItems = [
@@ -76,10 +76,12 @@ export default function AdminSidebar({
   ];
 
   return (
-    <aside className={cn(
-      'w-60 flex-col border-r border-zinc-200/80 bg-white shadow-[1px_0_0_rgba(15,23,42,0.02)] transition-colors duration-150 dark:border-[#293548] dark:bg-[#121923]',
-      mobile ? 'flex min-h-full' : 'fixed inset-y-0 left-0 z-30 hidden lg:flex',
-    )}>
+    <aside
+      className={cn(
+        'w-60 flex-col border-r border-zinc-200/80 bg-white shadow-[1px_0_0_rgba(15,23,42,0.02)] transition-colors duration-150 dark:border-[#293548] dark:bg-[#121923]',
+        mobile ? 'flex min-h-full' : 'fixed inset-y-0 left-0 z-30 hidden lg:flex',
+      )}
+    >
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between border-b border-zinc-200/80 dark:border-zinc-800/80 px-4">
         <Link href="/admin" className="flex items-center gap-2.5 group">
@@ -120,7 +122,7 @@ export default function AdminSidebar({
                   'group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
                   isActive
                     ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -129,7 +131,7 @@ export default function AdminSidebar({
                       'size-4 transition-colors',
                       isActive
                         ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300'
+                        : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300',
                     )}
                   />
                   <span>{item.title}</span>
@@ -139,7 +141,7 @@ export default function AdminSidebar({
                   <span
                     className={cn(
                       'flex h-5 items-center justify-center rounded-full px-1.5 text-[10px] font-mono font-extrabold',
-                      item.badgeColor || 'bg-amber-500 text-zinc-950'
+                      item.badgeColor || 'bg-amber-500 text-zinc-950',
                     )}
                   >
                     {item.badge}
@@ -162,9 +164,11 @@ export default function AdminSidebar({
             href="/admin/cms/gallery"
             className={cn(
               'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-              (pathname === '/admin/cms/gallery' || (pathname.startsWith('/admin/cms/gallery/') && !pathname.startsWith('/admin/cms/gallery/categories')))
+              pathname === '/admin/cms/gallery' ||
+                (pathname.startsWith('/admin/cms/gallery/') &&
+                  !pathname.startsWith('/admin/cms/gallery/categories'))
                 ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
             )}
           >
             <Images className="size-4" />
@@ -176,7 +180,7 @@ export default function AdminSidebar({
               'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
               pathname.startsWith('/admin/cms/categories')
                 ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
             )}
           >
             <FolderKanban className="size-4" />
@@ -188,7 +192,7 @@ export default function AdminSidebar({
               'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
               pathname.startsWith('/admin/cms/marquee')
                 ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
             )}
           >
             <Megaphone className="size-4" />
@@ -200,7 +204,7 @@ export default function AdminSidebar({
               'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
               pathname.startsWith('/admin/cms/faq')
                 ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
             )}
           >
             <HelpCircle className="size-4" />
@@ -212,7 +216,7 @@ export default function AdminSidebar({
               'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
               pathname.startsWith('/admin/cms/testimonials')
                 ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
             )}
           >
             <MessageSquareQuote className="size-4" />
@@ -254,7 +258,9 @@ export default function AdminSidebar({
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col overflow-hidden">
-            <span className="truncate text-xs font-bold text-zinc-900 dark:text-white">{user.name ?? user.email}</span>
+            <span className="truncate text-xs font-bold text-zinc-900 dark:text-white">
+              {user.name ?? user.email}
+            </span>
             <span className="truncate text-[10px] text-zinc-500">Administrator Studio</span>
           </div>
           <ShieldCheck className="size-3.5 text-amber-500 shrink-0" />

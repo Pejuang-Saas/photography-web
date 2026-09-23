@@ -31,7 +31,10 @@ export default function CampusMarquee({ campuses }: CampusMarqueeProps) {
           style={{ animationDuration: '34s' }}
         >
           {marqueeItems.map((name, idx) => (
-            <span key={`${name}-${idx}`} className="flex items-center gap-6 group/item cursor-default">
+            <span
+              key={`${name}-${idx}`}
+              className="flex items-center gap-6 group/item cursor-default"
+            >
               <span className="text-fg/80 font-medium transition-colors duration-200 group-hover/item:text-accent">
                 {name}
               </span>

@@ -69,7 +69,9 @@ export default function PackagesManagementPage() {
             <div className="p-5 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <Badge className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 border ${getCategoryBadge(pkg.category)}`}>
+                  <Badge
+                    className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 border ${getCategoryBadge(pkg.category)}`}
+                  >
                     {pkg.category} Package
                   </Badge>
                   <h3 className="text-base font-bold text-zinc-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
@@ -92,15 +94,21 @@ export default function PackagesManagementPage() {
               <div className="space-y-2 border-t border-zinc-100 dark:border-zinc-800 pt-3 text-xs text-zinc-600 dark:text-zinc-300">
                 <div className="flex items-center gap-2">
                   <Clock className="size-3.5 text-amber-500" />
-                  <span>Durasi: <strong>{pkg.durationMinutes} Menit</strong></span>
+                  <span>
+                    Durasi: <strong>{pkg.durationMinutes} Menit</strong>
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="size-3.5 text-indigo-500" />
-                  <span>Maksimal: <strong>{pkg.maxPeople} Orang</strong></span>
+                  <span>
+                    Maksimal: <strong>{pkg.maxPeople} Orang</strong>
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ImageIcon className="size-3.5 text-sky-500" />
-                  <span>Master Edit: <strong>{pkg.editedPhotos} Foto High-Res</strong></span>
+                  <span>
+                    Master Edit: <strong>{pkg.editedPhotos} Foto High-Res</strong>
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="size-3.5 text-emerald-500" />

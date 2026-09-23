@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Camera } from 'lucide-react';
 
@@ -82,7 +76,10 @@ export function PackageBreakdownChart() {
         {/* Legend */}
         <div className="grid grid-cols-2 gap-2 pt-3 text-[11px] border-t border-zinc-100 dark:border-zinc-800">
           {packageData.map((item) => (
-            <div key={item.name} className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
+            <div
+              key={item.name}
+              className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300"
+            >
               <span
                 className="size-2 rounded-full shrink-0"
                 style={{ backgroundColor: item.color }}

@@ -1,20 +1,20 @@
 <div align="center">
   <h1>📸 Kaya Story Photography Platform</h1>
-  
-  ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)
-  ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
-  ![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)
-  ![Node.js](https://img.shields.io/badge/node->=22.22.1-339933.svg?style=for-the-badge&logo=nodedotjs&logoColor=white)
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)
+![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
+![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Node.js](https://img.shields.io/badge/node->=22.22.1-339933.svg?style=for-the-badge&logo=nodedotjs&logoColor=white)
 
   <p><strong>Sistem Manajemen Studio & Website Resmi Kaya Story (Semarang)</strong></p>
 
-  ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
-  ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
-  ![Tailwind](https://img.shields.io/badge/Tailwind-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
-  ![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=flat-square&logo=nestjs&logoColor=white)
-  ![Prisma](https://img.shields.io/badge/Prisma-6.x-2D3748?style=flat-square&logo=prisma&logoColor=white)
-  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square&logo=postgresql&logoColor=white)
-  ![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Tailwind](https://img.shields.io/badge/Tailwind-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=flat-square&logo=nestjs&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-6.x-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white)
 </div>
 
 <br />
@@ -106,7 +106,9 @@ BETTER_AUTH_SECRET=<nilai-acak-minimal-32-karakter>
 > Metode ini adalah pilihan terbaik. Anda tidak perlu menginstal Node.js, Prisma, atau PostgreSQL di komputer. Seluruh dependensi terisolasi sempurna di dalam container.
 
 ### 1. Prasyarat
+
 Pastikan **Docker Desktop** (macOS / Windows) atau **Docker Engine** (Linux) berjalan.
+
 ```bash
 docker compose version
 ```
@@ -114,19 +116,21 @@ docker compose version
 ### 2. Langkah Setup
 
 1. **Jalankan Infrastruktur Data (PostgreSQL & Redis)**
-   *Mengapa? API kita membutuhkan database dan cache eksternal untuk menyimpan data pengguna dan sesi antrian (BullMQ).*
+   _Mengapa? API kita membutuhkan database dan cache eksternal untuk menyimpan data pengguna dan sesi antrian (BullMQ)._
+
    ```bash
    docker compose -f infra/docker-compose.yml up -d
    ```
-   
+
 2. **Jalankan Aplikasi Web dan API**
-   *Mengapa? Perintah ini membangun image frontend dan backend. Container API akan otomatis menjalankan `prisma generate` dan `prisma db push` sebelum start.*
+   _Mengapa? Perintah ini membangun image frontend dan backend. Container API akan otomatis menjalankan `prisma generate` dan `prisma db push` sebelum start._
+
    ```bash
    docker compose up -d --build
    ```
 
 3. **Cek Log (Opsional)**
-   *Mengapa? Untuk memastikan Prisma berhasil terhubung dan server NestJS telah siap menerima request.*
+   _Mengapa? Untuk memastikan Prisma berhasil terhubung dan server NestJS telah siap menerima request._
    ```bash
    docker compose logs -f api
    ```
@@ -134,6 +138,7 @@ docker compose version
 ### ✅ Verifikasi Docker Setup
 
 Pastikan API berjalan dan merespon:
+
 ```bash
 curl -X GET http://localhost:3002/health
 # Expected Response:
@@ -141,6 +146,7 @@ curl -X GET http://localhost:3002/health
 ```
 
 Pastikan Frontend Next.js berjalan:
+
 ```bash
 curl -I http://localhost:3000
 # Expected Response:
@@ -155,20 +161,23 @@ curl -I http://localhost:3000
 Gunakan metode ini jika Anda membutuhkan akses langsung ke Node.js runtime (misalnya untuk debugging intensif dengan VSCode debugger).
 
 ### 1. Prasyarat
+
 - **Node.js**: `v22.22.1` atau lebih baru untuk backend Better Auth.
 - **Infrastruktur berjalan**: Pastikan PostgreSQL (`localhost:5432`) dan Redis (`localhost:6379`) aktif. Anda tetap bisa menggunakan container `infra/` dari Docker untuk ini.
 
 ### 2. Langkah Setup Backend (`apps/api`)
 
 1. **Instal dependensi**
-   *Mengapa? Mengunduh seluruh paket NestJS, Prisma, dan library pendukung.*
+   _Mengapa? Mengunduh seluruh paket NestJS, Prisma, dan library pendukung._
+
    ```bash
    cd apps/api
    npm install
    ```
 
 2. **Siapkan `.env` lokal**
-   *Mengapa? Karena kita tidak menggunakan docker network, `dev-postgres` tidak akan dikenali. Kita harus mengarahkannya ke `localhost`.*
+   _Mengapa? Karena kita tidak menggunakan docker network, `dev-postgres` tidak akan dikenali. Kita harus mengarahkannya ke `localhost`._
+
    ```bash
    cp .env.example .env
    # Ganti DATABASE_URL menjadi: postgresql://root:root@localhost:5432/photography_db?schema=public
@@ -176,7 +185,8 @@ Gunakan metode ini jika Anda membutuhkan akses langsung ke Node.js runtime (misa
    ```
 
 3. **Sinkronisasi Skema Database**
-   *Mengapa? Menerapkan skema tabel dari `schema.prisma` langsung ke dalam PostgreSQL yang berjalan.*
+   _Mengapa? Menerapkan skema tabel dari `schema.prisma` langsung ke dalam PostgreSQL yang berjalan._
+
    ```bash
    npx prisma generate
    npx prisma db push
@@ -190,6 +200,7 @@ Gunakan metode ini jika Anda membutuhkan akses langsung ke Node.js runtime (misa
 ### 3. Langkah Setup Frontend (`apps/web`)
 
 1. **Instal dependensi frontend**
+
    ```bash
    cd apps/web
    npm install
@@ -203,6 +214,7 @@ Gunakan metode ini jika Anda membutuhkan akses langsung ke Node.js runtime (misa
 ### ✅ Verifikasi Lokal Setup
 
 Uji endpoint API lokal Anda:
+
 ```bash
 curl -X GET http://localhost:3002/docs-json
 # Expected Response:
@@ -213,15 +225,15 @@ curl -X GET http://localhost:3002/docs-json
 
 ## 🔗 URL Referensi Sistem
 
-| Komponen | URL Akses | Keterangan |
-| :--- | :--- | :--- |
-| **Landing Page Publik** | [http://localhost:3000](http://localhost:3000) | Katalog paket foto, ulasan, & checkout |
-| **Admin Dashboard** | [http://localhost:3000/admin](http://localhost:3000/admin) | Metrik pendapatan, daftar booking, kalender |
-| **Admin Mini CRM** | [http://localhost:3000/admin/crm](http://localhost:3000/admin/crm) | Obrolan WhatsApp & penanda anti-ban |
-| **API Base URL** | [http://localhost:3002](http://localhost:3002) | NestJS REST API Gateway |
-| **API Health Check** | [http://localhost:3002/health](http://localhost:3002/health) | Ping status server & database |
-| **API Swagger Docs** | [http://localhost:3002/docs](http://localhost:3002/docs) | OpenAPI Interactive Documentation |
-| **Prisma Studio** | `npx prisma studio` (via API) | GUI Manajemen Data Database |
+| Komponen                | URL Akses                                                          | Keterangan                                  |
+| :---------------------- | :----------------------------------------------------------------- | :------------------------------------------ |
+| **Landing Page Publik** | [http://localhost:3000](http://localhost:3000)                     | Katalog paket foto, ulasan, & checkout      |
+| **Admin Dashboard**     | [http://localhost:3000/admin](http://localhost:3000/admin)         | Metrik pendapatan, daftar booking, kalender |
+| **Admin Mini CRM**      | [http://localhost:3000/admin/crm](http://localhost:3000/admin/crm) | Obrolan WhatsApp & penanda anti-ban         |
+| **API Base URL**        | [http://localhost:3002](http://localhost:3002)                     | NestJS REST API Gateway                     |
+| **API Health Check**    | [http://localhost:3002/health](http://localhost:3002/health)       | Ping status server & database               |
+| **API Swagger Docs**    | [http://localhost:3002/docs](http://localhost:3002/docs)           | OpenAPI Interactive Documentation           |
+| **Prisma Studio**       | `npx prisma studio` (via API)                                      | GUI Manajemen Data Database                 |
 
 ---
 
@@ -251,9 +263,11 @@ gitGraph
 ## ❓ Troubleshooting & Pertanyaan Umum
 
 ### 1. Error Port Sudah Digunakan
+
 **Pesan Error:** `Error: listen EADDRINUSE: address already in use :::3000`
 **Penyebab:** Ada aplikasi atau sisa proses Next.js/NestJS yang masih berjalan di latar belakang.
 **Solusi:**
+
 ```bash
 # macOS/Linux: Temukan proses dan matikan
 lsof -i :3000
@@ -261,39 +275,47 @@ kill -9 <PID>
 ```
 
 ### 2. Prisma Gagal Terhubung ke Database (Docker)
+
 **Pesan Error:** `PrismaClientInitializationError: Can't reach database server at dev-postgres:5432`
 **Penyebab:** Container infrastruktur PostgreSQL belum berjalan atau berada di Docker network yang berbeda.
 **Solusi:**
 Pastikan `infra/docker-compose.yml` telah dijalankan terlebih dahulu dan cek keberadaan network:
+
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 docker network ls | grep dev-network
 ```
 
 ### 3. Hot Reload Tidak Berfungsi di macOS (Docker Desktop)
-**Pesan Error:** *Tidak ada error, tetapi perubahan file React tidak muncul di browser.*
+
+**Pesan Error:** _Tidak ada error, tetapi perubahan file React tidak muncul di browser._
 **Penyebab:** Limitasi file-watching pada file system mount Docker Desktop macOS.
 **Solusi:**
 Pastikan `WATCHPACK_POLLING=true` aktif di file compose. Jika masih gagal, paksa restart watcher:
+
 ```bash
 docker compose restart web
 ```
 
 ### 4. Gagal Menjalankan Build Image
+
 **Pesan Error:** `failed to solve: rpc error: code = Unknown desc = failed to compute cache key`
 **Penyebab:** Ada perubahan konfigurasi paket, tetapi Docker menggunakan cache image lama yang korup.
 **Solusi:**
 Build ulang image tanpa cache:
+
 ```bash
 docker compose build --no-cache
 docker compose up -d
 ```
 
 ### 5. Redis Timeout pada BullMQ
+
 **Pesan Error:** `Error: connect ETIMEDOUT at TCPConnectWrap.afterConnect` pada module BullMQ.
 **Penyebab:** Koneksi ke Redis lambat atau `dev-redis` mati secara mendadak.
 **Solusi:**
 Restart service Redis dari folder infrastruktur.
+
 ```bash
 docker compose -f infra/docker-compose.yml restart redis
 ```
@@ -314,6 +336,6 @@ Seluruh panduan teknis yang detail, keputusan arsitektur, dan referensi desain d
 
 ## 🤝 Panduan Kontribusi
 
-Untuk mempelajari tentang *Golden Rules*, struktur format pesan commit, dan daftar centang Pull Request, harap baca dengan saksama:
+Untuk mempelajari tentang _Golden Rules_, struktur format pesan commit, dan daftar centang Pull Request, harap baca dengan saksama:
 
 👉 **[CONTRIBUTING.md](CONTRIBUTING.md)**

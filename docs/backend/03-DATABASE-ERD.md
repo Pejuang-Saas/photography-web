@@ -1,4 +1,5 @@
 # 🗄️ Spesifikasi Database & Entity Relationship Diagram (ERD)
+
 ## Photography Platform Monorepo (Kaya Story Semarang)
 
 - **Database Engine**: PostgreSQL 17 Alpine (`dev-postgres` di `dev-network`)
@@ -14,11 +15,11 @@
 erDiagram
     users ||--o{ bookings : "assigned_photographer"
     users ||--o{ blackout_dates : "created_by"
-    
+
     packages ||--o{ bookings : "selected_package"
     packages ||--o{ package_addons : "available_addons"
     addons ||--o{ package_addons : "attached_to"
-    
+
     bookings ||--o{ booking_addons : "purchased_addons"
     bookings ||--o| invoices : "has_one_official"
     bookings ||--o{ admin_notifications : "triggers"
@@ -241,12 +242,14 @@ erDiagram
 Untuk memastikan respons API di bawah 100ms dan mencegah lock persaingan saat ribuan calon wisudawan berebut jadwal:
 
 1. **Composite Unique Index Anti Double-Booking**:
+
    ```sql
-   CREATE UNIQUE INDEX idx_unique_booking_slot 
-   ON bookings (session_date, time_slot, location) 
+   CREATE UNIQUE INDEX idx_unique_booking_slot
+   ON bookings (session_date, time_slot, location)
    WHERE status IN ('CONFIRMED', 'PENDING_VERIFICATION');
    ```
-   *Mencegah secara fisik level database adanya 2 booking aktif pada jam, tanggal, dan lokasi studio yang sama.*
+
+   _Mencegah secara fisik level database adanya 2 booking aktif pada jam, tanggal, dan lokasi studio yang sama._
 
 2. **Index Pencarian & Filter Cepat (High Cardinality)**:
    - `bookings(booking_code)`: Pencarian cepat status reservasi pelanggan.
@@ -262,39 +265,42 @@ Untuk memastikan respons API di bawah 100ms dan mencegah lock persaingan saat ri
 Berikut adalah detail lengkap setiap tabel beserta kolom-kolomnya yang esensial.
 
 ### Tabel `users`
+
 Tabel yang menyimpan data kredensial dan profil user di dalam sistem (Admin, Staff, Photographer).
 
-| Column | Type | Nullable | Default | Business Meaning |
-|---|---|---|---|---|
-| `id` | UUID | No | `uuid_generate_v4()` | Primary Key unik tiap user. |
-| `email` | String | No | - | Email login (Unique). |
-| `password_hash`| String | No | - | Bcrypt hash untuk keamanan password. |
-| `name` | String | No | - | Nama lengkap user. |
-| `role` | Enum | No | `STAFF` | Peran user: `ADMIN`, `PHOTOGRAPHER`, `STAFF`. |
-| `avatar_url` | String | Yes | - | URL untuk foto profil user. |
+| Column          | Type   | Nullable | Default              | Business Meaning                              |
+| --------------- | ------ | -------- | -------------------- | --------------------------------------------- |
+| `id`            | UUID   | No       | `uuid_generate_v4()` | Primary Key unik tiap user.                   |
+| `email`         | String | No       | -                    | Email login (Unique).                         |
+| `password_hash` | String | No       | -                    | Bcrypt hash untuk keamanan password.          |
+| `name`          | String | No       | -                    | Nama lengkap user.                            |
+| `role`          | Enum   | No       | `STAFF`              | Peran user: `ADMIN`, `PHOTOGRAPHER`, `STAFF`. |
+| `avatar_url`    | String | Yes      | -                    | URL untuk foto profil user.                   |
 
 ### Tabel `packages`
+
 Tabel untuk mengatur paket pemotretan yang ditawarkan studio.
 
-| Column | Type | Nullable | Default | Business Meaning |
-|---|---|---|---|---|
-| `id` | UUID | No | `uuid_generate_v4()` | Primary Key paket. |
-| `slug` | String | No | - | Identifier human-readable untuk URL paket (Unique). |
-| `category` | Enum | No | - | Kategori paket (`Solo`, `Squad`, `Family`, `Cinematic`). |
-| `price` | Int | No | - | Harga dasar paket. |
-| `duration_minutes` | Int | No | - | Durasi sesi foto dalam menit. |
+| Column             | Type   | Nullable | Default              | Business Meaning                                         |
+| ------------------ | ------ | -------- | -------------------- | -------------------------------------------------------- |
+| `id`               | UUID   | No       | `uuid_generate_v4()` | Primary Key paket.                                       |
+| `slug`             | String | No       | -                    | Identifier human-readable untuk URL paket (Unique).      |
+| `category`         | Enum   | No       | -                    | Kategori paket (`Solo`, `Squad`, `Family`, `Cinematic`). |
+| `price`            | Int    | No       | -                    | Harga dasar paket.                                       |
+| `duration_minutes` | Int    | No       | -                    | Durasi sesi foto dalam menit.                            |
 
 ### Tabel `bookings`
+
 Tabel utama yang menyimpan seluruh data reservasi.
 
-| Column | Type | Nullable | Default | Business Meaning |
-|---|---|---|---|---|
-| `id` | UUID | No | `uuid_generate_v4()` | Primary Key booking. |
-| `booking_code` | String | No | - | Kode unik KYA-YYYY-XXX untuk pelanggan (Unique). |
-| `customer_phone` | String | No | - | Nomor WA pelanggan. |
-| `total_price` | Int | No | - | Total harga (Paket + Addons). |
-| `session_date` | Date | No | - | Tanggal pelaksanaan sesi foto. |
-| `status` | Enum | No | `PENDING_VERIFICATION` | Status reservasi. |
+| Column           | Type   | Nullable | Default                | Business Meaning                                 |
+| ---------------- | ------ | -------- | ---------------------- | ------------------------------------------------ |
+| `id`             | UUID   | No       | `uuid_generate_v4()`   | Primary Key booking.                             |
+| `booking_code`   | String | No       | -                      | Kode unik KYA-YYYY-XXX untuk pelanggan (Unique). |
+| `customer_phone` | String | No       | -                      | Nomor WA pelanggan.                              |
+| `total_price`    | Int    | No       | -                      | Total harga (Paket + Addons).                    |
+| `session_date`   | Date   | No       | -                      | Tanggal pelaksanaan sesi foto.                   |
+| `status`         | Enum   | No       | `PENDING_VERIFICATION` | Status reservasi.                                |
 
 ---
 
@@ -304,7 +310,7 @@ Berikut adalah contoh SQL query untuk inisialisasi awal (seeder) saat aplikasi p
 
 ```sql
 -- Insert Studio Settings
-INSERT INTO studio_settings (id, studio_name, tagline, whatsapp_number, is_manual_active, updated_at) 
+INSERT INTO studio_settings (id, studio_name, tagline, whatsapp_number, is_manual_active, updated_at)
 VALUES ('default-studio', 'Kaya Story Photography', 'Semarang graduation & portrait studio', '6281234567890', true, NOW());
 
 -- Insert Initial Admin
@@ -327,19 +333,21 @@ VALUES (gen_random_uuid(), 'Cetak 10R Kayu', 150000, true, NOW(), NOW());
 Berikut adalah beberapa pattern query utama yang sering digunakan di backend.
 
 ### 5.1 Cek Ketersediaan Slot Waktu
+
 ```typescript
 const isSlotAvailable = await prisma.booking.findFirst({
   where: {
     sessionDate: targetDate,
     timeSlot: targetSlot,
     status: {
-      in: ['CONFIRMED', 'PENDING_VERIFICATION']
-    }
-  }
+      in: ['CONFIRMED', 'PENDING_VERIFICATION'],
+    },
+  },
 });
 ```
 
 ### 5.2 Verifikasi Pembayaran & Auto Update
+
 ```typescript
 const booking = await prisma.booking.update({
   where: { id: bookingId },
@@ -352,17 +360,18 @@ const booking = await prisma.booking.update({
         subtotal: 450000,
         totalAmount: 450000,
         paidAmount: 450000,
-        balanceDue: 0
-      }
-    }
-  }
+        balanceDue: 0,
+      },
+    },
+  },
 });
 ```
 
 ### 5.3 Cek Status Jendela 24 Jam CRM
+
 ```typescript
 const chat = await prisma.crmChat.findUnique({
-  where: { phoneNumber: customerPhone }
+  where: { phoneNumber: customerPhone },
 });
 const isLocked = dayjs().diff(dayjs(chat.lastCustomerMessageAt), 'hours') >= 24;
 ```
@@ -714,13 +723,13 @@ model AdminNotification {
 **Database:** PostgreSQL 17
 **ORM:** Prisma 6.x
 
-Dokumen ini mendefinisikan rancangan struktur *database* untuk modul Galeri, mencakup relasi entitas, penambahan skema Prisma, strategi indeksasi, kamus data (*data dictionary*), pola kueri (*query patterns*), dan manajemen seeder serta migrasi.
+Dokumen ini mendefinisikan rancangan struktur _database_ untuk modul Galeri, mencakup relasi entitas, penambahan skema Prisma, strategi indeksasi, kamus data (_data dictionary_), pola kueri (_query patterns_), dan manajemen seeder serta migrasi.
 
 ---
 
 ## 1. New Tables ERD
 
-Struktur relasi data menggunakan *Entity-Relationship Diagram* (ERD). `Gallery` terhubung opsional ke modul `Booking` yang sudah ada di sistem (jika ingin menautkan galeri ke pesanan spesifik).
+Struktur relasi data menggunakan _Entity-Relationship Diagram_ (ERD). `Gallery` terhubung opsional ke modul `Booking` yang sudah ada di sistem (jika ingin menautkan galeri ke pesanan spesifik).
 
 ```mermaid
 erDiagram
@@ -728,7 +737,7 @@ erDiagram
         String id PK
         String customerName
     }
-    
+
     Gallery {
         UUID id PK
         String name
@@ -794,7 +803,7 @@ erDiagram
 
 ## 2. Full Prisma Schema Additions
 
-Tambahkan konfigurasi berikut ke dalam file utama `schema.prisma`. 
+Tambahkan konfigurasi berikut ke dalam file utama `schema.prisma`.
 
 ```prisma
 // --- ENUMS ---
@@ -828,11 +837,11 @@ model Gallery {
   status          GalleryStatus @default(DRAFT)
   description     String?       @db.Text
   maxSelections   Int?
-  
+
   // Optional relation to existing Booking model
   bookingId       String?       @db.Uuid
   booking         Booking?      @relation(fields: [bookingId], references: [id])
-  
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -854,7 +863,7 @@ model Photo {
   viewUrl         String?       @db.Text
   sortOrder       Int           @default(0)
   isActive        Boolean       @default(true)
-  
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -877,7 +886,7 @@ model Selection {
   customerPhone   String?
   status          SelectionStatus @default(DRAFT)
   submittedAt     DateTime?
-  
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -893,7 +902,7 @@ model SelectionItem {
   id              String        @id @default(uuid()) @db.Uuid
   selectionId     String        @db.Uuid
   photoId         String        @db.Uuid
-  
+
   createdAt       DateTime      @default(now())
 
   // Relations
@@ -914,7 +923,7 @@ model SyncJob {
   newFiles        Int           @default(0)
   removedFiles    Int           @default(0)
   errorMessage    String?       @db.Text
-  
+
   startedAt       DateTime?
   completedAt     DateTime?
   createdAt       DateTime      @default(now())
@@ -935,34 +944,36 @@ model SyncJob {
 Setiap index ditambahkan untuk mengoptimalkan _typical query patterns_ spesifik yang dieksekusi secara berulang:
 
 1. **`@@index([galleryId, isActive, sortOrder])` (pada tabel `Photo`)**
-   * **Rasional:** Saat *customer* membuka halaman galeri publik, API wajib mengembalikan daftar foto secara tersortir (berdasarkan urutan abjad dari parser) dan mem-filter hanya foto yang `isActive = true`. Kombinasi ketiga kolom ini membuat PostgreSQL dapat menyajikan *pagination* (menggunakan LIMIT & OFFSET) murni dari indeks tanpa harus membaca (mengakses) data fisik dari tabel terlebih dahulu.
+   - **Rasional:** Saat _customer_ membuka halaman galeri publik, API wajib mengembalikan daftar foto secara tersortir (berdasarkan urutan abjad dari parser) dan mem-filter hanya foto yang `isActive = true`. Kombinasi ketiga kolom ini membuat PostgreSQL dapat menyajikan _pagination_ (menggunakan LIMIT & OFFSET) murni dari indeks tanpa harus membaca (mengakses) data fisik dari tabel terlebih dahulu.
 2. **`@@index([galleryId, status])` (pada tabel `SyncJob`)**
-   * **Rasional:** Setiap kali admin menekan tombol sinkronisasi, sistem harus dengan cepat memvalidasi *business rule* "Tidak boleh ada sync berbarengan". Kueri pencarian pekerjaan berstatus `RUNNING` atau `PENDING` untuk suatu galeri akan berjalan sangat cepat menggunakan composite index ini.
+   - **Rasional:** Setiap kali admin menekan tombol sinkronisasi, sistem harus dengan cepat memvalidasi _business rule_ "Tidak boleh ada sync berbarengan". Kueri pencarian pekerjaan berstatus `RUNNING` atau `PENDING` untuk suatu galeri akan berjalan sangat cepat menggunakan composite index ini.
 3. **`@@index([galleryId, status])` (pada tabel `Selection`)**
-   * **Rasional:** Admin *dashboard* memerlukan rekap dari siapa saja pelanggan yang sudah `SUBMITTED` pada galeri tertentu. Index ini mempercepat load data untuk dasbor panel admin.
+   - **Rasional:** Admin _dashboard_ memerlukan rekap dari siapa saja pelanggan yang sudah `SUBMITTED` pada galeri tertentu. Index ini mempercepat load data untuk dasbor panel admin.
 4. **Unique Constraints (`@@unique`)**
-   * `[galleryId, driveFileId]` pada `Photo`: Mencegah insersi duplikat secara absolut saat proses _Bulk Upsert_ terjadi dari `BullMQ worker`.
-   * `[selectionId, photoId]` pada `SelectionItem`: Menjaga integritas data agar *customer* tidak bisa mengirim foto yang sama lebih dari satu kali dalam suatu daftar pilihannya.
+   - `[galleryId, driveFileId]` pada `Photo`: Mencegah insersi duplikat secara absolut saat proses _Bulk Upsert_ terjadi dari `BullMQ worker`.
+   - `[selectionId, photoId]` pada `SelectionItem`: Menjaga integritas data agar _customer_ tidak bisa mengirim foto yang sama lebih dari satu kali dalam suatu daftar pilihannya.
 
 ---
 
 ## 4. Data Dictionary
 
 ### Tabel `galleries`
-| Kolom | Tipe | Constraints / Default | Deskripsi Bisnis |
-| :--- | :--- | :--- | :--- |
-| `publicToken` | String | Unique, default(cuid()) | URL slug/token publik rahasia, tak tertebak, digunakan untuk link klien. |
-| `driveFolderId` | String | - | ID asli dari Google Drive (ex: `1aBcDeFg`). |
-| `driveSourceType`| String | default('google_drive_public') | Flag untuk ekstensi sumber foto (S3, R2) di masa depan. |
-| `maxSelections` | Int | Nullable | Jumlah maksimal foto yang boleh dipilih oleh klien. Jika `null`, tak terbatas. |
+
+| Kolom             | Tipe   | Constraints / Default          | Deskripsi Bisnis                                                               |
+| :---------------- | :----- | :----------------------------- | :----------------------------------------------------------------------------- |
+| `publicToken`     | String | Unique, default(cuid())        | URL slug/token publik rahasia, tak tertebak, digunakan untuk link klien.       |
+| `driveFolderId`   | String | -                              | ID asli dari Google Drive (ex: `1aBcDeFg`).                                    |
+| `driveSourceType` | String | default('google_drive_public') | Flag untuk ekstensi sumber foto (S3, R2) di masa depan.                        |
+| `maxSelections`   | Int    | Nullable                       | Jumlah maksimal foto yang boleh dipilih oleh klien. Jika `null`, tak terbatas. |
 
 ### Tabel `photos`
-| Kolom | Tipe | Constraints / Default | Deskripsi Bisnis |
-| :--- | :--- | :--- | :--- |
-| `driveFileId` | String | - | ID spesifik file gambar pada Google Drive. |
-| `thumbnailUrl` | Text | Nullable | URL akses CDN dari drive google (`.../thumbnail?id=...&sz=w400`). |
-| `sortOrder` | Int | default(0) | Urutan tampilan foto (berguna jika admin mau merombak letak). |
-| `isActive` | Boolean | default(true) | Menandakan file tersebut eksis di Drive. Jika dihapus dari drive, ubah ke `false`. |
+
+| Kolom          | Tipe    | Constraints / Default | Deskripsi Bisnis                                                                   |
+| :------------- | :------ | :-------------------- | :--------------------------------------------------------------------------------- |
+| `driveFileId`  | String  | -                     | ID spesifik file gambar pada Google Drive.                                         |
+| `thumbnailUrl` | Text    | Nullable              | URL akses CDN dari drive google (`.../thumbnail?id=...&sz=w400`).                  |
+| `sortOrder`    | Int     | default(0)            | Urutan tampilan foto (berguna jika admin mau merombak letak).                      |
+| `isActive`     | Boolean | default(true)         | Menandakan file tersebut eksis di Drive. Jika dihapus dari drive, ubah ke `false`. |
 
 ---
 
@@ -971,12 +982,13 @@ Setiap index ditambahkan untuk mengoptimalkan _typical query patterns_ spesifik 
 Contoh pola kueri menggunakan Prisma Client yang mencerminkan pemrosesan bisnis inti.
 
 **1. Mengambil foto aktif dengan paginasi (Public View):**
+
 ```typescript
 const getPublicPhotos = async (galleryId: string, page: number, limit: number) => {
   return await prisma.photo.findMany({
-    where: { 
-      galleryId, 
-      isActive: true 
+    where: {
+      galleryId,
+      isActive: true,
     },
     orderBy: { sortOrder: 'asc' },
     skip: (page - 1) * limit,
@@ -985,13 +997,14 @@ const getPublicPhotos = async (galleryId: string, page: number, limit: number) =
       id: true,
       filename: true,
       thumbnailUrl: true,
-      viewUrl: true
-    }
+      viewUrl: true,
+    },
   });
 };
 ```
 
 **2. Memeriksa ketersediaan proses sinkronisasi (Sync Guard):**
+
 ```typescript
 const isSyncRunning = async (galleryId: string) => {
   const activeJob = await prisma.syncJob.findFirst({
@@ -1005,7 +1018,8 @@ const isSyncRunning = async (galleryId: string) => {
 ```
 
 **3. Pembaruan/Upsert data metadata foto secara massal:**
-*Catatan: Prisma v6 merekomendasikan `createMany` dengan `onConflict` (pada PostgreSQL) atau transaksional upsert.*
+_Catatan: Prisma v6 merekomendasikan `createMany` dengan `onConflict` (pada PostgreSQL) atau transaksional upsert._
+
 ```typescript
 const upsertPhotos = async (galleryId: string, photos: DrivePhoto[]) => {
   return await prisma.$transaction(
@@ -1031,18 +1045,19 @@ const upsertPhotos = async (galleryId: string, photos: DrivePhoto[]) => {
           viewUrl: photo.url,
           isActive: true,
         },
-      })
-    )
+      }),
+    ),
   );
 };
 ```
 
-**4. Validasi dan Penyelesaian Draf Pilihan (*Submit Selection*):**
+**4. Validasi dan Penyelesaian Draf Pilihan (_Submit Selection_):**
+
 ```typescript
 const submitSelection = async (sessionToken: string, maxLimit: number) => {
   const selection = await prisma.selection.findUnique({
     where: { sessionToken },
-    include: { _count: { select: { items: true } } }
+    include: { _count: { select: { items: true } } },
   });
 
   if (selection._count.items > maxLimit) {
@@ -1053,23 +1068,24 @@ const submitSelection = async (sessionToken: string, maxLimit: number) => {
     where: { sessionToken },
     data: {
       status: 'SUBMITTED',
-      submittedAt: new Date()
-    }
+      submittedAt: new Date(),
+    },
   });
 };
 ```
 
 **5. Pengambilan Detail Pilihan (Admin View):**
+
 ```typescript
 const getAdminSelection = async (galleryId: string) => {
   return await prisma.selection.findMany({
     where: { galleryId, status: 'SUBMITTED' },
     include: {
       items: {
-        include: { photo: true } // Ambil data URL dan filename dari foto yang dipilih
-      }
+        include: { photo: true }, // Ambil data URL dan filename dari foto yang dipilih
+      },
     },
-    orderBy: { submittedAt: 'desc' }
+    orderBy: { submittedAt: 'desc' },
   });
 };
 ```
@@ -1083,7 +1099,7 @@ Skrip data awal atau purwarupa (seeder) dalam bentuk RAW SQL untuk di-inject pad
 ```sql
 -- 1. Insert Sample Gallery
 INSERT INTO "galleries" (
-  "id", "name", "slug", "publicToken", "driveFolderId", 
+  "id", "name", "slug", "publicToken", "driveFolderId",
   "status", "maxSelections", "createdAt", "updatedAt"
 ) VALUES (
   'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
@@ -1099,9 +1115,9 @@ INSERT INTO "galleries" (
 
 -- 2. Insert 5 Sample Photos
 INSERT INTO "photos" (
-  "id", "galleryId", "driveFileId", "filename", "mimeType", 
+  "id", "galleryId", "driveFileId", "filename", "mimeType",
   "thumbnailUrl", "sortOrder", "isActive", "createdAt", "updatedAt"
-) VALUES 
+) VALUES
 ('11111111-1111-1111-1111-111111111111', 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'dFile1', 'IMG_001.jpg', 'image/jpeg', 'https://drive.google.com/thumbnail?id=dFile1&sz=w400', 1, true, NOW(), NOW()),
 ('22222222-2222-2222-2222-222222222222', 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'dFile2', 'IMG_002.jpg', 'image/jpeg', 'https://drive.google.com/thumbnail?id=dFile2&sz=w400', 2, true, NOW(), NOW()),
 ('33333333-3333-3333-3333-333333333333', 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'dFile3', 'IMG_003.jpg', 'image/jpeg', 'https://drive.google.com/thumbnail?id=dFile3&sz=w400', 3, true, NOW(), NOW()),
@@ -1133,17 +1149,17 @@ INSERT INTO "selection_items" ("id", "selectionId", "photoId", "createdAt") VALU
 ## 7. Migration Strategy
 
 1. **Development Environment:**
-   * Di dalam container Docker atau saat menjalankan script lokal, migrasi diselesaikan menggunakan perintah sinkronisasi skema otomatis `npx prisma db push`. Ini sangat sesuai dengan integrasi script `docker-entrypoint.sh` saat *booting* aplikasi.
+   - Di dalam container Docker atau saat menjalankan script lokal, migrasi diselesaikan menggunakan perintah sinkronisasi skema otomatis `npx prisma db push`. Ini sangat sesuai dengan integrasi script `docker-entrypoint.sh` saat _booting_ aplikasi.
 2. **Production Environment:**
-   * Setiap penambahan model skema wajib ditangkap (dijadikan file migrasi statis) terlebih dahulu sebelum diterapkan ke production:
+   - Setiap penambahan model skema wajib ditangkap (dijadikan file migrasi statis) terlebih dahulu sebelum diterapkan ke production:
      ```bash
      npx prisma migrate dev --name init_gallery_module
      ```
-   * Di server *production*, eksekusi migrasi menggunakan:
+   - Di server _production_, eksekusi migrasi menggunakan:
      ```bash
      npx prisma migrate deploy
      ```
 3. **Handling Optional Relations (`Booking` module):**
-   * Relasi opsional `bookingId` dikonfigurasi sebagai *nullable*.
-   * Jika pada rilis awal model `Booking` belum stabil atau masih sering direvisi, skema `Gallery` tidak akan rusak / *broken*. Ketika me-load relasi dengan `include: { booking: true }`, Prisma tetap aman dan akan mengembalikan `null` tanpa *error* jika foreign key tidak diatur.
-   * Apabila model Booking dihapus di *development*, maka field di tabel `Gallery` tersebut akan memberikan *type error* secara eksplisit sehingga mencegah ketidaksinkronan kode sumber.
+   - Relasi opsional `bookingId` dikonfigurasi sebagai _nullable_.
+   - Jika pada rilis awal model `Booking` belum stabil atau masih sering direvisi, skema `Gallery` tidak akan rusak / _broken_. Ketika me-load relasi dengan `include: { booking: true }`, Prisma tetap aman dan akan mengembalikan `null` tanpa _error_ jika foreign key tidak diatur.
+   - Apabila model Booking dihapus di _development_, maka field di tabel `Gallery` tersebut akan memberikan _type error_ secara eksplisit sehingga mencegah ketidaksinkronan kode sumber.

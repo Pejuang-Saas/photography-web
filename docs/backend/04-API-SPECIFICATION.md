@@ -1,4 +1,5 @@
 # 🔌 Spesifikasi REST API & Kontrak Webhook (API Specification)
+
 ## Photography Platform Monorepo (Kaya Story Semarang)
 
 - **Base URL Public**: `http://localhost:3002/api/v1`
@@ -9,9 +10,10 @@
 
 ## 1. Global Headers & Authentication
 
-Sistem menggunakan skema autentikasi Bearer JWT. Token didapatkan dari endpoint `/auth/login` dan harus disertakan di dalam setiap *request* yang membutuhkan autentikasi (Admin/Staff access).
+Sistem menggunakan skema autentikasi Bearer JWT. Token didapatkan dari endpoint `/auth/login` dan harus disertakan di dalam setiap _request_ yang membutuhkan autentikasi (Admin/Staff access).
 
 **Contoh Header:**
+
 ```http
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
@@ -22,16 +24,17 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 Apabila terjadi kesalahan, API akan membalas dengan struktur respon gagal standar.
 
-| HTTP Status | Error Code | Deskripsi |
-|---|---|---|
-| `400` | `BAD_REQUEST` | Input dari klien tidak sesuai format (validasi gagal). |
-| `401` | `UNAUTHORIZED` | Token hilang atau tidak valid. |
-| `403` | `FORBIDDEN` | Pengguna tidak memiliki akses. (Misal: `CRM_24H_WINDOW_LOCKED`). |
-| `404` | `NOT_FOUND` | Data/Resource yang dicari tidak ditemukan. |
-| `429` | `TOO_MANY_REQUESTS` | Melebihi limit *Rate Limiting*. |
-| `500` | `INTERNAL_SERVER_ERROR` | Terjadi kesalahan pada internal server. |
+| HTTP Status | Error Code              | Deskripsi                                                        |
+| ----------- | ----------------------- | ---------------------------------------------------------------- |
+| `400`       | `BAD_REQUEST`           | Input dari klien tidak sesuai format (validasi gagal).           |
+| `401`       | `UNAUTHORIZED`          | Token hilang atau tidak valid.                                   |
+| `403`       | `FORBIDDEN`             | Pengguna tidak memiliki akses. (Misal: `CRM_24H_WINDOW_LOCKED`). |
+| `404`       | `NOT_FOUND`             | Data/Resource yang dicari tidak ditemukan.                       |
+| `429`       | `TOO_MANY_REQUESTS`     | Melebihi limit _Rate Limiting_.                                  |
+| `500`       | `INTERNAL_SERVER_ERROR` | Terjadi kesalahan pada internal server.                          |
 
 **Contoh Error Response:**
+
 ```json
 {
   "success": false,
@@ -46,11 +49,13 @@ Apabila terjadi kesalahan, API akan membalas dengan struktur respon gagal standa
 ## 3. Pagination & Rate Limiting
 
 ### Pagination
-Semua endpoint berjenis list menggunakan parameter query `page` dan `limit` dengan pembungkus (*envelope*) struktur pagination.
+
+Semua endpoint berjenis list menggunakan parameter query `page` dan `limit` dengan pembungkus (_envelope_) struktur pagination.
 
 **Contoh Query:** `GET /admin/bookings?page=1&limit=10`
 
 **Contoh Response Envelope:**
+
 ```json
 {
   "success": true,
@@ -66,7 +71,9 @@ Semua endpoint berjenis list menggunakan parameter query `page` dan `limit` deng
 ```
 
 ### Rate Limiting
+
 Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
+
 - `POST /auth/login` : 5 req / menit / IP
 - `POST /bookings` : 10 req / menit / IP
 - Endpoint lain standar 60 req / menit / IP
@@ -76,6 +83,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
 ## 4. Modul Autentikasi (`/api/v1/auth`)
 
 ### 4.1 Login Admin
+
 - **Method / Endpoint**: `POST /auth/login`
 - **Akses**: Public
 - **Request Body**:
@@ -117,8 +125,9 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
 ## 5. Modul Katalog Paket & Addon (`/api/v1/packages`)
 
 ### 5.1 Ambil Semua Paket Aktif (Katalog Publik)
+
 - **Method / Endpoint**: `GET /packages`
-- **Query Params**: `?category=Solo` *(opsional)*
+- **Query Params**: `?category=Solo` _(opsional)_
 - **Response `200 OK`**:
   ```json
   {
@@ -142,6 +151,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 
 ### 5.2 (Admin) Get All Packages
+
 - **Method**: `GET /admin/packages`
 - **Akses**: Admin
 - **Response `200 OK`**:
@@ -161,6 +171,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 
 ### 5.3 (Admin) Create Package
+
 - **Method**: `POST /admin/packages`
 - **Akses**: Admin
 - **Request Body**:
@@ -194,6 +205,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 
 ### 5.4 (Admin) Update Package
+
 - **Method**: `PUT /admin/packages/:id`
 - **Akses**: Admin
 - **Request Body**: (Opsional field yang ingin diupdate)
@@ -202,19 +214,33 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 - **Response `200 OK`**:
   ```json
-  { "success": true, "statusCode": 200, "data": { "id": "pkg-2", "price": 550000, "isActive": false } }
+  {
+    "success": true,
+    "statusCode": 200,
+    "data": { "id": "pkg-2", "price": 550000, "isActive": false }
+  }
   ```
 
 ### 5.5 (Admin) Delete Package
+
 - **Method**: `DELETE /admin/packages/:id`
 - **Akses**: Admin
 - **Response `200 OK`**:
   ```json
-  { "success": true, "statusCode": 200, "message": "Paket berhasil dihapus secara sistem (soft delete)" }
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Paket berhasil dihapus secara sistem (soft delete)"
+  }
   ```
 - **Error Response `404 Not Found`**:
   ```json
-  { "success": false, "statusCode": 404, "message": "Paket tidak ditemukan", "errorCode": "NOT_FOUND" }
+  {
+    "success": false,
+    "statusCode": 404,
+    "message": "Paket tidak ditemukan",
+    "errorCode": "NOT_FOUND"
+  }
   ```
 
 ---
@@ -222,6 +248,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
 ## 6. Modul Reservasi & Checkout (`/api/v1/bookings`)
 
 ### 6.1 Cek Ketersediaan Slot Waktu Sesi
+
 - **Method / Endpoint**: `GET /bookings/availability`
 - **Query Params**: `?date=2026-08-25&packageId=pkg-1`
 - **Response `200 OK`**:
@@ -241,10 +268,16 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 - **Error Response `400 Bad Request`**:
   ```json
-  { "success": false, "statusCode": 400, "message": "Tanggal diperlukan", "errorCode": "BAD_REQUEST" }
+  {
+    "success": false,
+    "statusCode": 400,
+    "message": "Tanggal diperlukan",
+    "errorCode": "BAD_REQUEST"
+  }
   ```
 
 ### 6.2 Pembuatan Booking Baru (Step 1-3 Checkout)
+
 - **Method / Endpoint**: `POST /bookings`
 - **Akses**: Public
 - **Request Body**:
@@ -285,10 +318,16 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 - **Error Response `409 Conflict`**:
   ```json
-  { "success": false, "statusCode": 409, "message": "Slot waktu sudah dipesan", "errorCode": "SLOT_UNAVAILABLE" }
+  {
+    "success": false,
+    "statusCode": 409,
+    "message": "Slot waktu sudah dipesan",
+    "errorCode": "SLOT_UNAVAILABLE"
+  }
   ```
 
 ### 6.3 Get Booking By ID / Code
+
 - **Method**: `GET /bookings/:id`
 - **Response `200 OK`**:
   ```json
@@ -307,10 +346,16 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 - **Error Response `404 Not Found`**:
   ```json
-  { "success": false, "statusCode": 404, "message": "Booking tidak ditemukan", "errorCode": "NOT_FOUND" }
+  {
+    "success": false,
+    "statusCode": 404,
+    "message": "Booking tidak ditemukan",
+    "errorCode": "NOT_FOUND"
+  }
   ```
 
 ### 6.4 (Admin) Get All Bookings
+
 - **Method**: `GET /admin/bookings`
 - **Akses**: Admin
 - **Query Params**: `?status=CONFIRMED&page=1&limit=20&search=KYA-2026-081`
@@ -332,6 +377,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 
 ### 6.5 Unggah Bukti Pembayaran (Step 4 Checkout)
+
 - **Method**: `POST /bookings/:id/payment-proof`
 - **Content-Type**: `multipart/form-data`
 - **Body Form**: `file`, `paymentBank`, `paymentAmount`
@@ -346,6 +392,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 
 ### 6.6 (Admin) Verifikasi Pembayaran
+
 - **Method**: `POST /admin/bookings/:id/verify-payment`
 - **Akses**: Admin
 - **Request Body**:
@@ -358,7 +405,11 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
     "success": true,
     "statusCode": 200,
     "message": "Pembayaran dikonfirmasi",
-    "data": { "invoiceNumber": "INV-KYA-2026-081", "status": "CONFIRMED", "paymentStatus": "PAID_FULL" }
+    "data": {
+      "invoiceNumber": "INV-KYA-2026-081",
+      "status": "CONFIRMED",
+      "paymentStatus": "PAID_FULL"
+    }
   }
   ```
 
@@ -367,6 +418,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
 ## 7. Modul Invoices & Notifikasi
 
 ### 7.1 (Admin) Get All Invoices
+
 - **Method**: `GET /admin/invoices`
 - **Akses**: Admin
 - **Response `200 OK`**:
@@ -374,14 +426,13 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   {
     "success": true,
     "statusCode": 200,
-    "data": [
-      { "invoiceNumber": "INV-KYA-2026-081", "totalAmount": 645000, "status": "PAID_FULL" }
-    ],
+    "data": [{ "invoiceNumber": "INV-KYA-2026-081", "totalAmount": 645000, "status": "PAID_FULL" }],
     "meta": { "total": 50, "page": 1, "lastPage": 3, "limit": 20 }
   }
   ```
 
 ### 7.2 (Admin) Get Notifications
+
 - **Method**: `GET /admin/notifications`
 - **Akses**: Admin
 - **Response `200 OK`**:
@@ -390,7 +441,12 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
     "success": true,
     "statusCode": 200,
     "data": [
-      { "id": "notif-1", "title": "New Booking", "message": "Booking KYA-2026-081 created", "read": false }
+      {
+        "id": "notif-1",
+        "title": "New Booking",
+        "message": "Booking KYA-2026-081 created",
+        "read": false
+      }
     ]
   }
   ```
@@ -400,6 +456,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
 ## 8. Modul WAHA & Mini CRM (`/api/v1/admin/crm`)
 
 ### 8.1 (Admin) Generate QR Code WAHA
+
 - **Method**: `POST /admin/waha/qr`
 - **Akses**: Admin
 - **Response `200 OK`**:
@@ -412,15 +469,22 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 
 ### 8.2 (Admin) Update Chat Tag
+
 - **Method**: `PUT /admin/crm/chats/:id/tag`
 - **Akses**: Admin
 - **Request Body**: `{ "activeTag": "Menunggu Transfer" }`
 - **Response `200 OK`**:
   ```json
-  { "success": true, "statusCode": 200, "message": "Tag diubah", "data": { "activeTag": "Menunggu Transfer" } }
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Tag diubah",
+    "data": { "activeTag": "Menunggu Transfer" }
+  }
   ```
 
 ### 8.3 Kirim Pesan WhatsApp CRM
+
 - **Method**: `POST /admin/crm/chats/:id/send`
 - **Akses**: Admin
 - **Request Body**:
@@ -429,7 +493,12 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 - **Error Response `403 Forbidden` (Jendela 24 jam terkunci)**:
   ```json
-  { "success": false, "statusCode": 403, "message": "Jendela interaksi 24 jam terkunci", "errorCode": "CRM_24H_WINDOW_LOCKED" }
+  {
+    "success": false,
+    "statusCode": 403,
+    "message": "Jendela interaksi 24 jam terkunci",
+    "errorCode": "CRM_24H_WINDOW_LOCKED"
+  }
   ```
 
 ---
@@ -437,6 +506,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
 ## 9. Modul Pengaturan & Template
 
 ### 9.1 (Admin) Get All Templates
+
 - **Method**: `GET /admin/templates`
 - **Akses**: Admin
 - **Response `200 OK`**:
@@ -444,13 +514,12 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   {
     "success": true,
     "statusCode": 200,
-    "data": [
-      { "id": "tpl-1", "code": "BOOKING_CREATED", "name": "Notif Booking", "type": "EMAIL" }
-    ]
+    "data": [{ "id": "tpl-1", "code": "BOOKING_CREATED", "name": "Notif Booking", "type": "EMAIL" }]
   }
   ```
 
 ### 9.2 (Admin) Update Template
+
 - **Method**: `PUT /admin/templates/:id`
 - **Akses**: Admin
 - **Request Body**: `{ "content": "Halo {{customerName}}, pesanan Anda..." }`
@@ -460,6 +529,7 @@ Endpoint krusial dibatasi untuk mencegah SPAM/Brute force:
   ```
 
 ### 9.3 Get Studio Profile
+
 - **Method**: `GET /studio-profile`
 - **Akses**: Public
 - **Response `200 OK`**:
@@ -498,6 +568,7 @@ API specification ini mencakup fitur gallery di mana fotografer dapat menghubung
 - **Admin endpoints** memerlukan Bearer JWT di header `Authorization: Bearer <token>`.
 
 **Standard Response Envelope:**
+
 ```json
 {
   "success": true,
@@ -509,6 +580,7 @@ API specification ini mencakup fitur gallery di mana fotografer dapat menghubung
 ```
 
 **Standard Error Envelope:**
+
 ```json
 {
   "success": false,
@@ -528,6 +600,7 @@ API specification ini mencakup fitur gallery di mana fotografer dapat menghubung
 Membuat gallery baru.
 
 **Request Body:**
+
 ```json
 {
   "name": "Wedding Andi & Sinta",
@@ -539,6 +612,7 @@ Membuat gallery baru.
 ```
 
 **Response `201 Created`:**
+
 ```json
 {
   "success": true,
@@ -558,6 +632,7 @@ Membuat gallery baru.
 ```
 
 **Errors:**
+
 - `400 DRIVE_FOLDER_INVALID` — Format URL Google Drive tidak dikenali.
 
 ---
@@ -567,13 +642,15 @@ Membuat gallery baru.
 List gallery dengan pagination.
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `page` | number | 1 | Halaman |
-| `limit` | number | 10 | Items per halaman (max 50) |
-| `status` | string | — | Filter: `DRAFT`, `ACTIVE`, `ARCHIVED` |
+
+| Parameter | Type   | Default | Description                           |
+| :-------- | :----- | :------ | :------------------------------------ |
+| `page`    | number | 1       | Halaman                               |
+| `limit`   | number | 10      | Items per halaman (max 50)            |
+| `status`  | string | —       | Filter: `DRAFT`, `ACTIVE`, `ARCHIVED` |
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -605,6 +682,7 @@ List gallery dengan pagination.
 Detail dari satu gallery, termasuk info sync job terbaru.
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -643,6 +721,7 @@ Detail dari satu gallery, termasuk info sync job terbaru.
 Update informasi gallery.
 
 **Request Body** (semua field opsional):
+
 ```json
 {
   "name": "Wedding Andi & Sinta - Edited",
@@ -663,6 +742,7 @@ Hapus gallery.
 **Logic:** Hanya gallery berstatus `DRAFT` yang dapat dihapus. Gallery `ACTIVE` harus diubah ke `ARCHIVED` terlebih dahulu.
 
 **Errors:**
+
 - `400 GALLERY_NOT_DELETABLE` — Gallery bukan DRAFT.
 
 ---
@@ -672,6 +752,7 @@ Hapus gallery.
 Trigger background sync metadata dari Google Drive ke database.
 
 **Response `202 Accepted`:**
+
 ```json
 {
   "success": true,
@@ -684,6 +765,7 @@ Trigger background sync metadata dari Google Drive ke database.
 ```
 
 **Errors:**
+
 - `409 SYNC_ALREADY_RUNNING` — Sync sedang berjalan untuk gallery ini.
 
 ---
@@ -693,6 +775,7 @@ Trigger background sync metadata dari Google Drive ke database.
 Poll status sync job terbaru. Frontend memanggil endpoint ini setiap 2 detik saat sync berjalan.
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -722,6 +805,7 @@ List semua foto dalam gallery (termasuk `isActive=false`). Khusus admin.
 **Query Parameters:** `page`, `limit`, `isActive` (boolean filter).
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -748,13 +832,15 @@ List semua foto dalam gallery (termasuk `isActive=false`). Khusus admin.
 List semua customer selections untuk gallery ini.
 
 **Query Parameters:**
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `status` | string | Filter: `DRAFT`, `SUBMITTED` |
-| `page` | number | Halaman |
-| `limit` | number | Max 50 |
+
+| Parameter | Type   | Description                  |
+| :-------- | :----- | :--------------------------- |
+| `status`  | string | Filter: `DRAFT`, `SUBMITTED` |
+| `page`    | number | Halaman                      |
+| `limit`   | number | Max 50                       |
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -781,6 +867,7 @@ List semua customer selections untuk gallery ini.
 Detail lengkap satu selection beserta daftar foto yang dipilih.
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -813,6 +900,7 @@ Detail lengkap satu selection beserta daftar foto yang dipilih.
 Informasi dasar gallery untuk landing page customer.
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -827,6 +915,7 @@ Informasi dasar gallery untuk landing page customer.
 ```
 
 **Errors:**
+
 - `404 GALLERY_NOT_FOUND` — Token tidak valid.
 - `403 GALLERY_INACTIVE` — Gallery berstatus `DRAFT` atau `ARCHIVED`.
 
@@ -837,12 +926,14 @@ Informasi dasar gallery untuk landing page customer.
 List foto untuk grid view. Hanya foto `isActive = true`.
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `page` | number | 1 | Halaman |
-| `limit` | number | 50 | Max 100 |
+
+| Parameter | Type   | Default | Description |
+| :-------- | :----- | :------ | :---------- |
+| `page`    | number | 1       | Halaman     |
+| `limit`   | number | 50      | Max 100     |
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -871,6 +962,7 @@ List foto untuk grid view. Hanya foto `isActive = true`.
 Membuat sesi pemilihan baru. Customer harus memasukkan nama sebelum melihat gallery.
 
 **Request Body:**
+
 ```json
 {
   "customerName": "Budi Santoso",
@@ -880,6 +972,7 @@ Membuat sesi pemilihan baru. Customer harus memasukkan nama sebelum melihat gall
 ```
 
 **Response `201 Created`:**
+
 ```json
 {
   "success": true,
@@ -900,6 +993,7 @@ Membuat sesi pemilihan baru. Customer harus memasukkan nama sebelum melihat gall
 Resume session — mengembalikan state selection saat ini.
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -913,6 +1007,7 @@ Resume session — mengembalikan state selection saat ini.
 ```
 
 **Errors:**
+
 - `404 SESSION_NOT_FOUND` — Session token tidak valid.
 
 ---
@@ -922,6 +1017,7 @@ Resume session — mengembalikan state selection saat ini.
 Auto-save draft selection (dipanggil secara debounced dari frontend setiap 1.5 detik setelah perubahan).
 
 **Request Body** — full replacement array dari ID foto yang dipilih:
+
 ```json
 {
   "photoIds": ["uuid1", "uuid2", "uuid3"]
@@ -929,10 +1025,12 @@ Auto-save draft selection (dipanggil secara debounced dari frontend setiap 1.5 d
 ```
 
 **Validasi:**
+
 - `maxSelections` tidak boleh dilampaui.
 - Semua `photoId` harus merupakan foto aktif milik gallery ini.
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -943,6 +1041,7 @@ Auto-save draft selection (dipanggil secara debounced dari frontend setiap 1.5 d
 ```
 
 **Errors:**
+
 - `409 SELECTION_ALREADY_SUBMITTED`
 - `422 SELECTION_MAX_EXCEEDED`
 - `400 PHOTO_NOT_IN_GALLERY`
@@ -956,6 +1055,7 @@ Finalize dan submit selection. Tidak dapat diubah setelah ini.
 **Request Body:** `{}` (kosong — menggunakan draft yang ada)
 
 **Response `200 OK`:**
+
 ```json
 {
   "success": true,
@@ -968,39 +1068,40 @@ Finalize dan submit selection. Tidak dapat diubah setelah ini.
 ```
 
 **Errors:**
+
 - `409 SELECTION_ALREADY_SUBMITTED`
 
 ---
 
 ### 4. Error Codes Full Catalogue
 
-| HTTP Status | Error Code | Description | Endpoint |
-| :--- | :--- | :--- | :--- |
-| 404 | `GALLERY_NOT_FOUND` | Token atau ID gallery tidak valid. | `/g/:token/*`, `/admin/galleries/:id` |
-| 403 | `GALLERY_INACTIVE` | Gallery DRAFT atau ARCHIVED diakses secara publik. | `/g/:token/*` |
-| 409 | `GALLERY_SYNC_RUNNING` | Operasi diblokir karena sync sedang berjalan. | `/admin/galleries/:id` |
-| 400 | `DRIVE_FOLDER_INVALID` | Format URL Google Drive tidak valid atau tidak bisa di-extract folder ID-nya. | `POST /admin/galleries` |
-| 403 | `DRIVE_FOLDER_PRIVATE` | Folder Google Drive belum diset *Anyone with link → Viewer*. | Sync background job |
-| 400 | `DRIVE_FOLDER_EMPTY` | Folder Google Drive tidak memiliki file image sama sekali. | Sync background job |
-| 500 | `DRIVE_PARSE_FAILED` | Parser gagal memproses respons dari Google Drive. | Sync background job |
-| 409 | `SYNC_ALREADY_RUNNING` | Trigger sync ketika job sebelumnya masih berjalan. | `POST /admin/galleries/:id/sync` |
-| 404 | `SYNC_JOB_NOT_FOUND` | Job ID tidak ditemukan. | `GET /admin/galleries/:id/sync/latest` |
-| 400 | `PHOTO_NOT_IN_GALLERY` | `photoId` yang disimpan bukan milik gallery ini. | `PUT /g/:token/selections/:sessionToken` |
-| 404 | `PHOTO_NOT_FOUND` | `photoId` tidak ditemukan di database. | `PUT /g/:token/selections/:sessionToken` |
-| 409 | `SELECTION_ALREADY_SUBMITTED` | Mencoba mengubah atau submit selection yang sudah `SUBMITTED`. | `PUT`, `POST` pada `/selections/:sessionToken` |
-| 422 | `SELECTION_MAX_EXCEEDED` | Jumlah foto yang dipilih melebihi limit `maxSelections`. | `PUT /g/:token/selections/:sessionToken` |
-| 404 | `SESSION_NOT_FOUND` | Session token tidak valid. | `GET`, `PUT`, `POST` pada `/selections/:sessionToken` |
-| 400 | `GALLERY_NOT_DELETABLE` | Mencoba menghapus gallery yang bukan berstatus `DRAFT`. | `DELETE /admin/galleries/:id` |
+| HTTP Status | Error Code                    | Description                                                                   | Endpoint                                              |
+| :---------- | :---------------------------- | :---------------------------------------------------------------------------- | :---------------------------------------------------- |
+| 404         | `GALLERY_NOT_FOUND`           | Token atau ID gallery tidak valid.                                            | `/g/:token/*`, `/admin/galleries/:id`                 |
+| 403         | `GALLERY_INACTIVE`            | Gallery DRAFT atau ARCHIVED diakses secara publik.                            | `/g/:token/*`                                         |
+| 409         | `GALLERY_SYNC_RUNNING`        | Operasi diblokir karena sync sedang berjalan.                                 | `/admin/galleries/:id`                                |
+| 400         | `DRIVE_FOLDER_INVALID`        | Format URL Google Drive tidak valid atau tidak bisa di-extract folder ID-nya. | `POST /admin/galleries`                               |
+| 403         | `DRIVE_FOLDER_PRIVATE`        | Folder Google Drive belum diset _Anyone with link → Viewer_.                  | Sync background job                                   |
+| 400         | `DRIVE_FOLDER_EMPTY`          | Folder Google Drive tidak memiliki file image sama sekali.                    | Sync background job                                   |
+| 500         | `DRIVE_PARSE_FAILED`          | Parser gagal memproses respons dari Google Drive.                             | Sync background job                                   |
+| 409         | `SYNC_ALREADY_RUNNING`        | Trigger sync ketika job sebelumnya masih berjalan.                            | `POST /admin/galleries/:id/sync`                      |
+| 404         | `SYNC_JOB_NOT_FOUND`          | Job ID tidak ditemukan.                                                       | `GET /admin/galleries/:id/sync/latest`                |
+| 400         | `PHOTO_NOT_IN_GALLERY`        | `photoId` yang disimpan bukan milik gallery ini.                              | `PUT /g/:token/selections/:sessionToken`              |
+| 404         | `PHOTO_NOT_FOUND`             | `photoId` tidak ditemukan di database.                                        | `PUT /g/:token/selections/:sessionToken`              |
+| 409         | `SELECTION_ALREADY_SUBMITTED` | Mencoba mengubah atau submit selection yang sudah `SUBMITTED`.                | `PUT`, `POST` pada `/selections/:sessionToken`        |
+| 422         | `SELECTION_MAX_EXCEEDED`      | Jumlah foto yang dipilih melebihi limit `maxSelections`.                      | `PUT /g/:token/selections/:sessionToken`              |
+| 404         | `SESSION_NOT_FOUND`           | Session token tidak valid.                                                    | `GET`, `PUT`, `POST` pada `/selections/:sessionToken` |
+| 400         | `GALLERY_NOT_DELETABLE`       | Mencoba menghapus gallery yang bukan berstatus `DRAFT`.                       | `DELETE /admin/galleries/:id`                         |
 
 ---
 
 ### 5. Rate Limiting
 
-| Endpoint Group | Limit | Alasan |
-| :--- | :--- | :--- |
-| Public Endpoints (`/g/:token/*`) | 60 req/min per IP | Mencegah scraping dan DoS pada gallery public. |
-| Selection Submit (`…/submit`) | 5 req/min per IP | Mencegah spam submission. |
-| Sync Trigger (`…/sync`) | 10 req/min per admin account | Mencegah queue overload karena admin spam klik. |
+| Endpoint Group                   | Limit                        | Alasan                                          |
+| :------------------------------- | :--------------------------- | :---------------------------------------------- |
+| Public Endpoints (`/g/:token/*`) | 60 req/min per IP            | Mencegah scraping dan DoS pada gallery public.  |
+| Selection Submit (`…/submit`)    | 5 req/min per IP             | Mencegah spam submission.                       |
+| Sync Trigger (`…/sync`)          | 10 req/min per admin account | Mencegah queue overload karena admin spam klik. |
 
 ---
 
@@ -1018,10 +1119,9 @@ async function pollSyncStatus(
 ): Promise<void> {
   const intervalId = setInterval(async () => {
     try {
-      const response = await fetch(
-        `/api/v1/admin/galleries/${galleryId}/sync/latest`,
-        { headers: { Authorization: `Bearer ${jwtToken}` } }
-      );
+      const response = await fetch(`/api/v1/admin/galleries/${galleryId}/sync/latest`, {
+        headers: { Authorization: `Bearer ${jwtToken}` },
+      });
       const result = await response.json();
       const job: SyncJob = result.data;
 
@@ -1043,21 +1143,28 @@ async function pollSyncStatus(
 ```
 
 Contoh penggunaan di komponen React:
+
 ```tsx
 const [syncJob, setSyncJob] = useState<SyncJob | null>(null);
 
 const handleSync = async () => {
   await fetch(`/api/v1/admin/galleries/${id}/sync`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   pollSyncStatus(
     id,
     token,
-    (job) => setSyncJob(job),               // update progress bar
-    (job) => { setSyncJob(job); toast.success(`Sync selesai: ${job.newFiles} foto baru`); },
-    (job) => { setSyncJob(job); toast.error(`Sync gagal: ${job.errorMessage}`); },
+    (job) => setSyncJob(job), // update progress bar
+    (job) => {
+      setSyncJob(job);
+      toast.success(`Sync selesai: ${job.newFiles} foto baru`);
+    },
+    (job) => {
+      setSyncJob(job);
+      toast.error(`Sync gagal: ${job.errorMessage}`);
+    },
   );
 };
 ```

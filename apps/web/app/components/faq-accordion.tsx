@@ -34,7 +34,9 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
               <div className="flex items-baseline gap-4 pr-4">
                 <span
                   className={`font-mono text-xs font-normal transition-colors duration-200 ${
-                    isOpen ? 'text-accent font-semibold' : 'text-muted-dim group-hover:text-accent/80'
+                    isOpen
+                      ? 'text-accent font-semibold'
+                      : 'text-muted-dim group-hover:text-accent/80'
                   }`}
                 >
                   {String(index + 1).padStart(2, '0')}

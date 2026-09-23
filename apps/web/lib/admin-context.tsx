@@ -37,7 +37,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     const booking = bookings.find((b) => b.id === bookingId);
     if (!booking) return;
 
-    const generatedInvoiceNumber = booking.invoiceNumber || `INV-KYA-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+    const generatedInvoiceNumber =
+      booking.invoiceNumber ||
+      `INV-KYA-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
 
     setBookings((prev) =>
       prev.map((item) => {
@@ -51,7 +53,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           };
         }
         return item;
-      })
+      }),
     );
 
     // Update notification
@@ -90,7 +92,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           };
         }
         return item;
-      })
+      }),
     );
 
     setSelectedBooking(null);
@@ -101,9 +103,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateBookingStatus = (bookingId: string, status: BookingStatus) => {
-    setBookings((prev) =>
-      prev.map((item) => (item.id === bookingId ? { ...item, status } : item))
-    );
+    setBookings((prev) => prev.map((item) => (item.id === bookingId ? { ...item, status } : item)));
     toast.info('Status Reservasi Diperbarui', {
       description: `Status telah diubah menjadi ${status}.`,
     });
@@ -124,9 +124,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   };
 
   const markNotificationRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
   const markAllNotificationsRead = () => {

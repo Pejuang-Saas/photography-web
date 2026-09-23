@@ -16,16 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import AdminSidebar from './sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import type { AdminUser } from '@/lib/admin-auth';
@@ -38,7 +30,8 @@ interface AdminTopbarProps {
 
 export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: AdminTopbarProps) {
   const pathname = usePathname();
-  const { notifications, unreadCount, markAllNotificationsRead, setSelectedBooking, bookings } = useAdmin();
+  const { notifications, unreadCount, markAllNotificationsRead, setSelectedBooking, bookings } =
+    useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
 
   const getPageTitle = () => {
@@ -81,16 +74,19 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
               </Button>
             }
           />
-          <SheetContent side="left" className="w-60 border-zinc-200 bg-white p-0 dark:border-zinc-800 dark:bg-zinc-950">
+          <SheetContent
+            side="left"
+            className="w-60 border-zinc-200 bg-white p-0 dark:border-zinc-800 dark:bg-zinc-950"
+          >
             <AdminSidebar user={user} mobile />
           </SheetContent>
         </Sheet>
 
         <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-zinc-400 sm:inline">Overview <span className="mx-1.5 text-zinc-300">/</span></span>
-          <h1 className="text-sm font-semibold text-zinc-900 dark:text-white">
-            {getPageTitle()}
-          </h1>
+          <span className="hidden text-xs text-zinc-400 sm:inline">
+            Overview <span className="mx-1.5 text-zinc-300">/</span>
+          </span>
+          <h1 className="text-sm font-semibold text-zinc-900 dark:text-white">{getPageTitle()}</h1>
         </div>
       </div>
 
@@ -131,7 +127,9 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
           >
             <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 bg-zinc-50 dark:bg-zinc-900/40 rounded-t-2xl">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-xs text-zinc-900 dark:text-white">Notifikasi Studio</span>
+                <span className="font-bold text-xs text-zinc-900 dark:text-white">
+                  Notifikasi Studio
+                </span>
                 {unreadCount > 0 && (
                   <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold">
                     {unreadCount} Baru
@@ -171,7 +169,9 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
                     </div>
                     <div className="flex-1 space-y-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white">{n.title}</span>
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                          {n.title}
+                        </span>
                         <span className="text-[10px] text-zinc-400">{n.timestamp}</span>
                       </div>
                       <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400 line-clamp-2">

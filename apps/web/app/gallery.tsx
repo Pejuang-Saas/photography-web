@@ -83,15 +83,13 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
         setSelectedIndex(null);
       } else if (e.key === 'ArrowLeft') {
         setSelectedIndex((prev) =>
-          prev !== null ? (prev - 1 + filteredTiles.length) % filteredTiles.length : null
+          prev !== null ? (prev - 1 + filteredTiles.length) % filteredTiles.length : null,
         );
       } else if (e.key === 'ArrowRight') {
-        setSelectedIndex((prev) =>
-          prev !== null ? (prev + 1) % filteredTiles.length : null
-        );
+        setSelectedIndex((prev) => (prev !== null ? (prev + 1) % filteredTiles.length : null));
       }
     },
-    [selectedIndex, filteredTiles.length]
+    [selectedIndex, filteredTiles.length],
   );
 
   useEffect(() => {
@@ -110,15 +108,13 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedIndex((prev) =>
-      prev !== null ? (prev - 1 + filteredTiles.length) % filteredTiles.length : null
+      prev !== null ? (prev - 1 + filteredTiles.length) % filteredTiles.length : null,
     );
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedIndex((prev) =>
-      prev !== null ? (prev + 1) % filteredTiles.length : null
-    );
+    setSelectedIndex((prev) => (prev !== null ? (prev + 1) % filteredTiles.length : null));
   };
 
   return (
@@ -213,12 +209,8 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
                   {/* Subtle caption overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-end p-3.5">
                     <div>
-                      <p className="text-xs font-bold text-white tracking-wide">
-                        {t.title}
-                      </p>
-                      <p className="text-[11px] font-mono text-accent">
-                        {t.campus}
-                      </p>
+                      <p className="text-xs font-bold text-white tracking-wide">{t.title}</p>
+                      <p className="text-[11px] font-mono text-accent">{t.campus}</p>
                     </div>
                   </div>
                 </div>
@@ -271,7 +263,8 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
                 <span className="font-bold tracking-widest text-fg">KAYASTORY ARCHIVE</span>
                 <span className="text-accent">•</span>
                 <span>
-                  FRAME {String(selectedIndex + 1).padStart(2, '0')} / {String(filteredTiles.length).padStart(2, '0')}
+                  FRAME {String(selectedIndex + 1).padStart(2, '0')} /{' '}
+                  {String(filteredTiles.length).padStart(2, '0')}
                 </span>
               </div>
 
@@ -282,7 +275,9 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
                 className="group flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 font-mono text-xs uppercase tracking-wider text-muted transition-all duration-200 hover:border-accent hover:text-accent hover:bg-white/10 active:scale-95"
               >
                 <span>Tutup</span>
-                <span className="text-[10px] text-muted-dim font-mono group-hover:text-accent/70">[ESC]</span>
+                <span className="text-[10px] text-muted-dim font-mono group-hover:text-accent/70">
+                  [ESC]
+                </span>
                 <X size={14} weight="bold" />
               </button>
             </div>
@@ -342,9 +337,7 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-white/15 bg-[#141312]/95 px-6 py-4 backdrop-blur-2xl shadow-2xl">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-fg">
-                      {selectedTile.title}
-                    </h3>
+                    <h3 className="text-base font-bold text-fg">{selectedTile.title}</h3>
                     <span className="rounded bg-white/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent font-semibold">
                       {selectedTile.focal}
                     </span>
@@ -357,7 +350,7 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
                 {/* Refined CTA Button */}
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    `Halo Kayastory! Saya tertarik dengan konsep foto wisuda katalog #${selectedTile.src} (${selectedTile.title} di ${selectedTile.campus}). Boleh info paketnya?`
+                    `Halo Kayastory! Saya tertarik dengan konsep foto wisuda katalog #${selectedTile.src} (${selectedTile.title} di ${selectedTile.campus}). Boleh info paketnya?`,
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"

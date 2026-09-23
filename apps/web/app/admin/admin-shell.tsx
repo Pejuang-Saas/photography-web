@@ -14,13 +14,7 @@ import BookingDetailModal from './components/booking-detail-modal';
 import InvoicePreviewModal from './components/invoice-preview-modal';
 import NewBookingModal from './components/new-booking-modal';
 
-export default function AdminShell({
-  children,
-  user,
-}: {
-  children: ReactNode;
-  user: AdminUser;
-}) {
+export default function AdminShell({ children, user }: { children: ReactNode; user: AdminUser }) {
   const router = useRouter();
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
 
@@ -35,35 +29,34 @@ export default function AdminShell({
 
   return (
     <QueryProvider>
-    <AdminProvider>
-      <TooltipProvider>
-        <div className="min-h-screen bg-[#f5f6f8] text-zinc-900 antialiased transition-colors duration-150 dark:bg-[#0f141d] dark:text-zinc-100">
-          <AdminSidebar user={user} />
-          <div className="flex min-h-screen flex-col lg:pl-60">
-            <AdminTopbar
-              onOpenNewBooking={() => setIsNewBookingOpen(true)}
-              onSignOut={handleSignOut}
-              user={user}
+      <AdminProvider>
+        <TooltipProvider>
+          <div className="min-h-screen bg-[#f5f6f8] text-zinc-900 antialiased transition-colors duration-150 dark:bg-[#0f141d] dark:text-zinc-100">
+            <AdminSidebar user={user} />
+            <div className="flex min-h-screen flex-col lg:pl-60">
+              <AdminTopbar
+                onOpenNewBooking={() => setIsNewBookingOpen(true)}
+                onSignOut={handleSignOut}
+                user={user}
+              />
+              <main className="flex-1 w-full p-4 sm:p-5 lg:p-7">
+                <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+              </main>
+            </div>
+            <BookingDetailModal />
+            <InvoicePreviewModal />
+            <NewBookingModal open={isNewBookingOpen} onOpenChange={setIsNewBookingOpen} />
+            <Toaster
+              position="top-right"
+              richColors={false}
+              toastOptions={{
+                className:
+                  'border border-zinc-200 bg-white text-zinc-900 shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:text-white',
+              }}
             />
-            <main className="flex-1 w-full p-4 sm:p-5 lg:p-7"><div className="mx-auto w-full max-w-[1600px]">{children}</div></main>
           </div>
-          <BookingDetailModal />
-          <InvoicePreviewModal />
-          <NewBookingModal
-            open={isNewBookingOpen}
-            onOpenChange={setIsNewBookingOpen}
-          />
-          <Toaster
-            position="top-right"
-            richColors={false}
-            toastOptions={{
-              className:
-                'border border-zinc-200 bg-white text-zinc-900 shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:text-white',
-            }}
-          />
-        </div>
-      </TooltipProvider>
-    </AdminProvider>
+        </TooltipProvider>
+      </AdminProvider>
     </QueryProvider>
   );
 }

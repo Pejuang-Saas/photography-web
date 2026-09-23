@@ -26,7 +26,12 @@ import {
 
 const portfolioTiles = [
   { src: '01', w: 2160, h: 2700, alt: 'Wisudawati berkebaya memegang map ijazah di lobi kampus' },
-  { src: '02', w: 2160, h: 2700, alt: 'Sekelompok wisudawan berpose ceria bersama di tangga kampus' },
+  {
+    src: '02',
+    w: 2160,
+    h: 2700,
+    alt: 'Sekelompok wisudawan berpose ceria bersama di tangga kampus',
+  },
   { src: '03', w: 2160, h: 2700, alt: 'Wisudawati membawa buket bunga tersenyum lepas' },
   { src: '04', w: 2160, h: 2880, alt: 'Wisudawan berfoto bersama di Tugu Muda saat senja' },
   { src: '05', w: 2160, h: 2877, alt: 'Wisudawan melambaikan tangan dari mobil golf kampus' },
@@ -53,7 +58,8 @@ const packages = [
   {
     name: 'Solo Graduation',
     cover: '01',
-    summary: 'Sesi personal untuk kamu yang ingin foto kebaya dan toga dengan hasil yang anggun dan berkarakter.',
+    summary:
+      'Sesi personal untuk kamu yang ingin foto kebaya dan toga dengan hasil yang anggun dan berkarakter.',
     price: 'Rp 350.000',
     features: [
       '1 Orang Wisudawan',
@@ -67,7 +73,8 @@ const packages = [
   {
     name: 'Squad Graduation',
     cover: '02',
-    summary: 'Paling diminati untuk foto bersama geng sahabat, circle terdekat, atau satu divisi kampus.',
+    summary:
+      'Paling diminati untuk foto bersama geng sahabat, circle terdekat, atau satu divisi kampus.',
     price: 'Rp 650.000',
     badge: 'Paling Diminati',
     features: [
@@ -83,7 +90,8 @@ const packages = [
   {
     name: 'Family Package',
     cover: '08',
-    summary: 'Momen kelulusan hangat bersama orang tua dan keluarga besar tanpa batasan jumlah anggota.',
+    summary:
+      'Momen kelulusan hangat bersama orang tua dan keluarga besar tanpa batasan jumlah anggota.',
     price: 'Rp 900.000',
     features: [
       'Wisudawan plus keluarga inti',
@@ -237,8 +245,8 @@ export default function Landing() {
                 Katalog Foto Wisuda
               </h2>
               <p className="mt-3 max-w-xl text-sm text-muted leading-relaxed">
-                Setiap foto diproses dengan color grading berkarakter untuk mempertahankan
-                detail natural dan keanggunan kebaya wisuda.
+                Setiap foto diproses dengan color grading berkarakter untuk mempertahankan detail
+                natural dan keanggunan kebaya wisuda.
               </p>
             </div>
           </ScrollReveal>
@@ -249,7 +257,10 @@ export default function Landing() {
       </section>
 
       {/* ── SECTION 3: ABOUT STUDIO ── */}
-      <section id="tentang" className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/50 border-y border-white/5">
+      <section
+        id="tentang"
+        className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/50 border-y border-white/5"
+      >
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-12">
           {/* Left: Editorial Statements */}
           <ScrollReveal className="lg:col-span-7">
@@ -262,9 +273,9 @@ export default function Landing() {
             </h2>
 
             <p className="mt-6 text-sm sm:text-base leading-relaxed text-muted max-w-xl">
-              Kayastory berdiri di Semarang dari keyakinan sederhana: wisuda adalah
-              puncak dari tahun-tahun perjuanganmu. Hari istimewa ini layak diabadikan
-              dengan pengarahan gaya yang santai dan penuh makna.
+              Kayastory berdiri di Semarang dari keyakinan sederhana: wisuda adalah puncak dari
+              tahun-tahun perjuanganmu. Hari istimewa ini layak diabadikan dengan pengarahan gaya
+              yang santai dan penuh makna.
             </p>
 
             {/* 3 Core Points */}
@@ -291,9 +302,7 @@ export default function Landing() {
                     <item.icon size={18} weight="bold" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-fg">
-                      {item.title}
-                    </h3>
+                    <h3 className="text-sm font-bold text-fg">{item.title}</h3>
                     <p className="mt-1 text-xs sm:text-sm text-muted leading-relaxed">
                       {item.desc}
                     </p>
@@ -337,7 +346,10 @@ export default function Landing() {
       </section>
 
       {/* ── SECTION 5: HOW IT WORKS ── */}
-      <section id="alur" className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/40 border-y border-white/5">
+      <section
+        id="alur"
+        className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/40 border-y border-white/5"
+      >
         <div className="mx-auto max-w-6xl">
           <ScrollReveal>
             <div>
@@ -361,9 +373,7 @@ export default function Landing() {
                   <h3 className="mt-3 text-lg font-bold text-fg group-hover:text-white transition-colors duration-200">
                     {step.title}
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    {step.desc}
-                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted">{step.desc}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -404,7 +414,10 @@ export default function Landing() {
       </section>
 
       {/* ── SECTION 7: FAQ (Editorial 2-Column Studio Layout with Smooth Accordion) ── */}
-      <section id="faq" className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/30 border-t border-white/5">
+      <section
+        id="faq"
+        className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/30 border-t border-white/5"
+      >
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-16 items-start">
             {/* Left Column: Sticky Studio Heading & Quick Support */}
@@ -416,8 +429,8 @@ export default function Landing() {
                 Pertanyaan yang Sering Diajukan.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-muted">
-                Semua hal penting seputar reservasi, arahan gaya, lokasi pemotretan,
-                hingga penyerahan file foto wisuda.
+                Semua hal penting seputar reservasi, arahan gaya, lokasi pemotretan, hingga
+                penyerahan file foto wisuda.
               </p>
 
               {/* Direct Support Card */}
@@ -428,7 +441,9 @@ export default function Landing() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-fg">Butuh Info Tambahan?</h3>
-                    <p className="text-xs text-muted">Konsultasi gratis langsung dengan tim fotografer.</p>
+                    <p className="text-xs text-muted">
+                      Konsultasi gratis langsung dengan tim fotografer.
+                    </p>
                   </div>
                 </div>
                 <a
@@ -497,11 +512,15 @@ export default function Landing() {
           <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-12 pb-16 border-b border-white/10">
             {/* Col 1: Studio Identity (4 cols) */}
             <div className="lg:col-span-4">
-              <a href="#top" className="inline-block text-2xl font-black tracking-tighter text-fg hover:opacity-80 transition-opacity">
+              <a
+                href="#top"
+                className="inline-block text-2xl font-black tracking-tighter text-fg hover:opacity-80 transition-opacity"
+              >
                 KAYASTORY<span className="text-accent">.</span>
               </a>
               <p className="mt-4 text-xs leading-relaxed text-muted max-w-sm">
-                Studio fotografi wisuda di Semarang yang mengabadikan momen kelulusan, kebaya, dan kebersamaan dengan estetika warna yang berkarakter.
+                Studio fotografi wisuda di Semarang yang mengabadikan momen kelulusan, kebaya, dan
+                kebersamaan dengan estetika warna yang berkarakter.
               </p>
               <div className="mt-6 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-accent">
                 <span className="size-1.5 rounded-full bg-accent animate-pulse" />
@@ -516,22 +535,34 @@ export default function Landing() {
               </span>
               <ul className="space-y-2.5 text-xs text-muted">
                 <li>
-                  <a href="#portfolio" className="hover:text-fg transition-colors">01. Katalog Foto</a>
+                  <a href="#portfolio" className="hover:text-fg transition-colors">
+                    01. Katalog Foto
+                  </a>
                 </li>
                 <li>
-                  <a href="#tentang" className="hover:text-fg transition-colors">02. Filosofi Studio</a>
+                  <a href="#tentang" className="hover:text-fg transition-colors">
+                    02. Filosofi Studio
+                  </a>
                 </li>
                 <li>
-                  <a href="#paket" className="hover:text-fg transition-colors">03. Pilihan Paket</a>
+                  <a href="#paket" className="hover:text-fg transition-colors">
+                    03. Pilihan Paket
+                  </a>
                 </li>
                 <li>
-                  <a href="#alur" className="hover:text-fg transition-colors">04. Alur Pemesanan</a>
+                  <a href="#alur" className="hover:text-fg transition-colors">
+                    04. Alur Pemesanan
+                  </a>
                 </li>
                 <li>
-                  <a href="#testimoni" className="hover:text-fg transition-colors">05. Cerita Wisudawan</a>
+                  <a href="#testimoni" className="hover:text-fg transition-colors">
+                    05. Cerita Wisudawan
+                  </a>
                 </li>
                 <li>
-                  <a href="#faq" className="hover:text-fg transition-colors">06. Tanya Jawab (FAQ)</a>
+                  <a href="#faq" className="hover:text-fg transition-colors">
+                    06. Tanya Jawab (FAQ)
+                  </a>
                 </li>
               </ul>
             </div>

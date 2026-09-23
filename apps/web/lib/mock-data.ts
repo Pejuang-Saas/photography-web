@@ -90,7 +90,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     photographer: 'Bima Satria (Lead)',
     status: 'PENDING_VERIFICATION',
     paymentStatus: 'WAITING_CONFIRMATION',
-    paymentProofUrl: 'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
+    paymentProofUrl:
+      'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
     paymentAmount: 645000,
     paymentBank: 'BCA (A.N. Anisa Rahmawati)',
     paymentDate: '2026-08-24 19:40',
@@ -107,9 +108,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     faculty: 'Fakultas Ilmu Keolahragaan',
     packageName: 'Squad Circle (4-6 Orang)',
     packagePrice: 1250000,
-    addons: [
-      { id: 'ad-3', name: 'Extra 5 Edited Photos', price: 100000 },
-    ],
+    addons: [{ id: 'ad-3', name: 'Extra 5 Edited Photos', price: 100000 }],
     totalPrice: 1350000,
     sessionDate: '2026-08-25',
     timeSlot: '13:30 - 15:00',
@@ -117,7 +116,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     photographer: 'Rian Maulana',
     status: 'PENDING_VERIFICATION',
     paymentStatus: 'WAITING_CONFIRMATION',
-    paymentProofUrl: 'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
+    paymentProofUrl:
+      'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
     paymentAmount: 500000, // DP
     paymentBank: 'Mandiri (A.N. Dimas Pratama)',
     paymentDate: '2026-08-24 20:15',
@@ -142,7 +142,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     photographer: 'Bima Satria (Lead)',
     status: 'CONFIRMED',
     paymentStatus: 'PAID_FULL',
-    paymentProofUrl: 'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
+    paymentProofUrl:
+      'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
     paymentAmount: 750000,
     paymentBank: 'QRIS BCA',
     paymentDate: '2026-08-23 15:20',
@@ -171,7 +172,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     photographer: 'Arif Wicaksono',
     status: 'CONFIRMED',
     paymentStatus: 'PAID_FULL',
-    paymentProofUrl: 'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
+    paymentProofUrl:
+      'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
     paymentAmount: 1970000,
     paymentBank: 'BCA (A.N. Bambang Hartono)',
     paymentDate: '2026-08-22 11:05',
@@ -197,7 +199,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     photographer: 'Bima Satria (Lead)',
     status: 'CONFIRMED',
     paymentStatus: 'PAID_DP',
-    paymentProofUrl: 'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
+    paymentProofUrl:
+      'https://images.unsplash.com/photo-1554415707-9e49017a1265?auto=format&fit=crop&w=800&q=80',
     paymentAmount: 500000,
     paymentBank: 'BSI (A.N. Fadhil)',
     paymentDate: '2026-08-24 10:00',

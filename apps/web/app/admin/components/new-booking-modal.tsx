@@ -2,12 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAdmin } from '@/lib/admin-context';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -131,7 +126,10 @@ export default function NewBookingModal({ open, onOpenChange }: NewBookingModalP
 
           <div className="space-y-1">
             <label className="text-zinc-600 dark:text-zinc-400 font-medium">Paket Foto</label>
-            <Select value={selectedPackageId} onValueChange={(val) => val && setSelectedPackageId(val)}>
+            <Select
+              value={selectedPackageId}
+              onValueChange={(val) => val && setSelectedPackageId(val)}
+            >
               <SelectTrigger className="h-8.5 w-full bg-zinc-50 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white">
                 <SelectValue placeholder="Pilih Paket" />
               </SelectTrigger>
