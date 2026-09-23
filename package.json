@@ -6,6 +6,8 @@
     "apps/*"
   ],
   "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "docker:up": "docker compose up -d",
     "docker:up:build": "docker compose up -d --build",
     "docker:down": "docker compose down",
@@ -17,5 +19,8 @@
     "api:prisma:studio": "docker compose exec api npx prisma studio",
     "api:prisma:push": "docker compose exec api npx prisma db push",
     "api:auth:create-admin": "docker compose exec api npm run auth:create-admin"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9"
   }
 }

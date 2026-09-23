@@ -1,0 +1,8 @@
+node_modules
+.next
+dist
+coverage
+public/uploads
+*.generated.ts
+package-lock.json
+prisma/migrations

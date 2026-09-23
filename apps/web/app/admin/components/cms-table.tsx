@@ -1,40 +1,296 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowDownUp, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
-export type CmsTableColumn<T> = { key: string; header: string; className?: string; render: (row: T) => ReactNode; sortable?: boolean; sortValue?: (row: T) => string | number };
+export type CmsTableColumn<T> = {
+  key: string;
+  header: string;
+  className?: string;
+  render: (row: T) => ReactNode;
+  sortable?: boolean;
+  sortValue?: (row: T) => string | number;
+};
 
-export function CmsTable<T extends { id: string }>({ columns, rows, toolbar, emptyContent, selectable = false, selectedIds = [], onSelectRow, onSelectAll, sortKey, sortDirection = 'asc', onSort }: { columns: CmsTableColumn<T>[]; rows: T[]; toolbar?: ReactNode; emptyContent?: ReactNode; selectable?: boolean; selectedIds?: string[]; onSelectRow?: (row: T, selected: boolean) => void; onSelectAll?: (selected: boolean) => void; sortKey?: string; sortDirection?: 'asc' | 'desc'; onSort?: (key: string) => void }) {
+export function CmsTable<T extends { id: string }>({
+  columns,
+  rows,
+  toolbar,
+  emptyContent,
+  selectable = false,
+  selectedIds = [],
+  onSelectRow,
+  onSelectAll,
+  sortKey,
+  sortDirection = 'asc',
+  onSort,
+}: {
+  columns: CmsTableColumn<T>[];
+  rows: T[];
+  toolbar?: ReactNode;
+  emptyContent?: ReactNode;
+  selectable?: boolean;
+  selectedIds?: string[];
+  onSelectRow?: (row: T, selected: boolean) => void;
+  onSelectAll?: (selected: boolean) => void;
+  sortKey?: string;
+  sortDirection?: 'asc' | 'desc';
+  onSort?: (key: string) => void;
+}) {
   const [internalSort, setInternalSort] = useState<{ key: string; direction: 'asc' | 'desc' }>();
   const activeSortKey = sortKey ?? internalSort?.key;
   const activeSortDirection = sortKey ? sortDirection : (internalSort?.direction ?? 'asc');
   const handleSort = (key: string) => {
     if (onSort) return onSort(key);
-    setInternalSort((current) => current?.key === key ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' } : { key, direction: 'asc' });
+    setInternalSort((current) =>
+      current?.key === key
+        ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' },
+    );
   };
   const displayRows = useMemo(() => {
-    const column = columns.find((item) => item.key === activeSortKey && item.sortable && item.sortValue);
+    const column = columns.find(
+      (item) => item.key === activeSortKey && item.sortable && item.sortValue,
+    );
     if (!column?.sortValue) return rows;
     const direction = activeSortDirection === 'asc' ? 1 : -1;
-    return [...rows].sort((left, right) => { const a = column.sortValue?.(left); const b = column.sortValue?.(right); if (typeof a === 'number' && typeof b === 'number') return (a - b) * direction; return String(a ?? '').localeCompare(String(b ?? ''), 'id', { sensitivity: 'base' }) * direction; });
+    return [...rows].sort((left, right) => {
+      const a = column.sortValue?.(left);
+      const b = column.sortValue?.(right);
+      if (typeof a === 'number' && typeof b === 'number') return (a - b) * direction;
+      return (
+        String(a ?? '').localeCompare(String(b ?? ''), 'id', { sensitivity: 'base' }) * direction
+      );
+    });
   }, [activeSortDirection, activeSortKey, columns, rows]);
-  const allSelected = displayRows.length > 0 && displayRows.every((row) => selectedIds.includes(row.id));
-  return <div className="overflow-hidden rounded-[20px] border border-[#dbe2ea] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.04)] dark:border-[#2b384b] dark:bg-[#151c28]">{toolbar && <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-[#e3e8ee] px-5 py-3 dark:border-[#2b384b]">{toolbar}</div>}<div className="overflow-x-auto"><Table className="min-w-[860px]"><TableHeader className="bg-[#f5f7fa] dark:bg-[#1e2837]"><TableRow className="hover:bg-transparent">{selectable && <TableHead className="w-12 pl-5 pr-1"><input type="checkbox" aria-label="Pilih semua baris" checked={allSelected} onChange={(event) => onSelectAll?.(event.target.checked)} className="size-4 rounded border-zinc-300 accent-amber-500" /></TableHead>}{columns.map((column) => { const active = activeSortKey === column.key; return <TableHead key={column.key} aria-sort={active ? (activeSortDirection === 'asc' ? 'ascending' : 'descending') : 'none'} className={`h-10 px-4 text-[11px] font-medium text-zinc-500 dark:text-[#a9b6c8] ${column.className ?? ''}`}>{column.sortable ? <button type="button" onClick={() => handleSort(column.key)} className={`inline-flex items-center gap-1.5 rounded px-0.5 py-1 transition-colors hover:text-zinc-900 dark:hover:text-white ${active ? 'text-zinc-900 dark:text-white' : ''}`}>{column.header}{active ? (activeSortDirection === 'asc' ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />) : <ArrowDownUp className="size-3 opacity-60" />}</button> : column.header}</TableHead>; })}</TableRow></TableHeader><TableBody>{displayRows.length === 0 ? <TableRow className="hover:bg-transparent"><TableCell colSpan={columns.length + (selectable ? 1 : 0)} className="h-32 text-center">{emptyContent ?? <span className="text-sm text-zinc-500">Belum ada data.</span>}</TableCell></TableRow> : displayRows.map((row) => { const selected = selectedIds.includes(row.id); return <TableRow key={row.id} data-state={selected ? 'selected' : undefined} className="group h-12 border-[#dbe2ea] transition-colors hover:bg-[#f8fafc] dark:border-[#2b384b] dark:hover:bg-[#202b3b]">{selectable && <TableCell className="w-12 pl-5 pr-1"><input type="checkbox" aria-label="Pilih baris" checked={selected} onChange={(event) => onSelectRow?.(row, event.target.checked)} className="size-4 rounded border-zinc-300 accent-amber-500" /></TableCell>}{columns.map((column) => <TableCell key={column.key} className={`px-4 py-2.5 ${column.className ?? ''}`}>{column.render(row)}</TableCell>)}</TableRow>; })}</TableBody></Table></div></div>;
+  const allSelected =
+    displayRows.length > 0 && displayRows.every((row) => selectedIds.includes(row.id));
+  return (
+    <div className="overflow-hidden rounded-[20px] border border-[#dbe2ea] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.04)] dark:border-[#2b384b] dark:bg-[#151c28]">
+      {toolbar && (
+        <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-[#e3e8ee] px-5 py-3 dark:border-[#2b384b]">
+          {toolbar}
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <Table className="min-w-[860px]">
+          <TableHeader className="bg-[#f5f7fa] dark:bg-[#1e2837]">
+            <TableRow className="hover:bg-transparent">
+              {selectable && (
+                <TableHead className="w-12 pl-5 pr-1">
+                  <input
+                    type="checkbox"
+                    aria-label="Pilih semua baris"
+                    checked={allSelected}
+                    onChange={(event) => onSelectAll?.(event.target.checked)}
+                    className="size-4 rounded border-zinc-300 accent-amber-500"
+                  />
+                </TableHead>
+              )}
+              {columns.map((column) => {
+                const active = activeSortKey === column.key;
+                return (
+                  <TableHead
+                    key={column.key}
+                    aria-sort={
+                      active ? (activeSortDirection === 'asc' ? 'ascending' : 'descending') : 'none'
+                    }
+                    className={`h-10 px-4 text-[11px] font-medium text-zinc-500 dark:text-[#a9b6c8] ${column.className ?? ''}`}
+                  >
+                    {column.sortable ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSort(column.key)}
+                        className={`inline-flex items-center gap-1.5 rounded px-0.5 py-1 transition-colors hover:text-zinc-900 dark:hover:text-white ${active ? 'text-zinc-900 dark:text-white' : ''}`}
+                      >
+                        {column.header}
+                        {active ? (
+                          activeSortDirection === 'asc' ? (
+                            <ChevronUp className="size-3" />
+                          ) : (
+                            <ChevronDown className="size-3" />
+                          )
+                        ) : (
+                          <ArrowDownUp className="size-3 opacity-60" />
+                        )}
+                      </button>
+                    ) : (
+                      column.header
+                    )}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {displayRows.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={columns.length + (selectable ? 1 : 0)}
+                  className="h-32 text-center"
+                >
+                  {emptyContent ?? <span className="text-sm text-zinc-500">Belum ada data.</span>}
+                </TableCell>
+              </TableRow>
+            ) : (
+              displayRows.map((row) => {
+                const selected = selectedIds.includes(row.id);
+                return (
+                  <TableRow
+                    key={row.id}
+                    data-state={selected ? 'selected' : undefined}
+                    className="group h-12 border-[#dbe2ea] transition-colors hover:bg-[#f8fafc] dark:border-[#2b384b] dark:hover:bg-[#202b3b]"
+                  >
+                    {selectable && (
+                      <TableCell className="w-12 pl-5 pr-1">
+                        <input
+                          type="checkbox"
+                          aria-label="Pilih baris"
+                          checked={selected}
+                          onChange={(event) => onSelectRow?.(row, event.target.checked)}
+                          className="size-4 rounded border-zinc-300 accent-amber-500"
+                        />
+                      </TableCell>
+                    )}
+                    {columns.map((column) => (
+                      <TableCell
+                        key={column.key}
+                        className={`px-4 py-2.5 ${column.className ?? ''}`}
+                      >
+                        {column.render(row)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
 }
 
-export function CmsTableTabs({ tabs, activeTab, onChange }: { tabs: Array<{ value: string; label: string }>; activeTab: string; onChange: (value: string) => void }) {
-  return <div className="inline-flex items-center gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">{tabs.map((tab) => <button key={tab.value} type="button" onClick={() => onChange(tab.value)} className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === tab.value ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>{tab.label}</button>)}</div>;
+export function CmsTableTabs({
+  tabs,
+  activeTab,
+  onChange,
+}: {
+  tabs: Array<{ value: string; label: string }>;
+  activeTab: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          type="button"
+          onClick={() => onChange(tab.value)}
+          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === tab.value ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export function CmsTableSkeleton({ columns = 5, rows = 6 }: { columns?: number; rows?: number }) {
-  return <div className="overflow-hidden rounded-[20px] border border-[#dbe2ea] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-[#2b384b] dark:bg-[#151c28]"><div className="h-10 animate-pulse bg-[#f5f7fa] dark:bg-[#1e2837]" /> <div className="space-y-0">{Array.from({ length: rows }, (_, row) => <div key={row} className="flex h-12 items-center gap-4 border-t border-[#dbe2ea] px-5 dark:border-[#2b384b]">{Array.from({ length: columns }, (_, column) => <div key={column} className={`h-3 animate-pulse rounded bg-zinc-200/80 dark:bg-[#29364a] ${column === 0 ? 'w-5' : column === columns - 1 ? 'ml-auto w-24' : 'w-32'}`} />)}</div>)}</div></div>;
+  return (
+    <div className="overflow-hidden rounded-[20px] border border-[#dbe2ea] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-[#2b384b] dark:bg-[#151c28]">
+      <div className="h-10 animate-pulse bg-[#f5f7fa] dark:bg-[#1e2837]" />{' '}
+      <div className="space-y-0">
+        {Array.from({ length: rows }, (_, row) => (
+          <div
+            key={row}
+            className="flex h-12 items-center gap-4 border-t border-[#dbe2ea] px-5 dark:border-[#2b384b]"
+          >
+            {Array.from({ length: columns }, (_, column) => (
+              <div
+                key={column}
+                className={`h-3 animate-pulse rounded bg-zinc-200/80 dark:bg-[#29364a] ${column === 0 ? 'w-5' : column === columns - 1 ? 'ml-auto w-24' : 'w-32'}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-export function CmsPagination({ page, totalPages, totalItems, pageSize, itemLabel = 'item', onPageChange }: { page: number; totalPages: number; totalItems: number; pageSize: number; itemLabel?: string; onPageChange: (page: number) => void }) {
+export function CmsPagination({
+  page,
+  totalPages,
+  totalItems,
+  pageSize,
+  itemLabel = 'item',
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  itemLabel?: string;
+  onPageChange: (page: number) => void;
+}) {
   if (totalPages <= 1) return null;
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalItems);
-  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1).filter((number) => number === 1 || number === totalPages || Math.abs(number - page) <= 1);
-  return <div className="flex flex-col gap-3 border-t border-zinc-200 px-1 pt-4 text-xs text-zinc-500 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"><p>Menampilkan {start}–{end} dari {totalItems} {itemLabel}</p><div className="flex items-center gap-1"><Button variant="ghost" size="icon-sm" aria-label="Halaman sebelumnya" disabled={page === 1} onClick={() => onPageChange(Math.max(1, page - 1))} className="size-7 rounded-md"><ChevronLeft className="size-3.5" /></Button>{pageNumbers.map((pageNumber, index) => <span key={pageNumber} className="contents">{index > 0 && pageNumber - pageNumbers[index - 1] > 1 && <span className="px-1 text-zinc-400">…</span>}<Button variant={pageNumber === page ? 'default' : 'ghost'} size="sm" className={`h-7 min-w-7 rounded-md px-2 text-xs ${pageNumber === page ? 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : ''}`} aria-label={`Buka halaman ${pageNumber}`} aria-current={pageNumber === page ? 'page' : undefined} onClick={() => onPageChange(pageNumber)}>{pageNumber}</Button></span>)}<Button variant="ghost" size="icon-sm" aria-label="Halaman berikutnya" disabled={page === totalPages} onClick={() => onPageChange(Math.min(totalPages, page + 1))} className="size-7 rounded-md"><ChevronRight className="size-3.5" /></Button></div></div>;
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1).filter(
+    (number) => number === 1 || number === totalPages || Math.abs(number - page) <= 1,
+  );
+  return (
+    <div className="flex flex-col gap-3 border-t border-zinc-200 px-1 pt-4 text-xs text-zinc-500 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between">
+      <p>
+        Menampilkan {start}–{end} dari {totalItems} {itemLabel}
+      </p>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Halaman sebelumnya"
+          disabled={page === 1}
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          className="size-7 rounded-md"
+        >
+          <ChevronLeft className="size-3.5" />
+        </Button>
+        {pageNumbers.map((pageNumber, index) => (
+          <span key={pageNumber} className="contents">
+            {index > 0 && pageNumber - pageNumbers[index - 1] > 1 && (
+              <span className="px-1 text-zinc-400">…</span>
+            )}
+            <Button
+              variant={pageNumber === page ? 'default' : 'ghost'}
+              size="sm"
+              className={`h-7 min-w-7 rounded-md px-2 text-xs ${pageNumber === page ? 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900' : ''}`}
+              aria-label={`Buka halaman ${pageNumber}`}
+              aria-current={pageNumber === page ? 'page' : undefined}
+              onClick={() => onPageChange(pageNumber)}
+            >
+              {pageNumber}
+            </Button>
+          </span>
+        ))}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Halaman berikutnya"
+          disabled={page === totalPages}
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          className="size-7 rounded-md"
+        >
+          <ChevronRight className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
 }
