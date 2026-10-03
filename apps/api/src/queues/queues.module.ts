@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from './queues.constants';
 import { QueuesService } from './queues.service';
+import { QueueOperationsController } from './queue-operations.controller';
 
 function redisConnection(url: string) {
   const parsed = new URL(url);
@@ -33,6 +34,7 @@ function redisConnection(url: string) {
       { name: QUEUE_NAMES.OUTBOX },
     ),
   ],
+  controllers: [QueueOperationsController],
   providers: [QueuesService],
   exports: [BullModule, QueuesService],
 })

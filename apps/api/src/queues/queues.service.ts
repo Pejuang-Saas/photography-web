@@ -76,4 +76,34 @@ export class QueuesService {
     );
     return Object.fromEntries(entries);
   }
+
+  async getOperationalSnapshot() {
+    const queues = [
+      ['booking-expiration', this.bookingExpirationQueue],
+      ['storage-cleanup', this.storageCleanupQueue],
+      ['outbox', this.outboxQueue],
+    ] as const;
+    const entries = await Promise.all(
+      queues.map(async ([name, queue]) => {
+        const jobs = await queue.getFailed(0, 19);
+        return [
+          name,
+          {
+            counts: await queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed'),
+            failedJobs: jobs.map((job) => ({
+              id: job.id,
+              name: job.name,
+              attemptsMade: job.attemptsMade,
+              failedReason: job.failedReason,
+              timestamp: job.timestamp,
+            })),
+          },
+        ] as const;
+      }),
+    );
+    return {
+      generatedAt: new Date().toISOString(),
+      queues: Object.fromEntries(entries),
+    };
+  }
 }
