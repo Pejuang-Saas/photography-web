@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from './queues.constants';
-import { QueueSchedulersService } from './queues.schedulers';
 import { QueuesService } from './queues.service';
 
 function redisConnection(url: string) {
@@ -34,7 +33,7 @@ function redisConnection(url: string) {
       { name: QUEUE_NAMES.OUTBOX },
     ),
   ],
-  providers: [QueuesService, QueueSchedulersService],
+  providers: [QueuesService],
   exports: [BullModule, QueuesService],
 })
 export class QueuesModule {}

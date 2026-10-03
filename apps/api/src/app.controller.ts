@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 
@@ -15,5 +15,14 @@ export class AppController {
   @Get('health')
   getHealth() {
     return this.appService.getHealth();
+  }
+
+  @Get('ready')
+  async getReadiness() {
+    const readiness = await this.appService.getReadiness();
+    if (readiness.status !== 'ok') {
+      throw new ServiceUnavailableException(readiness);
+    }
+    return readiness;
   }
 }

@@ -5,14 +5,55 @@ services:
       dockerfile: Dockerfile.dev
     container_name: photography-api
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O - http://localhost:3000/ready >/dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     ports:
       - '3002:3000'
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - RUN_DB_MIGRATIONS=true
       - API_URL=${API_URL:-http://localhost:3002}
       - WEB_URL=${WEB_URL:-http://localhost:3000}
       - BETTER_AUTH_URL=${API_URL:-http://localhost:3002}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
+      - OUTBOX_DELIVERY_MODE=${OUTBOX_DELIVERY_MODE:-log}
+      - CONFIG_ENCRYPTION_KEY=${CONFIG_ENCRYPTION_KEY:-}
+      - WAHA_ENABLED=${WAHA_ENABLED:-false}
+      - WAHA_BASE_URL=${WAHA_BASE_URL:-http://waha:3000}
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+      - WAHA_SESSION=${WAHA_SESSION:-default}
+      - WAHA_ADMIN_CHAT_ID=${WAHA_ADMIN_CHAT_ID:-}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://root:root@dev-postgres:5432/photography_db?schema=public}
+      - REDIS_URL=${REDIS_URL:-redis://dev-redis:6379}
+      - S3_ENDPOINT=http://minio:9000
+      - S3_PUBLIC_URL=${S3_PUBLIC_URL:-http://localhost:9001/photography-assets}
+      - S3_BUCKET=${S3_BUCKET:-photography-assets}
+      - S3_PRIVATE_BUCKET=${S3_PRIVATE_BUCKET:-photography-private}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    networks:
+      - dev-network
+
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    container_name: photography-worker
+    restart: unless-stopped
+    command: npm run start:worker:dev
+    environment:
+      - NODE_ENV=development
+      - RUN_DB_MIGRATIONS=false
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
       - OUTBOX_DELIVERY_MODE=${OUTBOX_DELIVERY_MODE:-log}
