@@ -58,6 +58,7 @@ enum BookingStatus {
   CONFIRMED
   REJECTED
   CANCELLED
+  EXPIRED
   COMPLETED
 }
 
@@ -86,7 +87,13 @@ enum NotificationType {
   PAYMENT_PROOF
   PAYMENT_VERIFIED
   PAYMENT_REJECTED
+  BOOKING_EXPIRED
   SYSTEM
+}
+
+enum StorageBucket {
+  PUBLIC
+  PRIVATE
 }
 
 model ServicePackage {
@@ -143,29 +150,31 @@ model ManualPaymentAccount {
 }
 
 model Booking {
-  id             String        @id @default(uuid())
-  bookingCode    String        @unique @map("booking_code")
-  customerName   String        @map("customer_name")
-  customerPhone  String        @map("customer_phone")
-  customerEmail  String        @map("customer_email")
-  notes          String?
-  packageId      String        @map("package_id")
-  packageName    String        @map("package_name")
-  packagePrice   Int           @map("package_price")
-  totalAmount    Int           @map("total_amount")
-  paymentMode    PaymentMode   @map("payment_mode")
-  paymentPlan    PaymentPlan   @map("payment_plan")
-  requiredAmount Int           @map("required_amount")
-  sessionDate    DateTime      @map("session_date") @db.Date
-  timeSlot       String        @map("time_slot")
-  reservationKey String?       @unique @map("reservation_key")
-  status         BookingStatus @default(PENDING_PAYMENT)
-  paymentStatus  PaymentStatus @default(UNPAID) @map("payment_status")
-  expiresAt      DateTime?     @map("expires_at")
-  verifiedById   String?       @map("verified_by_id")
-  verifiedAt     DateTime?     @map("verified_at")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  id              String        @id @default(uuid())
+  bookingCode     String        @unique @map("booking_code")
+  customerName    String        @map("customer_name")
+  customerPhone   String        @map("customer_phone")
+  customerEmail   String        @map("customer_email")
+  notes           String?
+  idempotencyKey  String?       @unique @map("idempotency_key")
+  idempotencyHash String?       @map("idempotency_hash")
+  packageId       String        @map("package_id")
+  packageName     String        @map("package_name")
+  packagePrice    Int           @map("package_price")
+  totalAmount     Int           @map("total_amount")
+  paymentMode     PaymentMode   @map("payment_mode")
+  paymentPlan     PaymentPlan   @map("payment_plan")
+  requiredAmount  Int           @map("required_amount")
+  sessionDate     DateTime      @map("session_date") @db.Date
+  timeSlot        String        @map("time_slot")
+  reservationKey  String?       @unique @map("reservation_key")
+  status          BookingStatus @default(PENDING_PAYMENT)
+  paymentStatus   PaymentStatus @default(UNPAID) @map("payment_status")
+  expiresAt       DateTime?     @map("expires_at")
+  verifiedById    String?       @map("verified_by_id")
+  verifiedAt      DateTime?     @map("verified_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
   package       ServicePackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
   verifiedBy    User?          @relation("BookingVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
@@ -189,6 +198,8 @@ model Payment {
   status            PaymentStatus
   senderName        String?          @map("sender_name")
   externalReference String?          @unique @map("external_reference")
+  idempotencyKey    String?          @unique @map("idempotency_key")
+  idempotencyHash   String?          @map("idempotency_hash")
   rejectionReason   String?          @map("rejection_reason")
   verifiedById      String?          @map("verified_by_id")
   verifiedAt        DateTime?        @map("verified_at")
@@ -268,6 +279,21 @@ model AuditLog {
   @@index([entity, entityId, createdAt])
   @@index([actorId, createdAt])
   @@map("audit_logs")
+}
+
+model StorageCleanup {
+  id            String        @id @default(uuid())
+  bucket        StorageBucket
+  storageKey    String        @unique @map("storage_key")
+  attempts      Int           @default(0)
+  nextAttemptAt DateTime      @default(now()) @map("next_attempt_at")
+  lastError     String?       @map("last_error")
+  cleanedAt     DateTime?     @map("cleaned_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([cleanedAt, nextAttemptAt])
+  @@map("storage_cleanup")
 }
 
 model Session {

@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -42,15 +43,20 @@ export class PaymentsController {
   submitManualPayment(
     @Param('id') id: string,
     @Body() dto: SubmitManualPaymentDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Payment proof image is required');
-    return this.paymentsService.submitManualPayment(id, dto, file);
+    return this.paymentsService.submitManualPayment(id, dto, file, idempotencyKey);
   }
 
   @Post('public/bookings/:id/gateway/confirm')
-  confirmGatewayPayment(@Param('id') id: string, @Body() dto: ConfirmGatewayPaymentDto) {
-    return this.paymentsService.confirmGatewayPayment(id, dto);
+  confirmGatewayPayment(
+    @Param('id') id: string,
+    @Body() dto: ConfirmGatewayPaymentDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.paymentsService.confirmGatewayPayment(id, dto, idempotencyKey);
   }
 
   @Roles(['admin'])

@@ -15,6 +15,8 @@ import { CmsModule } from './cms/cms.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
+import { QueuesModule } from './queues/queues.module';
+import { QueueWorkersModule } from './queues/queue-workers.module';
 
 function positiveInteger(configService: ConfigService, key: string, fallback: number): number {
   const value = Number(configService.get<string>(key));
@@ -63,6 +65,8 @@ function positiveInteger(configService: ConfigService, key: string, fallback: nu
     PackagesModule,
     PaymentsModule,
     BookingsModule,
+    QueuesModule,
+    QueueWorkersModule,
   ],
   controllers: [AppController, AdminAuthController],
   providers: [

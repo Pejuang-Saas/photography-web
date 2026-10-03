@@ -10,9 +10,17 @@ import {
   PaymentMode,
   PaymentPlan,
   PaymentStatus,
+  Prisma,
+  StorageBucket,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { StorageCleanupService } from '../storage/storage-cleanup.service';
+import {
+  assertSameIdempotencyPayload,
+  hashIdempotencyPayload,
+  requireIdempotencyKey,
+} from '../common/idempotency';
 import { PaymentSettingsService } from './payment-settings.service';
 import {
   ConfirmGatewayPaymentDto,
@@ -26,10 +34,32 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly storageCleanup: StorageCleanupService,
     private readonly paymentSettings: PaymentSettingsService,
   ) {}
 
-  async submitManualPayment(id: string, dto: SubmitManualPaymentDto, file: Express.Multer.File) {
+  async submitManualPayment(
+    id: string,
+    dto: SubmitManualPaymentDto,
+    file: Express.Multer.File,
+    rawIdempotencyKey?: string,
+  ) {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    const idempotencyHash = hashIdempotencyPayload({
+      bookingId: id,
+      ...dto,
+      file: {
+        size: file.size,
+        mimetype: file.mimetype,
+        checksum: hashIdempotencyPayload(file.buffer.toString('base64')),
+      },
+    });
+    const previous = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
+    if (previous) {
+      assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
+      return { bookingId: id, status: previous.status, payment: previous };
+    }
+
     const booking = await this.requireBooking(id);
     if (booking.paymentMode !== PaymentMode.MANUAL) {
       throw new BadRequestException('This booking is not configured for manual payment');
@@ -49,6 +79,21 @@ export class PaymentsService {
         if (!current || current.status !== BookingStatus.PENDING_PAYMENT) {
           throw new ConflictException('This booking is no longer waiting for payment');
         }
+        const claimedBooking = await tx.booking.updateMany({
+          where: {
+            id,
+            status: BookingStatus.PENDING_PAYMENT,
+            paymentStatus: PaymentStatus.UNPAID,
+          },
+          data: {
+            status: BookingStatus.PENDING_VERIFICATION,
+            paymentStatus: PaymentStatus.WAITING_CONFIRMATION,
+          },
+        });
+        if (claimedBooking.count !== 1) {
+          throw new ConflictException('This booking is no longer waiting for payment');
+        }
+
         const createdPayment = await tx.payment.create({
           data: {
             bookingId: id,
@@ -58,6 +103,8 @@ export class PaymentsService {
             amount: dto.amount,
             status: PaymentStatus.WAITING_CONFIRMATION,
             senderName: dto.senderName.trim(),
+            idempotencyKey,
+            idempotencyHash,
             proof: {
               create: {
                 storageKey: upload.key,
@@ -66,13 +113,6 @@ export class PaymentsService {
                 size: upload.size,
               },
             },
-          },
-        });
-        await tx.booking.update({
-          where: { id },
-          data: {
-            status: BookingStatus.PENDING_VERIFICATION,
-            paymentStatus: PaymentStatus.WAITING_CONFIRMATION,
           },
         });
         await tx.notification.create({
@@ -88,12 +128,31 @@ export class PaymentsService {
 
       return { bookingId: id, status: PaymentStatus.WAITING_CONFIRMATION, payment };
     } catch (error) {
-      await this.storage.deletePaymentProof(upload.key).catch(() => undefined);
+      await this.storageCleanup.removeOrQueue(StorageBucket.PRIVATE, upload.key, error);
+      if (this.isUniqueViolation(error)) {
+        const previous = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
+        if (previous) {
+          assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
+          return { bookingId: id, status: previous.status, payment: previous };
+        }
+      }
       throw error;
     }
   }
 
-  async confirmGatewayPayment(id: string, dto: ConfirmGatewayPaymentDto) {
+  async confirmGatewayPayment(
+    id: string,
+    dto: ConfirmGatewayPaymentDto,
+    rawIdempotencyKey?: string,
+  ) {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    const idempotencyHash = hashIdempotencyPayload({ bookingId: id, ...dto });
+    const previous = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
+    if (previous) {
+      assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
+      return { bookingId: id, status: previous.status, payment: previous };
+    }
+
     const booking = await this.requireBooking(id);
     const settings = await this.paymentSettings.getCurrent();
     if (
@@ -106,67 +165,103 @@ export class PaymentsService {
       throw new ConflictException('This booking is no longer waiting for payment');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const paymentStatus =
-        booking.paymentPlan === PaymentPlan.FULL ? PaymentStatus.PAID_FULL : PaymentStatus.PAID_DP;
-      const payment = await tx.payment.create({
-        data: {
-          bookingId: id,
-          method: 'GATEWAY',
-          provider: settings.gatewayProvider ?? GatewayProvider.MOCK,
-          plan: booking.paymentPlan,
-          amount: booking.requiredAmount,
-          status: paymentStatus,
-          externalReference: dto.externalReference,
-          paidAt: new Date(),
-        },
+    return this.prisma
+      .$transaction(async (tx) => {
+        const current = await tx.booking.findUnique({ where: { id } });
+        if (!current || current.status !== BookingStatus.PENDING_PAYMENT) {
+          throw new ConflictException('This booking is no longer waiting for payment');
+        }
+        const paymentStatus =
+          current.paymentPlan === PaymentPlan.FULL
+            ? PaymentStatus.PAID_FULL
+            : PaymentStatus.PAID_DP;
+        const claimedBooking = await tx.booking.updateMany({
+          where: {
+            id,
+            status: BookingStatus.PENDING_PAYMENT,
+            paymentStatus: PaymentStatus.UNPAID,
+          },
+          data: { status: BookingStatus.CONFIRMED, paymentStatus },
+        });
+        if (claimedBooking.count !== 1) {
+          throw new ConflictException('This booking is no longer waiting for payment');
+        }
+        const payment = await tx.payment.create({
+          data: {
+            bookingId: id,
+            method: 'GATEWAY',
+            provider: settings.gatewayProvider ?? GatewayProvider.MOCK,
+            plan: current.paymentPlan,
+            amount: current.requiredAmount,
+            status: paymentStatus,
+            externalReference: dto.externalReference,
+            idempotencyKey,
+            idempotencyHash,
+            paidAt: new Date(),
+          },
+        });
+        const invoice = await tx.invoice.create({
+          data: {
+            bookingId: id,
+            invoiceNumber: `INV-${current.bookingCode}`,
+            amount: current.requiredAmount,
+          },
+        });
+        await tx.notification.create({
+          data: {
+            bookingId: id,
+            type: 'PAYMENT_VERIFIED',
+            title: 'Pembayaran Gateway Berhasil',
+            message: `Invoice ${invoice.invoiceNumber} telah diterbitkan.`,
+          },
+        });
+        return { bookingId: id, payment, invoice, status: BookingStatus.CONFIRMED };
+      })
+      .catch(async (error) => {
+        if (this.isUniqueViolation(error)) {
+          const previous = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
+          if (previous) {
+            assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
+            return { bookingId: id, status: previous.status, payment: previous };
+          }
+          if (dto.externalReference) {
+            const existingExternalPayment = await this.prisma.payment.findUnique({
+              where: { externalReference: dto.externalReference },
+            });
+            if (existingExternalPayment) {
+              throw new ConflictException(
+                'This gateway payment reference has already been processed',
+              );
+            }
+          }
+        }
+        throw error;
       });
-      const invoice = await tx.invoice.create({
-        data: {
-          bookingId: id,
-          invoiceNumber: `INV-${booking.bookingCode}`,
-          amount: booking.requiredAmount,
-        },
-      });
-      await tx.booking.update({
-        where: { id },
-        data: { status: BookingStatus.CONFIRMED, paymentStatus },
-      });
-      await tx.notification.create({
-        data: {
-          bookingId: id,
-          type: 'PAYMENT_VERIFIED',
-          title: 'Pembayaran Gateway Berhasil',
-          message: `Invoice ${invoice.invoiceNumber} telah diterbitkan.`,
-        },
-      });
-      return { bookingId: id, payment, invoice, status: BookingStatus.CONFIRMED };
-    });
   }
 
   async verifyPayment(id: string, dto: VerifyPaymentDto, actorId: string) {
-    const booking = await this.requireBooking(id);
-    if (booking.status !== BookingStatus.PENDING_VERIFICATION) {
-      throw new ConflictException('This booking is not waiting for verification');
-    }
-    if (dto.paymentPlan === PaymentPlan.FULL && dto.amount < booking.totalAmount) {
-      throw new BadRequestException('Full payment amount cannot be less than the booking total');
-    }
-    if (dto.paymentPlan === PaymentPlan.DP_50 && dto.amount < booking.requiredAmount) {
-      throw new BadRequestException('DP amount is below the required amount');
-    }
-
-    const payment = await this.prisma.payment.findFirst({
-      where: { bookingId: id, status: PaymentStatus.WAITING_CONFIRMATION },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!payment) throw new NotFoundException('Waiting payment not found');
-
     return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.findUnique({ where: { id } });
+      if (!booking || booking.status !== BookingStatus.PENDING_VERIFICATION) {
+        throw new ConflictException('This booking is not waiting for verification');
+      }
+      if (dto.paymentPlan === PaymentPlan.FULL && dto.amount < booking.totalAmount) {
+        throw new BadRequestException('Full payment amount cannot be less than the booking total');
+      }
+      if (dto.paymentPlan === PaymentPlan.DP_50 && dto.amount < booking.requiredAmount) {
+        throw new BadRequestException('DP amount is below the required amount');
+      }
+
+      const payment = await tx.payment.findFirst({
+        where: { bookingId: id, status: PaymentStatus.WAITING_CONFIRMATION },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!payment) throw new NotFoundException('Waiting payment not found');
+
       const paymentStatus =
         dto.paymentPlan === PaymentPlan.FULL ? PaymentStatus.PAID_FULL : PaymentStatus.PAID_DP;
-      const updatedPayment = await tx.payment.update({
-        where: { id: payment.id },
+      const claimedPayment = await tx.payment.updateMany({
+        where: { id: payment.id, status: PaymentStatus.WAITING_CONFIRMATION },
         data: {
           plan: dto.paymentPlan,
           amount: dto.amount,
@@ -176,17 +271,15 @@ export class PaymentsService {
           paidAt: new Date(),
         },
       });
-      const invoice = await tx.invoice.upsert({
-        where: { bookingId: id },
-        create: {
-          bookingId: id,
-          invoiceNumber: `INV-${booking.bookingCode}`,
-          amount: dto.amount,
+      if (claimedPayment.count !== 1) {
+        throw new ConflictException('This payment has already been processed');
+      }
+      const claimedBooking = await tx.booking.updateMany({
+        where: {
+          id,
+          status: BookingStatus.PENDING_VERIFICATION,
+          paymentStatus: PaymentStatus.WAITING_CONFIRMATION,
         },
-        update: { amount: dto.amount, status: 'ISSUED' },
-      });
-      const updatedBooking = await tx.booking.update({
-        where: { id },
         data: {
           paymentPlan: dto.paymentPlan,
           requiredAmount: dto.amount,
@@ -196,6 +289,20 @@ export class PaymentsService {
           verifiedAt: new Date(),
         },
       });
+      if (claimedBooking.count !== 1) {
+        throw new ConflictException('This booking has already been processed');
+      }
+      const updatedPayment = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+      const invoice = await tx.invoice.upsert({
+        where: { bookingId: id },
+        create: {
+          bookingId: id,
+          invoiceNumber: `INV-${booking.bookingCode}`,
+          amount: dto.amount,
+        },
+        update: { amount: dto.amount, status: 'ISSUED' },
+      });
+      const updatedBooking = await tx.booking.findUniqueOrThrow({ where: { id } });
       await tx.notification.create({
         data: {
           bookingId: id,
@@ -218,19 +325,19 @@ export class PaymentsService {
   }
 
   async rejectPayment(id: string, dto: RejectPaymentDto, actorId: string) {
-    const booking = await this.requireBooking(id);
-    if (booking.status !== BookingStatus.PENDING_VERIFICATION) {
-      throw new ConflictException('This booking is not waiting for verification');
-    }
-    const payment = await this.prisma.payment.findFirst({
-      where: { bookingId: id, status: PaymentStatus.WAITING_CONFIRMATION },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!payment) throw new NotFoundException('Waiting payment not found');
-
     return this.prisma.$transaction(async (tx) => {
-      const rejectedPayment = await tx.payment.update({
-        where: { id: payment.id },
+      const booking = await tx.booking.findUnique({ where: { id } });
+      if (!booking || booking.status !== BookingStatus.PENDING_VERIFICATION) {
+        throw new ConflictException('This booking is not waiting for verification');
+      }
+      const payment = await tx.payment.findFirst({
+        where: { bookingId: id, status: PaymentStatus.WAITING_CONFIRMATION },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!payment) throw new NotFoundException('Waiting payment not found');
+
+      const claimedPayment = await tx.payment.updateMany({
+        where: { id: payment.id, status: PaymentStatus.WAITING_CONFIRMATION },
         data: {
           status: PaymentStatus.REJECTED,
           rejectionReason: dto.reason,
@@ -238,14 +345,26 @@ export class PaymentsService {
           verifiedAt: new Date(),
         },
       });
-      const rejectedBooking = await tx.booking.update({
-        where: { id },
+      if (claimedPayment.count !== 1) {
+        throw new ConflictException('This payment has already been processed');
+      }
+      const claimedBooking = await tx.booking.updateMany({
+        where: {
+          id,
+          status: BookingStatus.PENDING_VERIFICATION,
+          paymentStatus: PaymentStatus.WAITING_CONFIRMATION,
+        },
         data: {
           status: BookingStatus.REJECTED,
           paymentStatus: PaymentStatus.REJECTED,
           reservationKey: null,
         },
       });
+      if (claimedBooking.count !== 1) {
+        throw new ConflictException('This booking has already been processed');
+      }
+      const rejectedPayment = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+      const rejectedBooking = await tx.booking.findUniqueOrThrow({ where: { id } });
       await tx.notification.create({
         data: {
           bookingId: id,
@@ -271,5 +390,9 @@ export class PaymentsService {
     const booking = await this.prisma.booking.findUnique({ where: { id } });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
+  }
+
+  private isUniqueViolation(error: unknown) {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
   }
 }

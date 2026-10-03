@@ -9,7 +9,13 @@ import { randomInt } from 'crypto';
 import { PackagesService } from '../packages/packages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentSettingsService } from '../payments/payment-settings.service';
+import { QueuesService } from '../queues/queues.service';
 import { StorageService } from '../storage/storage.service';
+import {
+  assertSameIdempotencyPayload,
+  hashIdempotencyPayload,
+  requireIdempotencyKey,
+} from '../common/idempotency';
 import { CreateBookingDto } from './dto/booking.dto';
 
 @Injectable()
@@ -18,10 +24,21 @@ export class BookingsService {
     private readonly prisma: PrismaService,
     private readonly packagesService: PackagesService,
     private readonly paymentSettings: PaymentSettingsService,
+    private readonly queues: QueuesService,
     private readonly storage: StorageService,
   ) {}
 
-  async create(dto: CreateBookingDto) {
+  async create(dto: CreateBookingDto, rawIdempotencyKey?: string) {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    const idempotencyHash = hashIdempotencyPayload(dto);
+    const previous = await this.prisma.booking.findUnique({
+      where: { idempotencyKey },
+    });
+    if (previous) {
+      assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
+      return previous;
+    }
+
     const packageItem = await this.packagesService.requireActive(dto.packageId);
     const settings = await this.paymentSettings.getCurrent();
     const sessionDate = this.parseSessionDate(dto.sessionDate);
@@ -43,7 +60,7 @@ export class BookingsService {
     );
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const booking = await this.prisma.$transaction(async (tx) => {
         const existing = await tx.booking.findUnique({ where: { reservationKey } });
         if (existing) {
           if (
@@ -67,6 +84,8 @@ export class BookingsService {
             customerPhone: dto.customerPhone.replace(/\D/g, ''),
             customerEmail: dto.customerEmail.trim().toLowerCase(),
             notes: dto.notes?.trim(),
+            idempotencyKey,
+            idempotencyHash,
             packageId: packageItem.id,
             packageName: packageItem.name,
             packagePrice: packageItem.price,
@@ -92,8 +111,19 @@ export class BookingsService {
         });
         return booking;
       });
+      void this.queues.scheduleBookingExpiration(booking.id, expiresAt).catch((error) => {
+        console.error(`Could not schedule expiration for booking ${booking.bookingCode}`, error);
+      });
+      return booking;
     } catch (error) {
       if (this.isUniqueViolation(error)) {
+        const previous = await this.prisma.booking.findUnique({
+          where: { idempotencyKey },
+        });
+        if (previous) {
+          assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
+          return previous;
+        }
         throw new ConflictException('The selected session slot is no longer available');
       }
       throw error;

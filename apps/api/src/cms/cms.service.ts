@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { StorageCleanupService } from '../storage/storage-cleanup.service';
+import { StorageBucket } from '@prisma/client';
 import {
   CreateFaqItemDto,
   CreateGalleryCategoryDto,
@@ -44,6 +46,7 @@ export class CmsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly storageCleanup: StorageCleanupService,
   ) {}
 
   private async revalidateLandingContent() {
@@ -592,11 +595,6 @@ export class CmsService {
   }
 
   private async removeUploadedObject(key: string) {
-    try {
-      await this.storage.deleteObject(key);
-    } catch {
-      // The original database error remains the useful response. Storage cleanup
-      // can be retried safely because object keys are generated uniquely.
-    }
+    await this.storageCleanup.removeOrQueue(StorageBucket.PUBLIC, key, 'CMS transaction rollback');
   }
 }
