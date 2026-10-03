@@ -25,17 +25,18 @@ import {
   UpdatePaymentSettingsDto,
   VerifyPaymentDto,
   MidtransWebhookDto,
+  XenditWebhookDto,
 } from './dto/payment.dto';
-import { MidtransClient } from './gateways/midtrans.client';
 import { MidtransWebhookService } from './gateways/midtrans.webhook.service';
+import { XenditWebhookService } from './gateways/xendit.webhook.service';
 
 @Controller()
 export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
     private readonly paymentSettings: PaymentSettingsService,
-    private readonly midtrans: MidtransClient,
     private readonly midtransWebhook: MidtransWebhookService,
+    private readonly xenditWebhook: XenditWebhookService,
   ) {}
 
   @Get('public/payment-settings')
@@ -69,13 +70,23 @@ export class PaymentsController {
     @Param('id') id: string,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return this.paymentsService.createGatewayIntent(id, idempotencyKey, this.midtrans);
+    return this.paymentsService.createGatewayIntent(id, idempotencyKey);
   }
 
   @Post('webhooks/payments/midtrans')
   @HttpCode(200)
   handleMidtransWebhook(@Body() dto: MidtransWebhookDto) {
     return this.midtransWebhook.handle(dto);
+  }
+
+  @Post('webhooks/payments/xendit')
+  @HttpCode(200)
+  handleXenditWebhook(
+    @Body() dto: XenditWebhookDto,
+    @Headers('x-callback-token') callbackToken?: string,
+    @Headers('webhook-id') webhookId?: string,
+  ) {
+    return this.xenditWebhook.handle(dto, callbackToken, webhookId);
   }
 
   @Roles(['admin'])

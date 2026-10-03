@@ -86,6 +86,44 @@ export class MidtransWebhookDto {
   currency?: string;
 }
 
+export class XenditWebhookDto {
+  @Expose({ name: 'external_id' })
+  @IsString()
+  @MaxLength(160)
+  externalId: string;
+
+  @Expose()
+  @IsString()
+  @MaxLength(160)
+  id: string;
+
+  @Expose()
+  @IsString()
+  @MaxLength(40)
+  status: string;
+
+  @Expose()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(2_000_000_000)
+  amount: number;
+
+  @Expose({ name: 'paid_amount' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(2_000_000_000)
+  paidAmount?: number;
+
+  @Expose({ name: 'paid_at' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  paidAt?: string;
+}
+
 export class VerifyPaymentDto {
   @IsEnum(PaymentPlan)
   paymentPlan: PaymentPlan;
@@ -144,6 +182,11 @@ export class UpdatePaymentSettingsDto {
   @IsString()
   @MaxLength(500)
   secretKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  webhookToken?: string;
 }
 
 export class CreateManualPaymentAccountDto {

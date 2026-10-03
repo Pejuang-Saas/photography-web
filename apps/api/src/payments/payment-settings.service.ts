@@ -56,6 +56,7 @@ export class PaymentSettingsService {
       publicKey: settings.publicKey,
       serverKeyConfigured: Boolean(settings.serverKeyEncrypted),
       secretKeyConfigured: Boolean(settings.secretKeyEncrypted),
+      webhookTokenConfigured: Boolean(settings.webhookTokenEncrypted),
       updatedAt: settings.updatedAt,
     };
   }
@@ -74,6 +75,9 @@ export class PaymentSettingsService {
       secretKey: settings.secretKeyEncrypted
         ? decryptSecret(settings.secretKeyEncrypted)
         : undefined,
+      webhookToken: settings.webhookTokenEncrypted
+        ? decryptSecret(settings.webhookTokenEncrypted)
+        : undefined,
     };
   }
 
@@ -90,6 +94,7 @@ export class PaymentSettingsService {
     };
     if (dto.serverKey) data.serverKeyEncrypted = encryptSecret(dto.serverKey);
     if (dto.secretKey) data.secretKeyEncrypted = encryptSecret(dto.secretKey);
+    if (dto.webhookToken) data.webhookTokenEncrypted = encryptSecret(dto.webhookToken);
 
     const settings = await this.prisma.paymentSetting.update({ where: { id: current.id }, data });
     return {

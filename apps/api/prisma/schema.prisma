@@ -130,18 +130,19 @@ model ServicePackage {
 }
 
 model PaymentSetting {
-  id                 String              @id @default("default")
-  activeMode         PaymentMode         @default(MANUAL) @map("active_mode")
-  allowDownPayment   Boolean             @default(true) @map("allow_down_payment")
-  gatewayProvider    GatewayProvider?    @map("gateway_provider")
-  gatewayEnvironment GatewayEnvironment? @map("gateway_environment")
-  merchantId         String?             @map("merchant_id")
-  clientKey          String?             @map("client_key")
-  serverKeyEncrypted String?             @map("server_key_encrypted")
-  publicKey          String?             @map("public_key")
-  secretKeyEncrypted String?             @map("secret_key_encrypted")
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
+  id                    String              @id @default("default")
+  activeMode            PaymentMode         @default(MANUAL) @map("active_mode")
+  allowDownPayment      Boolean             @default(true) @map("allow_down_payment")
+  gatewayProvider       GatewayProvider?    @map("gateway_provider")
+  gatewayEnvironment    GatewayEnvironment? @map("gateway_environment")
+  merchantId            String?             @map("merchant_id")
+  clientKey             String?             @map("client_key")
+  serverKeyEncrypted    String?             @map("server_key_encrypted")
+  publicKey             String?             @map("public_key")
+  secretKeyEncrypted    String?             @map("secret_key_encrypted")
+  webhookTokenEncrypted String?             @map("webhook_token_encrypted")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
 
   @@map("payment_settings")
 }

@@ -30,6 +30,7 @@ import {
   VerifyPaymentDto,
 } from './dto/payment.dto';
 import { MidtransClient } from './gateways/midtrans.client';
+import { XenditClient } from './gateways/xendit.client';
 
 @Injectable()
 export class PaymentsService {
@@ -39,6 +40,8 @@ export class PaymentsService {
     private readonly storageCleanup: StorageCleanupService,
     private readonly paymentSettings: PaymentSettingsService,
     private readonly outbox: OutboxService,
+    private readonly midtrans: MidtransClient,
+    private readonly xendit: XenditClient,
   ) {}
 
   async submitManualPayment(
@@ -270,11 +273,7 @@ export class PaymentsService {
       });
   }
 
-  async createGatewayIntent(
-    id: string,
-    rawIdempotencyKey: string | undefined,
-    midtrans: MidtransClient,
-  ) {
+  async createGatewayIntent(id: string, rawIdempotencyKey: string | undefined) {
     const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
     const idempotencyHash = hashIdempotencyPayload({ bookingId: id, action: 'gateway-intent' });
     const previous = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
@@ -285,49 +284,66 @@ export class PaymentsService {
 
     const booking = await this.requireBooking(id);
     const settings = await this.paymentSettings.getCurrent();
+    const provider = settings.gatewayProvider;
     if (
       booking.paymentMode !== PaymentMode.GATEWAY ||
       settings.activeMode !== PaymentMode.GATEWAY ||
-      settings.gatewayProvider !== GatewayProvider.MIDTRANS
+      (provider !== GatewayProvider.MIDTRANS && provider !== GatewayProvider.XENDIT)
     ) {
-      throw new BadRequestException('Midtrans gateway is not active for this booking');
+      throw new BadRequestException('Supported gateway is not active for this booking');
     }
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
       throw new ConflictException('This booking is no longer waiting for payment');
     }
 
     const orderId = `ORDER-${booking.bookingCode}-${idempotencyHash.slice(0, 12)}`;
-    const intent = await midtrans.createSnapIntent({
-      orderId,
-      amount: booking.requiredAmount,
-      customerName: booking.customerName,
-      customerEmail: booking.customerEmail,
-      customerPhone: booking.customerPhone,
-      itemName: booking.packageName,
-    });
+    let metadata: Prisma.InputJsonValue;
+    let response: { token?: string; redirectUrl: string; invoiceId?: string };
+    if (provider === GatewayProvider.MIDTRANS) {
+      const intent = await this.midtrans.createSnapIntent({
+        orderId,
+        amount: booking.requiredAmount,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone,
+        itemName: booking.packageName,
+      });
+      metadata = { token: intent.token, redirectUrl: intent.redirectUrl };
+      response = { token: intent.token, redirectUrl: intent.redirectUrl };
+    } else {
+      const intent = await this.xendit.createInvoice({
+        externalId: orderId,
+        amount: booking.requiredAmount,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        description: booking.packageName,
+      });
+      metadata = { invoiceId: intent.invoiceId, redirectUrl: intent.invoiceUrl };
+      response = { invoiceId: intent.invoiceId, redirectUrl: intent.invoiceUrl };
+    }
 
     try {
       const payment = await this.prisma.payment.create({
         data: {
           bookingId: id,
           method: 'GATEWAY',
-          provider: GatewayProvider.MIDTRANS,
+          provider,
           plan: booking.paymentPlan,
           amount: booking.requiredAmount,
           status: PaymentStatus.UNPAID,
           externalReference: orderId,
           idempotencyKey,
           idempotencyHash,
-          metadata: { token: intent.token, redirectUrl: intent.redirectUrl },
+          metadata,
         },
       });
       return {
         paymentId: payment.id,
         orderId,
-        provider: GatewayProvider.MIDTRANS,
+        provider,
         clientKey: settings.clientKey,
-        token: intent.token,
-        redirectUrl: intent.redirectUrl,
+        publicKey: settings.publicKey,
+        ...response,
       };
     } catch (error) {
       if (this.isUniqueViolation(error)) {
