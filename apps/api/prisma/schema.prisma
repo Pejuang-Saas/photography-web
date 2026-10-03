@@ -20,11 +20,254 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  photos   Photo[]
-  sessions Session[]
-  accounts Account[]
+  photos           Photo[]
+  sessions         Session[]
+  accounts         Account[]
+  verifiedBookings Booking[]      @relation("BookingVerifiedBy")
+  verifiedPayments Payment[]      @relation("PaymentVerifiedBy")
+  notifications    Notification[]
+  auditLogs        AuditLog[]
 
   @@map("users")
+}
+
+enum PaymentMode {
+  GATEWAY
+  MANUAL
+}
+
+enum GatewayProvider {
+  MOCK
+  MIDTRANS
+  XENDIT
+}
+
+enum GatewayEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum PaymentPlan {
+  DP_50
+  FULL
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  PENDING_VERIFICATION
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  UNPAID
+  WAITING_CONFIRMATION
+  PAID_DP
+  PAID_FULL
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  GATEWAY
+  BANK_TRANSFER
+  E_WALLET
+}
+
+enum InvoiceStatus {
+  ISSUED
+  VOID
+}
+
+enum NotificationType {
+  BOOKING_NEW
+  PAYMENT_PROOF
+  PAYMENT_VERIFIED
+  PAYMENT_REJECTED
+  SYSTEM
+}
+
+model ServicePackage {
+  id              String   @id @default(uuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  category        String?
+  price           Int
+  durationMinutes Int      @default(60) @map("duration_minutes")
+  maxPeople       Int      @default(1) @map("max_people")
+  features        Json?
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  bookings Booking[]
+
+  @@index([isActive, createdAt])
+  @@map("service_packages")
+}
+
+model PaymentSetting {
+  id                 String              @id @default("default")
+  activeMode         PaymentMode         @default(MANUAL) @map("active_mode")
+  allowDownPayment   Boolean             @default(true) @map("allow_down_payment")
+  gatewayProvider    GatewayProvider?    @map("gateway_provider")
+  gatewayEnvironment GatewayEnvironment? @map("gateway_environment")
+  merchantId         String?             @map("merchant_id")
+  clientKey          String?             @map("client_key")
+  serverKeyEncrypted String?             @map("server_key_encrypted")
+  publicKey          String?             @map("public_key")
+  secretKeyEncrypted String?             @map("secret_key_encrypted")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  @@map("payment_settings")
+}
+
+model ManualPaymentAccount {
+  id            String   @id @default(uuid())
+  bankName      String   @map("bank_name")
+  accountNumber String   @map("account_number")
+  accountHolder String   @map("account_holder")
+  isActive      Boolean  @default(true) @map("is_active")
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  payments Payment[]
+
+  @@index([isActive, isPrimary])
+  @@map("manual_payment_accounts")
+}
+
+model Booking {
+  id             String        @id @default(uuid())
+  bookingCode    String        @unique @map("booking_code")
+  customerName   String        @map("customer_name")
+  customerPhone  String        @map("customer_phone")
+  customerEmail  String        @map("customer_email")
+  notes          String?
+  packageId      String        @map("package_id")
+  packageName    String        @map("package_name")
+  packagePrice   Int           @map("package_price")
+  totalAmount    Int           @map("total_amount")
+  paymentMode    PaymentMode   @map("payment_mode")
+  paymentPlan    PaymentPlan   @map("payment_plan")
+  requiredAmount Int           @map("required_amount")
+  sessionDate    DateTime      @map("session_date") @db.Date
+  timeSlot       String        @map("time_slot")
+  reservationKey String?       @unique @map("reservation_key")
+  status         BookingStatus @default(PENDING_PAYMENT)
+  paymentStatus  PaymentStatus @default(UNPAID) @map("payment_status")
+  expiresAt      DateTime?     @map("expires_at")
+  verifiedById   String?       @map("verified_by_id")
+  verifiedAt     DateTime?     @map("verified_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  package       ServicePackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  verifiedBy    User?          @relation("BookingVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  payments      Payment[]
+  invoice       Invoice?
+  notifications Notification[]
+
+  @@index([status, createdAt])
+  @@index([sessionDate, timeSlot])
+  @@map("bookings")
+}
+
+model Payment {
+  id                String           @id @default(uuid())
+  bookingId         String           @map("booking_id")
+  manualAccountId   String?          @map("manual_account_id")
+  method            PaymentMethod
+  provider          GatewayProvider?
+  plan              PaymentPlan
+  amount            Int
+  status            PaymentStatus
+  senderName        String?          @map("sender_name")
+  externalReference String?          @unique @map("external_reference")
+  rejectionReason   String?          @map("rejection_reason")
+  verifiedById      String?          @map("verified_by_id")
+  verifiedAt        DateTime?        @map("verified_at")
+  paidAt            DateTime?        @map("paid_at")
+  metadata          Json?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  booking       Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  manualAccount ManualPaymentAccount? @relation(fields: [manualAccountId], references: [id], onDelete: SetNull)
+  verifiedBy    User?                 @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  proof         PaymentProof?
+
+  @@index([bookingId, createdAt])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+model PaymentProof {
+  id         String   @id @default(uuid())
+  paymentId  String   @unique @map("payment_id")
+  storageKey String   @map("storage_key")
+  filename   String
+  mimeType   String   @map("mime_type")
+  size       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_proofs")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  bookingId     String        @unique @map("booking_id")
+  invoiceNumber String        @unique @map("invoice_number")
+  amount        Int
+  status        InvoiceStatus @default(ISSUED)
+  issuedAt      DateTime      @default(now()) @map("issued_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String?          @map("user_id")
+  bookingId String?          @map("booking_id")
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@index([bookingId, createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?  @map("actor_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
 }
 
 model Session {

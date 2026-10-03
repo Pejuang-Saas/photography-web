@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
+    "@aws-sdk/s3-request-presigner": "^3.1145.0",
     "@better-auth/prisma-adapter": "1.7.5",
     "@nestjs-redis/client": "^2.0.1",
     "@nestjs-redis/throttler-storage": "^2.0.1",

@@ -12,6 +12,9 @@ import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { auth } from './auth/auth';
 import { AdminAuthController } from './auth/admin-auth.controller';
 import { CmsModule } from './cms/cms.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { PackagesModule } from './packages/packages.module';
+import { PaymentsModule } from './payments/payments.module';
 
 function positiveInteger(configService: ConfigService, key: string, fallback: number): number {
   const value = Number(configService.get<string>(key));
@@ -57,6 +60,9 @@ function positiveInteger(configService: ConfigService, key: string, fallback: nu
     PrismaModule,
     AuthModule.forRoot({ auth }),
     CmsModule,
+    PackagesModule,
+    PaymentsModule,
+    BookingsModule,
   ],
   controllers: [AppController, AdminAuthController],
   providers: [

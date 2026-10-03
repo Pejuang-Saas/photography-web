@@ -1,0 +1,112 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Roles, Session, UserSession } from '@thallesp/nestjs-better-auth';
+import { PaymentSettingsService } from './payment-settings.service';
+import { PaymentsService } from './payments.service';
+import {
+  ConfirmGatewayPaymentDto,
+  CreateManualPaymentAccountDto,
+  RejectPaymentDto,
+  SubmitManualPaymentDto,
+  UpdateManualPaymentAccountDto,
+  UpdatePaymentSettingsDto,
+  VerifyPaymentDto,
+} from './dto/payment.dto';
+
+@Controller()
+export class PaymentsController {
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly paymentSettings: PaymentSettingsService,
+  ) {}
+
+  @Get('public/payment-settings')
+  getPublicSettings() {
+    return this.paymentSettings.getPublic();
+  }
+
+  @Post('public/bookings/:id/manual-payment')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  submitManualPayment(
+    @Param('id') id: string,
+    @Body() dto: SubmitManualPaymentDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Payment proof image is required');
+    return this.paymentsService.submitManualPayment(id, dto, file);
+  }
+
+  @Post('public/bookings/:id/gateway/confirm')
+  confirmGatewayPayment(@Param('id') id: string, @Body() dto: ConfirmGatewayPaymentDto) {
+    return this.paymentsService.confirmGatewayPayment(id, dto);
+  }
+
+  @Roles(['admin'])
+  @Get('admin/payment-settings')
+  getAdminSettings() {
+    return this.paymentSettings.getAdmin();
+  }
+
+  @Roles(['admin'])
+  @Patch('admin/payment-settings')
+  updateSettings(@Body() dto: UpdatePaymentSettingsDto) {
+    return this.paymentSettings.update(dto);
+  }
+
+  @Roles(['admin'])
+  @Get('admin/payment-accounts')
+  listAccounts() {
+    return this.paymentSettings.listAccounts();
+  }
+
+  @Roles(['admin'])
+  @Post('admin/payment-accounts')
+  createAccount(@Body() dto: CreateManualPaymentAccountDto) {
+    return this.paymentSettings.createAccount(dto);
+  }
+
+  @Roles(['admin'])
+  @Patch('admin/payment-accounts/:id')
+  updateAccount(@Param('id') id: string, @Body() dto: UpdateManualPaymentAccountDto) {
+    return this.paymentSettings.updateAccount(id, dto);
+  }
+
+  @Roles(['admin'])
+  @Delete('admin/payment-accounts/:id')
+  @HttpCode(204)
+  removeAccount(@Param('id') id: string) {
+    return this.paymentSettings.removeAccount(id);
+  }
+
+  @Roles(['admin'])
+  @Post('admin/bookings/:id/verify-payment')
+  verifyPayment(
+    @Param('id') id: string,
+    @Body() dto: VerifyPaymentDto,
+    @Session() session: UserSession,
+  ) {
+    return this.paymentsService.verifyPayment(id, dto, session.user.id);
+  }
+
+  @Roles(['admin'])
+  @Post('admin/bookings/:id/reject-payment')
+  rejectPayment(
+    @Param('id') id: string,
+    @Body() dto: RejectPaymentDto,
+    @Session() session: UserSession,
+  ) {
+    return this.paymentsService.rejectPayment(id, dto, session.user.id);
+  }
+}
