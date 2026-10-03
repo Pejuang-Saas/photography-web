@@ -22,6 +22,7 @@ import {
   requireIdempotencyKey,
 } from '../common/idempotency';
 import { PaymentSettingsService } from './payment-settings.service';
+import { OutboxService } from '../outbox/outbox.service';
 import {
   ConfirmGatewayPaymentDto,
   RejectPaymentDto,
@@ -36,6 +37,7 @@ export class PaymentsService {
     private readonly storage: StorageService,
     private readonly storageCleanup: StorageCleanupService,
     private readonly paymentSettings: PaymentSettingsService,
+    private readonly outbox: OutboxService,
   ) {}
 
   async submitManualPayment(
@@ -121,6 +123,18 @@ export class PaymentsService {
             type: 'PAYMENT_PROOF',
             title: 'Bukti Pembayaran Baru',
             message: `${current.bookingCode} menunggu verifikasi pembayaran manual.`,
+          },
+        });
+        await this.outbox.createInTransaction(tx, {
+          eventKey: `payment-proof-submitted:${createdPayment.id}`,
+          eventType: 'PAYMENT_PROOF_SUBMITTED',
+          aggregateType: 'Payment',
+          aggregateId: createdPayment.id,
+          payload: {
+            bookingId: id,
+            paymentId: createdPayment.id,
+            customerName: current.customerName,
+            customerEmail: current.customerEmail,
           },
         });
         return createdPayment;
@@ -213,6 +227,19 @@ export class PaymentsService {
             type: 'PAYMENT_VERIFIED',
             title: 'Pembayaran Gateway Berhasil',
             message: `Invoice ${invoice.invoiceNumber} telah diterbitkan.`,
+          },
+        });
+        await this.outbox.createInTransaction(tx, {
+          eventKey: `payment-verified:${payment.id}`,
+          eventType: 'PAYMENT_VERIFIED',
+          aggregateType: 'Payment',
+          aggregateId: payment.id,
+          payload: {
+            bookingId: id,
+            paymentId: payment.id,
+            invoiceNumber: invoice.invoiceNumber,
+            customerName: current.customerName,
+            customerEmail: current.customerEmail,
           },
         });
         return { bookingId: id, payment, invoice, status: BookingStatus.CONFIRMED };
@@ -320,6 +347,19 @@ export class PaymentsService {
           metadata: { paymentId: payment.id, amount: dto.amount, paymentPlan: dto.paymentPlan },
         },
       });
+      await this.outbox.createInTransaction(tx, {
+        eventKey: `payment-verified:${payment.id}`,
+        eventType: 'PAYMENT_VERIFIED',
+        aggregateType: 'Payment',
+        aggregateId: payment.id,
+        payload: {
+          bookingId: id,
+          paymentId: payment.id,
+          invoiceNumber: invoice.invoiceNumber,
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+        },
+      });
       return { booking: updatedBooking, payment: updatedPayment, invoice };
     });
   }
@@ -380,6 +420,19 @@ export class PaymentsService {
           entity: 'Booking',
           entityId: id,
           metadata: { paymentId: payment.id, reason: dto.reason },
+        },
+      });
+      await this.outbox.createInTransaction(tx, {
+        eventKey: `payment-rejected:${payment.id}`,
+        eventType: 'PAYMENT_REJECTED',
+        aggregateType: 'Payment',
+        aggregateId: payment.id,
+        payload: {
+          bookingId: id,
+          paymentId: payment.id,
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+          reason: dto.reason,
         },
       });
       return { booking: rejectedBooking, payment: rejectedPayment };

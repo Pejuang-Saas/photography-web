@@ -15,6 +15,7 @@ services:
       - BETTER_AUTH_URL=${API_URL:-http://localhost:3002}
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
+      - OUTBOX_DELIVERY_MODE=${OUTBOX_DELIVERY_MODE:-log}
       - DATABASE_URL=${DATABASE_URL:-postgresql://root:root@dev-postgres:5432/photography_db?schema=public}
       - REDIS_URL=${REDIS_URL:-redis://dev-redis:6379}
       - S3_ENDPOINT=http://minio:9000

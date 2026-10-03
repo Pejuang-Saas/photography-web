@@ -12,6 +12,8 @@ export class QueueSchedulersService implements OnModuleInit {
     private readonly bookingExpirationQueue: Queue,
     @InjectQueue(QUEUE_NAMES.STORAGE_CLEANUP)
     private readonly storageCleanupQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.OUTBOX)
+    private readonly outboxQueue: Queue,
   ) {}
 
   async onModuleInit() {
@@ -30,6 +32,15 @@ export class QueueSchedulersService implements OnModuleInit {
         { every: 300_000 },
         {
           name: 'sweep-storage-cleanup',
+          data: { sweep: true },
+          opts: { attempts: 3, backoff: { type: 'exponential', delay: 5_000 } },
+        },
+      ),
+      this.outboxQueue.upsertJobScheduler(
+        'outbox-sweep',
+        { every: 30_000 },
+        {
+          name: 'sweep-outbox',
           data: { sweep: true },
           opts: { attempts: 3, backoff: { type: 'exponential', delay: 5_000 } },
         },

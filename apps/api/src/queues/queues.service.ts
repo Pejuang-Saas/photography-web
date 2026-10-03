@@ -11,6 +11,8 @@ export class QueuesService {
     private readonly bookingExpirationQueue: Queue,
     @InjectQueue(QUEUE_NAMES.STORAGE_CLEANUP)
     private readonly storageCleanupQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.OUTBOX)
+    private readonly outboxQueue: Queue,
   ) {}
 
   scheduleBookingExpiration(bookingId: string, expiresAt: Date) {
@@ -24,7 +26,7 @@ export class QueuesService {
         attempts: 5,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: 100,
-        removeOnFail: 500,
+        removeOnFail: true,
       },
     );
   }
@@ -38,7 +40,21 @@ export class QueuesService {
         attempts: 10,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: 100,
-        removeOnFail: 500,
+        removeOnFail: true,
+      },
+    );
+  }
+
+  scheduleOutbox(eventId: string) {
+    return this.outboxQueue.add(
+      'dispatch-outbox',
+      { eventId },
+      {
+        jobId: `outbox:${eventId}`,
+        attempts: 10,
+        backoff: { type: 'exponential', delay: 5_000 },
+        removeOnComplete: 100,
+        removeOnFail: true,
       },
     );
   }

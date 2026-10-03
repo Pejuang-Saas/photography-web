@@ -31,6 +31,7 @@ function redisConnection(url: string) {
     BullModule.registerQueue(
       { name: QUEUE_NAMES.BOOKING_EXPIRATION },
       { name: QUEUE_NAMES.STORAGE_CLEANUP },
+      { name: QUEUE_NAMES.OUTBOX },
     ),
   ],
   providers: [QueuesService, QueueSchedulersService],

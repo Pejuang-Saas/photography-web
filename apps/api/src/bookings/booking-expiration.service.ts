@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BookingStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OutboxService } from '../outbox/outbox.service';
 
 @Injectable()
 export class BookingExpirationService {
   private readonly logger = new Logger(BookingExpirationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxService,
+  ) {}
 
   async sweep() {
     const expired = await this.prisma.booking.findMany({
@@ -65,6 +69,13 @@ export class BookingExpirationService {
             entityId: id,
             metadata: { bookingCode },
           },
+        });
+        await this.outbox.createInTransaction(tx, {
+          eventKey: `booking-expired:${id}`,
+          eventType: 'BOOKING_EXPIRED',
+          aggregateType: 'Booking',
+          aggregateId: id,
+          payload: { bookingId: id, bookingCode },
         });
       });
     } catch (error) {

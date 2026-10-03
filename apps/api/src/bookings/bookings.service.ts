@@ -10,6 +10,7 @@ import { PackagesService } from '../packages/packages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentSettingsService } from '../payments/payment-settings.service';
 import { QueuesService } from '../queues/queues.service';
+import { OutboxService } from '../outbox/outbox.service';
 import { StorageService } from '../storage/storage.service';
 import {
   assertSameIdempotencyPayload,
@@ -25,6 +26,7 @@ export class BookingsService {
     private readonly packagesService: PackagesService,
     private readonly paymentSettings: PaymentSettingsService,
     private readonly queues: QueuesService,
+    private readonly outbox: OutboxService,
     private readonly storage: StorageService,
   ) {}
 
@@ -107,6 +109,19 @@ export class BookingsService {
             type: 'BOOKING_NEW',
             title: 'Booking Baru Masuk',
             message: `${booking.bookingCode} dari ${booking.customerName} menunggu pembayaran.`,
+          },
+        });
+        await this.outbox.createInTransaction(tx, {
+          eventKey: `booking-created:${booking.id}`,
+          eventType: 'BOOKING_CREATED',
+          aggregateType: 'Booking',
+          aggregateId: booking.id,
+          payload: {
+            bookingId: booking.id,
+            bookingCode: booking.bookingCode,
+            customerName: booking.customerName,
+            customerEmail: booking.customerEmail,
+            paymentMode: booking.paymentMode,
           },
         });
         return booking;
