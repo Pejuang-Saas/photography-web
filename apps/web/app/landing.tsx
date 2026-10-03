@@ -4,7 +4,7 @@ import ScrollReveal from './components/scroll-reveal';
 import HeroFilm from './components/hero-film';
 import HeroEntrance from './components/hero-entrance';
 import HeaderViewfinder from './components/header-viewfinder';
-import PackageCard from './components/package-card';
+import PublicPackageCatalog from './components/public-package-catalog';
 import FAQAccordion from './components/faq-accordion';
 import ColorGradeSlider from './components/color-grade-slider';
 import CampusMarquee from './components/campus-marquee';
@@ -54,57 +54,6 @@ const portfolioTiles = [
   { src: '21', w: 2700, h: 3375, alt: 'Dua wisudawati berpose menunjuk ke kamera dengan riang' },
   { src: '22', w: 2880, h: 3840, alt: 'Momen wisuda malam hari penuh keceriaan' },
   { src: '24', w: 2880, h: 3840, alt: 'Sesi foto kelompok saat malam hari bertema nocturnal' },
-];
-
-const packages = [
-  {
-    name: 'Solo Graduation',
-    cover: '01',
-    summary:
-      'Sesi personal untuk kamu yang ingin foto kebaya dan toga dengan hasil yang anggun dan berkarakter.',
-    price: 'Rp 350.000',
-    features: [
-      '1 Orang Wisudawan',
-      'Durasi sesi 1 jam',
-      '30 foto edited color grade',
-      '1 titik lokasi kampus pilihan',
-      'Seluruh file mentah dikirim via Drive',
-    ],
-    isFeatured: false,
-  },
-  {
-    name: 'Squad Graduation',
-    cover: '02',
-    summary:
-      'Paling diminati untuk foto bersama geng sahabat, circle terdekat, atau satu divisi kampus.',
-    price: 'Rp 650.000',
-    badge: 'Paling Diminati',
-    features: [
-      '2 sampai 5 orang',
-      'Durasi sesi 2 jam fleksibel',
-      '60 foto edited color grade',
-      '2 titik lokasi kampus',
-      'Pengarahan pose dan interaksi natural',
-      'Seluruh file mentah dikirim via Drive',
-    ],
-    isFeatured: true,
-  },
-  {
-    name: 'Family Package',
-    cover: '08',
-    summary:
-      'Momen kelulusan hangat bersama orang tua dan keluarga besar tanpa batasan jumlah anggota.',
-    price: 'Rp 900.000',
-    features: [
-      'Wisudawan plus keluarga inti',
-      'Durasi sesi 3 jam santai',
-      '100 foto edited color grade',
-      'Lokasi bebas di area Semarang',
-      '1 cetakan mini album fisik 20 halaman',
-      'Seluruh file mentah dikirim via Drive',
-    ],
-    isFeatured: false,
-  },
 ];
 
 // Studix-style Featured Testimonial Stories
@@ -376,14 +325,7 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
             </div>
           </ScrollReveal>
 
-          {/* 3 Visual Photo Package Cards with Spotlight Glow & Nested CTA */}
-          <div className="mt-14 grid gap-8 lg:grid-cols-3 items-stretch">
-            {packages.map((pkg, i) => (
-              <ScrollReveal key={pkg.name} delay={i * 0.1}>
-                <PackageCard pkg={pkg} />
-              </ScrollReveal>
-            ))}
-          </div>
+          <PublicPackageCatalog />
         </div>
       </section>
 

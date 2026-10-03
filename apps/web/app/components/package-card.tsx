@@ -6,10 +6,11 @@ import { ArrowRight, Check } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
 
 export interface PackageData {
+  id: string;
   name: string;
   cover: string;
   summary: string;
-  price: string;
+  price: number;
   badge?: string;
   features: string[];
   isFeatured: boolean;
@@ -24,6 +25,11 @@ export default function PackageCard({ pkg }: PackageCardProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const shouldReduceMotion = useReducedMotion();
+  const formattedPrice = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(pkg.price);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (shouldReduceMotion || !cardRef.current) return;
@@ -88,7 +94,7 @@ export default function PackageCard({ pkg }: PackageCardProps) {
           <h3 className="text-xl font-bold text-fg group-hover:text-white transition-colors">
             {pkg.name}
           </h3>
-          <span className="text-xl font-black text-accent tracking-tight">{pkg.price}</span>
+          <span className="text-xl font-black text-accent tracking-tight">{formattedPrice}</span>
         </div>
 
         <p className="mt-2 text-xs leading-relaxed text-muted">{pkg.summary}</p>
