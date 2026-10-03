@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaymentMode, Prisma } from '@prisma/client';
-import { createCipheriv, createHash, randomBytes } from 'crypto';
+import { encryptSecret } from '../common/secret-box';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateManualPaymentAccountDto,
@@ -71,8 +71,8 @@ export class PaymentSettingsService {
       clientKey: dto.clientKey,
       publicKey: dto.publicKey,
     };
-    if (dto.serverKey) data.serverKeyEncrypted = this.encryptSecret(dto.serverKey);
-    if (dto.secretKey) data.secretKeyEncrypted = this.encryptSecret(dto.secretKey);
+    if (dto.serverKey) data.serverKeyEncrypted = encryptSecret(dto.serverKey);
+    if (dto.secretKey) data.secretKeyEncrypted = encryptSecret(dto.secretKey);
 
     const settings = await this.prisma.paymentSetting.update({ where: { id: current.id }, data });
     return {
@@ -125,19 +125,5 @@ export class PaymentSettingsService {
     const account = await this.prisma.manualPaymentAccount.findUnique({ where: { id } });
     if (!account) throw new NotFoundException('Manual payment account not found');
     return account;
-  }
-
-  private encryptSecret(value: string) {
-    const configuredKey = process.env.PAYMENT_CONFIG_ENCRYPTION_KEY;
-    if (!configuredKey) {
-      throw new BadRequestException(
-        'PAYMENT_CONFIG_ENCRYPTION_KEY is required to save gateway secrets',
-      );
-    }
-    const key = createHash('sha256').update(configuredKey).digest();
-    const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', key, iv);
-    const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
-    return `${iv.toString('base64')}:${cipher.getAuthTag().toString('base64')}:${encrypted.toString('base64')}`;
   }
 }

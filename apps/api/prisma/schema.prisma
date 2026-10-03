@@ -140,6 +140,24 @@ model PaymentSetting {
   @@map("payment_settings")
 }
 
+model EmailSetting {
+  id                     String   @id @default("default")
+  enabled                Boolean  @default(false)
+  host                   String?
+  port                   Int      @default(587)
+  secure                 Boolean  @default(false)
+  username               String?
+  passwordEncrypted      String?  @map("password_encrypted")
+  fromEmail              String?  @map("from_email")
+  fromName               String?  @map("from_name")
+  adminNotificationEmail String?  @map("admin_notification_email")
+  autoSendInvoice        Boolean  @default(true) @map("auto_send_invoice")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("email_settings")
+}
+
 model ManualPaymentAccount {
   id            String   @id @default(uuid())
   bankName      String   @map("bank_name")

@@ -17,6 +17,7 @@ import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { QueuesModule } from './queues/queues.module';
 import { QueueWorkersModule } from './queues/queue-workers.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 function positiveInteger(configService: ConfigService, key: string, fallback: number): number {
   const value = Number(configService.get<string>(key));
@@ -67,6 +68,7 @@ function positiveInteger(configService: ConfigService, key: string, fallback: nu
     BookingsModule,
     QueuesModule,
     QueueWorkersModule,
+    NotificationsModule,
   ],
   controllers: [AppController, AdminAuthController],
   providers: [

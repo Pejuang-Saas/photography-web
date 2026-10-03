@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OutboxStatus, Prisma } from '@prisma/client';
 import { QueuesService } from '../queues/queues.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 
 type OutboxEventInput = {
   eventKey: string;
@@ -18,6 +19,7 @@ export class OutboxService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queues: QueuesService,
+    private readonly delivery: NotificationDeliveryService,
   ) {}
 
   createInTransaction(tx: Prisma.TransactionClient, input: OutboxEventInput) {
@@ -94,7 +96,15 @@ export class OutboxService {
       throw new Error('OUTBOX_DELIVERY_MODE is disabled; notification adapters are not configured');
     }
 
-    // Provider adapters (WhatsApp/email/invoice delivery) will consume this stable event contract.
+    if (mode === 'live') {
+      await this.delivery.dispatch(event);
+      return;
+    }
+
+    if (mode !== 'log') {
+      throw new Error(`Unsupported OUTBOX_DELIVERY_MODE: ${mode}`);
+    }
+
     // Log mode is intentionally development-only and never enabled by default in production.
     this.logger.log({
       message: 'Outbox event dispatched',

@@ -16,6 +16,12 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
       - OUTBOX_DELIVERY_MODE=${OUTBOX_DELIVERY_MODE:-log}
+      - CONFIG_ENCRYPTION_KEY=${CONFIG_ENCRYPTION_KEY:-}
+      - WAHA_ENABLED=${WAHA_ENABLED:-false}
+      - WAHA_BASE_URL=${WAHA_BASE_URL:-http://waha:3000}
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+      - WAHA_SESSION=${WAHA_SESSION:-default}
+      - WAHA_ADMIN_CHAT_ID=${WAHA_ADMIN_CHAT_ID:-}
       - DATABASE_URL=${DATABASE_URL:-postgresql://root:root@dev-postgres:5432/photography_db?schema=public}
       - REDIS_URL=${REDIS_URL:-redis://dev-redis:6379}
       - S3_ENDPOINT=http://minio:9000
