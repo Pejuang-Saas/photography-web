@@ -1,3 +1,5 @@
+import { ApiError, apiRequest } from './api-client';
+
 export type MediaAsset = {
   id: string;
   key: string;
@@ -112,29 +114,15 @@ export type GalleryPayload = {
   isPublished: boolean;
 };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002';
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, {
-    credentials: 'include',
-    ...init,
-    headers: {
-      ...(init?.body instanceof FormData ? {} : { 'content-type': 'application/json' }),
-      ...init?.headers,
-    },
-  });
-
-  if (response.status === 401 || response.status === 403) {
-    throw new Error('Sesi admin tidak memiliki akses ke CMS.');
+  try {
+    return await apiRequest<T>(path, init);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      throw new Error('Sesi admin tidak memiliki akses ke CMS.');
+    }
+    throw error;
   }
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(body?.message ?? 'Permintaan CMS gagal diproses.');
-  }
-
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
 }
 
 export const cmsApi = {
