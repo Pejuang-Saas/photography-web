@@ -11,6 +11,7 @@ export type Tile = {
   h: number;
   alt: string;
   category?: string;
+  categoryLabel?: string;
   campus?: string;
   title?: string;
   focal?: string;
@@ -18,7 +19,11 @@ export type Tile = {
 
 const INITIAL_COUNT = 8;
 
-const CATEGORIES = [
+function getTileImageSrc(src: string) {
+  return /^https?:\/\//i.test(src) ? src : `/portfolio/kayastory-${src}.jpg`;
+}
+
+const DEFAULT_CATEGORIES = [
   { id: 'all', label: 'Semua Foto' },
   { id: 'portrait', label: 'Kebaya & Solo' },
   { id: 'squad', label: 'Squad & Bestie' },
@@ -26,30 +31,33 @@ const CATEGORIES = [
   { id: 'details', label: 'Detail & Medali' },
 ];
 
-export default function Gallery({ tiles }: { tiles: Tile[] }) {
+export default function Gallery({ tiles, categoryOptions }: { tiles: Tile[]; categoryOptions?: Array<{ id: string; label: string }> }) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [showAll, setShowAll] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const shouldReduceMotion = useReducedMotion();
+  const categories = categoryOptions?.length
+    ? [{ id: 'all', label: 'Semua Foto' }, ...categoryOptions]
+    : DEFAULT_CATEGORIES;
 
   const enrichedTiles = useMemo(() => {
     return tiles.map((t) => {
-      let category = 'portrait';
-      let campus = 'Universitas Diponegoro, Semarang';
-      let title = 'Sesi Wisuda Kebaya & Solo';
+      let category = t.category ?? 'portrait';
+      let campus = t.campus ?? 'Universitas Diponegoro, Semarang';
+      let title = t.title ?? 'Sesi Wisuda Kebaya & Solo';
       let focal = '35mm f/1.4';
 
-      if (['02', '04', '05', '14', '16', '17', '21', '24'].includes(t.src)) {
+      if (!t.category && ['02', '04', '05', '14', '16', '17', '21', '24'].includes(t.src)) {
         category = 'squad';
         campus = 'Universitas Diponegoro, Tembalang';
         title = 'Squad & Bestie Graduation';
         focal = '28mm f/2.0';
-      } else if (['04', '05', '07', '11', '13'].includes(t.src)) {
+      } else if (!t.category && ['04', '05', '07', '11', '13'].includes(t.src)) {
         category = 'campus';
         campus = 'Universitas Negeri Semarang, Sekaran';
         title = 'Outdoor Campus Session';
         focal = '50mm f/1.4';
-      } else if (['09', '10', '15'].includes(t.src)) {
+      } else if (!t.category && ['09', '10', '15'].includes(t.src)) {
         category = 'details';
         campus = 'UDINUS Semarang';
         title = 'Detail Medali & Selempang';
@@ -121,7 +129,7 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
     <div className="mt-10">
       {/* ── Category Filter Pills with Morphing Indicator ── */}
       <div className="flex flex-wrap items-center gap-2 pb-8">
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
           const count =
             cat.id === 'all'
@@ -192,7 +200,7 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
               >
                 <div className="relative overflow-hidden rounded-xl bg-card border border-border-c transition-all duration-500 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/5">
                   <Image
-                    src={`/portfolio/kayastory-${t.src}.jpg`}
+                    src={getTileImageSrc(t.src)}
                     alt={t.alt}
                     width={t.w}
                     height={t.h}
@@ -308,7 +316,7 @@ export default function Gallery({ tiles }: { tiles: Tile[] }) {
               >
                 <div className="relative h-full w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
                   <Image
-                    src={`/portfolio/kayastory-${selectedTile.src}.jpg`}
+                    src={getTileImageSrc(selectedTile.src)}
                     alt={selectedTile.alt}
                     fill
                     sizes="(max-width: 1024px) 95vw, 850px"

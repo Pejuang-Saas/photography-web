@@ -1,4 +1,4 @@
-export default function StructuredData() {
+export default function StructuredData({ faqs }: { faqs?: Array<{ question: string; answer: string }> }) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://photography-web-gules.vercel.app';
 
   const localBusinessSchema = {
@@ -85,59 +85,49 @@ export default function StructuredData() {
     },
   };
 
+  const faqItems = faqs?.length
+    ? faqs
+    : [
+        {
+          question: 'Berapa lama proses editing sampai foto diterima?',
+          answer:
+            'Rata-rata 7 hari kerja setelah kamu memilih foto favoritmu. Jika membutuhkan foto lebih cepat, tersedia layanan Express 48 Jam.',
+        },
+        {
+          question: 'Apakah bisa request lokasi foto di luar kampus?',
+          answer:
+            'Bisa. Untuk Paket Family, lokasi sudah bebas di area Semarang. Untuk paket Solo dan Squad, lokasi luar kampus dikenakan penyesuaian biaya transport yang wajar.',
+        },
+        {
+          question: 'Bagaimana cara reservasi dan pembayarannya?',
+          answer:
+            'Pilih paket, isi form reservasi di WhatsApp, lalu bayar DP 50% untuk mengunci tanggal. Sisanya dilunasi setelah sesi foto selesai.',
+        },
+        {
+          question: 'Apakah seluruh foto mentah ikut diberikan?',
+          answer:
+            'Ya. Seluruh file foto mentah kualitas original tanpa watermark dibagikan via link Google Drive, di samping foto-foto yang sudah diedit.',
+        },
+        {
+          question: 'Bagaimana jika terjadi hujan atau jadwal wisuda berubah?',
+          answer:
+            'Reschedule gratis satu kali selama dikabari minimal H-1 sebelum pemotretan. DP tetap berlaku dan tidak hangus.',
+        },
+        {
+          question: 'Apakah orang yang belum pernah photoshoot bisa diarahkan?',
+          answer:
+            'Tentu. Mayoritas klien kami baru pertama kali foto profesional. Fotografer kami memandu pose, gestur, dan ekspresi dari awal sampai selesai.',
+        },
+      ];
+
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'Berapa lama proses editing sampai foto diterima?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Rata-rata 7 hari kerja setelah kamu memilih foto favoritmu. Jika membutuhkan foto lebih cepat, tersedia layanan Express 48 Jam.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Apakah bisa request lokasi foto di luar kampus?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Bisa. Untuk Paket Family, lokasi sudah bebas di area Semarang. Untuk paket Solo dan Squad, lokasi luar kampus dikenakan penyesuaian biaya transport yang wajar.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Bagaimana cara reservasi dan pembayarannya?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Pilih paket, isi form reservasi di WhatsApp, lalu bayar DP 50% untuk mengunci tanggal. Sisanya dilunasi setelah sesi foto selesai.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Apakah seluruh foto mentah ikut diberikan?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Ya. Seluruh file foto mentah kualitas original tanpa watermark dibagikan via link Google Drive, di samping foto-foto yang sudah diedit.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Bagaimana jika terjadi hujan atau jadwal wisuda berubah?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Reschedule gratis satu kali selama dikabari minimal H-1 sebelum pemotretan. DP tetap berlaku dan tidak hangus.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Apakah orang yang belum pernah photoshoot bisa diarahkan?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Tentu. Mayoritas klien kami baru pertama kali foto profesional. Fotografer kami memandu pose, gestur, dan ekspresi dari awal sampai selesai.',
-        },
-      },
-    ],
+    mainEntity: faqItems.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
   };
 
   return (

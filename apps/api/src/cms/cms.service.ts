@@ -46,6 +46,54 @@ export class CmsService {
     private readonly storage: StorageService,
   ) {}
 
+  private async revalidateLandingContent() {
+    const url = process.env.WEB_REVALIDATE_URL;
+    const secret = process.env.WEB_REVALIDATE_SECRET;
+    if (!url || !secret) return;
+
+    try {
+      await fetch(url, { method: 'POST', headers: { 'x-revalidate-secret': secret } });
+    } catch (error) {
+      console.error('Landing ISR revalidation failed', error);
+    }
+  }
+
+  async getLandingContent() {
+    const [gallery, marquee, testimonials, faqs] = await Promise.all([
+      this.prisma.galleryItem.findMany({
+        where: { isPublished: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        include: { category: true, mediaAsset: { select: { id: true, url: true } } },
+      }),
+      this.prisma.marqueeItem.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        select: { id: true, text: true, linkUrl: true, sortOrder: true },
+      }),
+      this.prisma.testimonial.findMany({
+        where: { isPublished: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          customerName: true,
+          customerRole: true,
+          university: true,
+          quote: true,
+          rating: true,
+          sortOrder: true,
+          mediaAsset: { select: { id: true, url: true } },
+        },
+      }),
+      this.prisma.faqItem.findMany({
+        where: { isPublished: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        select: { id: true, question: true, answer: true, sortOrder: true },
+      }),
+    ]);
+
+    return { gallery, marquee, testimonials, faqs };
+  }
+
   async uploadMedia(file: UploadedImage) {
     const upload = await this.storage.uploadCmsImage(file);
 
@@ -95,19 +143,23 @@ export class CmsService {
 
   async createCategory(dto: CreateGalleryCategoryDto) {
     const slug = await this.uniqueCategorySlug(dto.slug ?? dto.name);
-    return this.prisma.galleryCategory.create({
+    const category = await this.prisma.galleryCategory.create({
       data: { ...dto, slug },
     });
+    void this.revalidateLandingContent();
+    return category;
   }
 
   async updateCategory(id: string, dto: UpdateGalleryCategoryDto) {
     await this.requireCategory(id);
     const slug = dto.slug ? await this.uniqueCategorySlug(dto.slug, id) : undefined;
 
-    return this.prisma.galleryCategory.update({
+    const category = await this.prisma.galleryCategory.update({
       where: { id },
       data: { ...dto, slug },
     });
+    void this.revalidateLandingContent();
+    return category;
   }
 
   async removeCategory(id: string) {
@@ -122,6 +174,7 @@ export class CmsService {
 
       await tx.galleryCategory.delete({ where: { id } });
     });
+    void this.revalidateLandingContent();
   }
 
   listGalleryItems() {
@@ -135,13 +188,15 @@ export class CmsService {
     await this.requireMediaAsset(dto.mediaAssetId);
     if (dto.categoryId) await this.requireCategory(dto.categoryId);
 
-    return this.prisma.galleryItem.create({
+    const item = await this.prisma.galleryItem.create({
       data: {
         ...dto,
         publishedAt: dto.isPublished ? new Date() : undefined,
       },
       include: galleryInclude,
     });
+    void this.revalidateLandingContent();
+    return item;
   }
 
   async createGalleryItemWithImage(dto: CreateGalleryItemUploadDto, file: UploadedImage) {
@@ -150,7 +205,7 @@ export class CmsService {
     const upload = await this.storage.uploadCmsImage(file);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const item = await this.prisma.$transaction(async (tx) => {
         const mediaAsset = await tx.mediaAsset.create({ data: upload });
         return tx.galleryItem.create({
           data: {
@@ -161,6 +216,8 @@ export class CmsService {
           include: galleryInclude,
         });
       });
+      void this.revalidateLandingContent();
+      return item;
     } catch (error) {
       await this.removeUploadedObject(upload.key);
       throw error;
@@ -173,7 +230,7 @@ export class CmsService {
     if (dto.mediaAssetId) await this.requireMediaAsset(dto.mediaAssetId);
     if (dto.categoryId) await this.requireCategory(dto.categoryId);
 
-    return this.prisma.galleryItem.update({
+    const item = await this.prisma.galleryItem.update({
       where: { id },
       data: {
         ...dto,
@@ -186,6 +243,8 @@ export class CmsService {
       },
       include: galleryInclude,
     });
+    void this.revalidateLandingContent();
+    return item;
   }
 
   async updateGalleryItemWithImage(
@@ -199,7 +258,7 @@ export class CmsService {
     const upload = await this.storage.uploadCmsImage(file);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const item = await this.prisma.$transaction(async (tx) => {
         const mediaAsset = await tx.mediaAsset.create({ data: upload });
         return tx.galleryItem.update({
           where: { id },
@@ -216,6 +275,8 @@ export class CmsService {
           include: galleryInclude,
         });
       });
+      void this.revalidateLandingContent();
+      return item;
     } catch (error) {
       await this.removeUploadedObject(upload.key);
       throw error;
@@ -225,6 +286,7 @@ export class CmsService {
   async removeGalleryItem(id: string) {
     await this.requireGalleryItem(id);
     await this.prisma.galleryItem.delete({ where: { id } });
+    void this.revalidateLandingContent();
   }
 
   async reorderGalleryItem(id: string, direction: 'up' | 'down') {
@@ -264,18 +326,23 @@ export class CmsService {
     });
   }
 
-  createMarqueeItem(dto: CreateMarqueeItemDto) {
-    return this.prisma.marqueeItem.create({ data: dto });
+  async createMarqueeItem(dto: CreateMarqueeItemDto) {
+    const item = await this.prisma.marqueeItem.create({ data: dto });
+    void this.revalidateLandingContent();
+    return item;
   }
 
   async updateMarqueeItem(id: string, dto: UpdateMarqueeItemDto) {
     await this.requireMarqueeItem(id);
-    return this.prisma.marqueeItem.update({ where: { id }, data: dto });
+    const item = await this.prisma.marqueeItem.update({ where: { id }, data: dto });
+    void this.revalidateLandingContent();
+    return item;
   }
 
   async removeMarqueeItem(id: string) {
     await this.requireMarqueeItem(id);
     await this.prisma.marqueeItem.delete({ where: { id } });
+    void this.revalidateLandingContent();
   }
 
   async reorderMarqueeItem(id: string, direction: 'up' | 'down') {
@@ -314,25 +381,29 @@ export class CmsService {
 
   async createTestimonial(dto: CreateTestimonialDto) {
     if (dto.mediaAssetId) await this.requireMediaAsset(dto.mediaAssetId);
-    return this.prisma.testimonial.create({
+    const testimonial = await this.prisma.testimonial.create({
       data: {
         ...dto,
         isPublished: dto.isPublished ?? false,
       },
       include: testimonialInclude,
     });
+    void this.revalidateLandingContent();
+    return testimonial;
   }
 
   async createTestimonialWithImage(dto: CreateTestimonialUploadDto, file: UploadedImage) {
     const upload = await this.storage.uploadCmsImage(file);
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const testimonial = await this.prisma.$transaction(async (tx) => {
         const mediaAsset = await tx.mediaAsset.create({ data: upload });
         return tx.testimonial.create({
           data: { ...dto, mediaAssetId: mediaAsset.id, isPublished: dto.isPublished ?? false },
           include: testimonialInclude,
         });
       });
+      void this.revalidateLandingContent();
+      return testimonial;
     } catch (error) {
       await this.removeUploadedObject(upload.key);
       throw error;
@@ -342,11 +413,13 @@ export class CmsService {
   async updateTestimonial(id: string, dto: UpdateTestimonialDto) {
     await this.requireTestimonial(id);
     if (dto.mediaAssetId) await this.requireMediaAsset(dto.mediaAssetId);
-    return this.prisma.testimonial.update({
+    const testimonial = await this.prisma.testimonial.update({
       where: { id },
       data: dto,
       include: testimonialInclude,
     });
+    void this.revalidateLandingContent();
+    return testimonial;
   }
 
   async updateTestimonialWithImage(
@@ -357,7 +430,7 @@ export class CmsService {
     await this.requireTestimonial(id);
     const upload = await this.storage.uploadCmsImage(file);
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const testimonial = await this.prisma.$transaction(async (tx) => {
         const mediaAsset = await tx.mediaAsset.create({ data: upload });
         return tx.testimonial.update({
           where: { id },
@@ -365,6 +438,8 @@ export class CmsService {
           include: testimonialInclude,
         });
       });
+      void this.revalidateLandingContent();
+      return testimonial;
     } catch (error) {
       await this.removeUploadedObject(upload.key);
       throw error;
@@ -374,6 +449,7 @@ export class CmsService {
   async removeTestimonial(id: string) {
     await this.requireTestimonial(id);
     await this.prisma.testimonial.delete({ where: { id } });
+    void this.revalidateLandingContent();
   }
 
   async reorderTestimonial(id: string, direction: 'up' | 'down') {
@@ -413,20 +489,25 @@ export class CmsService {
     });
   }
 
-  createFaqItem(dto: CreateFaqItemDto) {
-    return this.prisma.faqItem.create({
+  async createFaqItem(dto: CreateFaqItemDto) {
+    const item = await this.prisma.faqItem.create({
       data: { ...dto, isPublished: dto.isPublished ?? false },
     });
+    void this.revalidateLandingContent();
+    return item;
   }
 
   async updateFaqItem(id: string, dto: UpdateFaqItemDto) {
     await this.requireFaqItem(id);
-    return this.prisma.faqItem.update({ where: { id }, data: dto });
+    const item = await this.prisma.faqItem.update({ where: { id }, data: dto });
+    void this.revalidateLandingContent();
+    return item;
   }
 
   async removeFaqItem(id: string) {
     await this.requireFaqItem(id);
     await this.prisma.faqItem.delete({ where: { id } });
+    void this.revalidateLandingContent();
   }
 
   async reorderFaqItem(id: string, direction: 'up' | 'down') {

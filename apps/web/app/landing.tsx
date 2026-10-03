@@ -12,6 +12,8 @@ import TestimonialCard from './components/testimonial-card';
 import MagneticButton from './components/magnetic-button';
 import QuickBookingDock from './components/quick-booking-dock';
 import FrameCounter from './components/frame-counter';
+import StructuredData from './components/structured-data';
+import type { LandingCmsContent } from '@/lib/landing-cms';
 import {
   FilmStrip,
   Sparkle,
@@ -202,9 +204,49 @@ const campuses = [
 // MAIN COMPONENT
 // ────────────────────────────────────────────────
 
-export default function Landing() {
+export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent | null }) {
+  const cmsGallery = cmsContent?.gallery ?? [];
+  const galleryTiles = cmsGallery.length
+    ? cmsGallery.map((item) => ({
+        src: item.mediaAsset.url,
+        w: 2160,
+        h: 2700,
+        alt: item.altText || item.title,
+        category: item.category?.slug,
+        categoryLabel: item.category?.name,
+        campus: item.location ?? undefined,
+        title: item.title,
+      }))
+    : portfolioTiles;
+  const galleryCategories = cmsGallery.length
+    ? Array.from(
+        new Map(
+          cmsGallery
+            .filter((item) => item.category)
+            .map((item) => [item.category!.slug, { id: item.category!.slug, label: item.category!.name }]),
+        ).values(),
+      )
+    : undefined;
+  const landingMarquee = cmsContent?.marquee?.length
+    ? cmsContent.marquee.map((item) => item.text)
+    : campuses;
+  const landingFaqs = cmsContent?.faqs?.length
+    ? cmsContent.faqs.map((item) => ({ q: item.question, a: item.answer }))
+    : faqs;
+  const landingStories = cmsContent?.testimonials?.length
+    ? cmsContent.testimonials.map((item) => ({
+        quote: item.quote,
+        author: item.customerName,
+        campus: item.university || item.customerRole || 'Customer Kayastory',
+        photo: '',
+        photoUrl: item.mediaAsset?.url,
+        rating: item.rating,
+      }))
+    : featuredStories;
+
   return (
     <div className="min-h-[100dvh] flex flex-col bg-bg text-fg relative film-grain selection:bg-accent selection:text-accent-fg">
+      <StructuredData faqs={landingFaqs.map((item) => ({ question: item.q, answer: item.a }))} />
       {/* ── 35MM ASSET PRELOADER ── */}
       <Preloader />
 
@@ -234,7 +276,7 @@ export default function Landing() {
       </section>
 
       {/* ── CAMPUS RIBBON (Marquee with Edge Alpha Gradient Masks) ── */}
-      <CampusMarquee campuses={campuses} />
+      <CampusMarquee campuses={landingMarquee} />
 
       {/* ── SECTION 2: PORTFOLIO ── */}
       <section id="portfolio" className="scroll-mt-24 px-4 py-24 lg:py-32">
@@ -252,7 +294,7 @@ export default function Landing() {
           </ScrollReveal>
 
           {/* Gallery with Morphing Pills & 35mm Lightbox Modal */}
-          <Gallery tiles={portfolioTiles} />
+          <Gallery tiles={galleryTiles} categoryOptions={galleryCategories} />
         </div>
       </section>
 
@@ -404,7 +446,7 @@ export default function Landing() {
 
           {/* Studix-Style Stacked Story Cards with Spotlight */}
           <div className="space-y-6">
-            {featuredStories.map((story, i) => (
+            {landingStories.map((story, i) => (
               <ScrollReveal key={story.author} delay={i * 0.1}>
                 <TestimonialCard story={story} />
               </ScrollReveal>
@@ -459,7 +501,7 @@ export default function Landing() {
 
             {/* Right Column: Smooth Animated Accordion */}
             <ScrollReveal className="lg:col-span-7">
-              <FAQAccordion items={faqs} />
+              <FAQAccordion items={landingFaqs} />
             </ScrollReveal>
           </div>
         </div>

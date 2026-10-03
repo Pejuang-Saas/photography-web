@@ -10,6 +10,8 @@ export interface TestimonialStory {
   author: string;
   campus: string;
   photo: string;
+  photoUrl?: string;
+  rating?: number;
 }
 
 interface TestimonialCardProps {
@@ -52,7 +54,7 @@ export default function TestimonialCard({ story }: TestimonialCardProps) {
       {/* Left: Large Photo (38%) with 35mm Frame Notches */}
       <div className="relative aspect-[4/3] md:aspect-auto md:w-[38%] min-h-[260px] overflow-hidden bg-black shrink-0 z-10">
         <Image
-          src={`/portfolio/kayastory-${story.photo}.jpg`}
+          src={story.photoUrl || `/portfolio/kayastory-${story.photo}.jpg`}
           alt={`Foto Sesi Wisuda ${story.author}`}
           fill
           sizes="(max-width: 768px) 100vw, 400px"
@@ -87,7 +89,7 @@ export default function TestimonialCard({ story }: TestimonialCardProps) {
 
           {/* Gold Rating Stars */}
           <div className="flex items-center gap-1 text-accent">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(story.rating ?? 5)].map((_, i) => (
               <Star key={i} size={14} weight="fill" />
             ))}
           </div>
