@@ -29,6 +29,7 @@ import {
   SubmitManualPaymentDto,
   VerifyPaymentDto,
 } from './dto/payment.dto';
+import { MidtransClient } from './gateways/midtrans.client';
 
 @Injectable()
 export class PaymentsService {
@@ -175,6 +176,9 @@ export class PaymentsService {
     ) {
       throw new BadRequestException('Gateway payment is not active for this booking');
     }
+    if (settings.gatewayProvider !== GatewayProvider.MOCK) {
+      throw new BadRequestException('Real gateway payments are confirmed by provider webhook');
+    }
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
       throw new ConflictException('This booking is no longer waiting for payment');
     }
@@ -264,6 +268,92 @@ export class PaymentsService {
         }
         throw error;
       });
+  }
+
+  async createGatewayIntent(
+    id: string,
+    rawIdempotencyKey: string | undefined,
+    midtrans: MidtransClient,
+  ) {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    const idempotencyHash = hashIdempotencyPayload({ bookingId: id, action: 'gateway-intent' });
+    const previous = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
+    if (previous) {
+      assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
+      return this.gatewayIntentResponse(previous);
+    }
+
+    const booking = await this.requireBooking(id);
+    const settings = await this.paymentSettings.getCurrent();
+    if (
+      booking.paymentMode !== PaymentMode.GATEWAY ||
+      settings.activeMode !== PaymentMode.GATEWAY ||
+      settings.gatewayProvider !== GatewayProvider.MIDTRANS
+    ) {
+      throw new BadRequestException('Midtrans gateway is not active for this booking');
+    }
+    if (booking.status !== BookingStatus.PENDING_PAYMENT) {
+      throw new ConflictException('This booking is no longer waiting for payment');
+    }
+
+    const orderId = `ORDER-${booking.bookingCode}-${idempotencyHash.slice(0, 12)}`;
+    const intent = await midtrans.createSnapIntent({
+      orderId,
+      amount: booking.requiredAmount,
+      customerName: booking.customerName,
+      customerEmail: booking.customerEmail,
+      customerPhone: booking.customerPhone,
+      itemName: booking.packageName,
+    });
+
+    try {
+      const payment = await this.prisma.payment.create({
+        data: {
+          bookingId: id,
+          method: 'GATEWAY',
+          provider: GatewayProvider.MIDTRANS,
+          plan: booking.paymentPlan,
+          amount: booking.requiredAmount,
+          status: PaymentStatus.UNPAID,
+          externalReference: orderId,
+          idempotencyKey,
+          idempotencyHash,
+          metadata: { token: intent.token, redirectUrl: intent.redirectUrl },
+        },
+      });
+      return {
+        paymentId: payment.id,
+        orderId,
+        provider: GatewayProvider.MIDTRANS,
+        clientKey: settings.clientKey,
+        token: intent.token,
+        redirectUrl: intent.redirectUrl,
+      };
+    } catch (error) {
+      if (this.isUniqueViolation(error)) {
+        const concurrent = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
+        if (concurrent) {
+          assertSameIdempotencyPayload(concurrent.idempotencyHash, idempotencyHash);
+          return this.gatewayIntentResponse(concurrent);
+        }
+      }
+      throw error;
+    }
+  }
+
+  private gatewayIntentResponse(payment: Prisma.PaymentGetPayload<{}>) {
+    const metadata = payment.metadata;
+    const values =
+      metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? (metadata as { token?: string; redirectUrl?: string })
+        : {};
+    return {
+      paymentId: payment.id,
+      orderId: payment.externalReference,
+      provider: payment.provider,
+      token: values.token,
+      redirectUrl: values.redirectUrl,
+    };
   }
 
   async verifyPayment(id: string, dto: VerifyPaymentDto, actorId: string) {

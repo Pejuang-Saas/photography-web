@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaymentMode, Prisma } from '@prisma/client';
-import { encryptSecret } from '../common/secret-box';
+import { decryptSecret, encryptSecret } from '../common/secret-box';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateManualPaymentAccountDto,
@@ -57,6 +57,23 @@ export class PaymentSettingsService {
       serverKeyConfigured: Boolean(settings.serverKeyEncrypted),
       secretKeyConfigured: Boolean(settings.secretKeyEncrypted),
       updatedAt: settings.updatedAt,
+    };
+  }
+
+  async getGatewayCredentials() {
+    const settings = await this.getCurrent();
+    return {
+      provider: settings.gatewayProvider,
+      environment: settings.gatewayEnvironment,
+      merchantId: settings.merchantId,
+      clientKey: settings.clientKey,
+      serverKey: settings.serverKeyEncrypted
+        ? decryptSecret(settings.serverKeyEncrypted)
+        : undefined,
+      publicKey: settings.publicKey,
+      secretKey: settings.secretKeyEncrypted
+        ? decryptSecret(settings.secretKeyEncrypted)
+        : undefined,
     };
   }
 

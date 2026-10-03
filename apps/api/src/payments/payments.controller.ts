@@ -24,13 +24,18 @@ import {
   UpdateManualPaymentAccountDto,
   UpdatePaymentSettingsDto,
   VerifyPaymentDto,
+  MidtransWebhookDto,
 } from './dto/payment.dto';
+import { MidtransClient } from './gateways/midtrans.client';
+import { MidtransWebhookService } from './gateways/midtrans.webhook.service';
 
 @Controller()
 export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
     private readonly paymentSettings: PaymentSettingsService,
+    private readonly midtrans: MidtransClient,
+    private readonly midtransWebhook: MidtransWebhookService,
   ) {}
 
   @Get('public/payment-settings')
@@ -57,6 +62,20 @@ export class PaymentsController {
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     return this.paymentsService.confirmGatewayPayment(id, dto, idempotencyKey);
+  }
+
+  @Post('public/bookings/:id/gateway/intent')
+  createGatewayIntent(
+    @Param('id') id: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.paymentsService.createGatewayIntent(id, idempotencyKey, this.midtrans);
+  }
+
+  @Post('webhooks/payments/midtrans')
+  @HttpCode(200)
+  handleMidtransWebhook(@Body() dto: MidtransWebhookDto) {
+    return this.midtransWebhook.handle(dto);
   }
 
   @Roles(['admin'])

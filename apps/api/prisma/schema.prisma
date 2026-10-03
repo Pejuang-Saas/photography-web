@@ -103,6 +103,12 @@ enum OutboxStatus {
   FAILED
 }
 
+enum GatewayWebhookStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
 model ServicePackage {
   id              String   @id @default(uuid())
   name            String
@@ -241,6 +247,24 @@ model Payment {
   @@index([bookingId, createdAt])
   @@index([status, createdAt])
   @@map("payments")
+}
+
+model GatewayWebhookEvent {
+  id            String               @id @default(uuid())
+  provider      GatewayProvider
+  eventKey      String               @unique @map("event_key")
+  transactionId String?              @map("transaction_id")
+  orderId       String?              @map("order_id")
+  status        GatewayWebhookStatus @default(RECEIVED)
+  payload       Json
+  error         String?
+  receivedAt    DateTime             @default(now()) @map("received_at")
+  processedAt   DateTime?            @map("processed_at")
+
+  @@index([provider, transactionId])
+  @@index([provider, orderId])
+  @@index([status, receivedAt])
+  @@map("gateway_webhook_events")
 }
 
 model PaymentProof {

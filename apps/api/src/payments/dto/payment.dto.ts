@@ -1,5 +1,5 @@
 import { GatewayEnvironment, GatewayProvider, PaymentMode, PaymentPlan } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -34,6 +34,56 @@ export class ConfirmGatewayPaymentDto {
   @IsString()
   @MaxLength(160)
   externalReference?: string;
+}
+
+export class MidtransWebhookDto {
+  @Expose({ name: 'transaction_status' })
+  @IsString()
+  @MaxLength(120)
+  transactionStatus: string;
+
+  @Expose({ name: 'transaction_id' })
+  @IsString()
+  @MaxLength(160)
+  transactionId: string;
+
+  @Expose({ name: 'status_code' })
+  @IsString()
+  @MaxLength(10)
+  statusCode: string;
+
+  @Expose({ name: 'signature_key' })
+  @IsString()
+  @MaxLength(160)
+  signatureKey: string;
+
+  @Expose({ name: 'order_id' })
+  @IsString()
+  @MaxLength(160)
+  orderId: string;
+
+  @Expose({ name: 'gross_amount' })
+  @IsString()
+  @MaxLength(40)
+  grossAmount: string;
+
+  @Expose({ name: 'fraud_status' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  fraudStatus?: string;
+
+  @Expose({ name: 'payment_type' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  paymentType?: string;
+
+  @Expose()
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  currency?: string;
 }
 
 export class VerifyPaymentDto {
