@@ -24,7 +24,11 @@ export class QueueSchedulersService implements OnModuleInit {
         {
           name: 'sweep-expired-bookings',
           data: { sweep: true },
-          opts: { attempts: 3, backoff: { type: 'exponential', delay: 5_000 } },
+          opts: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5_000 },
+            removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
+          },
         },
       ),
       this.storageCleanupQueue.upsertJobScheduler(
@@ -33,7 +37,11 @@ export class QueueSchedulersService implements OnModuleInit {
         {
           name: 'sweep-storage-cleanup',
           data: { sweep: true },
-          opts: { attempts: 3, backoff: { type: 'exponential', delay: 5_000 } },
+          opts: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5_000 },
+            removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
+          },
         },
       ),
       this.outboxQueue.upsertJobScheduler(
@@ -42,7 +50,11 @@ export class QueueSchedulersService implements OnModuleInit {
         {
           name: 'sweep-outbox',
           data: { sweep: true },
-          opts: { attempts: 3, backoff: { type: 'exponential', delay: 5_000 } },
+          opts: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5_000 },
+            removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
+          },
         },
       ),
     ]).catch((error) => {

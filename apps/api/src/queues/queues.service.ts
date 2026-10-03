@@ -26,7 +26,7 @@ export class QueuesService {
         attempts: 5,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: 100,
-        removeOnFail: true,
+        removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
       },
     );
   }
@@ -40,7 +40,7 @@ export class QueuesService {
         attempts: 10,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: 100,
-        removeOnFail: true,
+        removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
       },
     );
   }
@@ -54,8 +54,26 @@ export class QueuesService {
         attempts: 10,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: 100,
-        removeOnFail: true,
+        removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
       },
     );
+  }
+
+  async getHealth() {
+    const queues = [
+      ['booking-expiration', this.bookingExpirationQueue],
+      ['storage-cleanup', this.storageCleanupQueue],
+      ['outbox', this.outboxQueue],
+    ] as const;
+    const entries = await Promise.all(
+      queues.map(
+        async ([name, queue]) =>
+          [
+            name,
+            await queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed'),
+          ] as const,
+      ),
+    );
+    return Object.fromEntries(entries);
   }
 }
