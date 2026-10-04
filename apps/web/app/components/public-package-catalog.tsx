@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { bookingApi, type ServicePackage } from '@/lib/booking-api';
 import PackageCard, { type PackageData } from './package-card';
+import PublicBookingDialog from './public-booking-dialog';
 import ScrollReveal from './scroll-reveal';
 
 const presentationBySlug: Record<string, { cover: string; badge?: string; isFeatured: boolean }> = {
@@ -40,6 +42,7 @@ function toPackageCardData(pkg: ServicePackage, index: number): PackageData {
 }
 
 export default function PublicPackageCatalog() {
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const packages = useQuery({
     queryKey: ['public', 'packages'],
     queryFn: bookingApi.listPackages,
@@ -65,6 +68,7 @@ export default function PublicPackageCatalog() {
   }
 
   const activePackages = (packages.data ?? []).filter((pkg) => pkg.isActive);
+  const selectedPackage = activePackages.find((pkg) => pkg.id === selectedPackageId);
 
   if (activePackages.length === 0) {
     return (
@@ -78,9 +82,20 @@ export default function PublicPackageCatalog() {
     <div className="mt-14 grid gap-8 lg:grid-cols-3 items-stretch">
       {activePackages.map((pkg, index) => (
         <ScrollReveal key={pkg.id} delay={index * 0.1}>
-          <PackageCard pkg={toPackageCardData(pkg, index)} />
+          <PackageCard
+            pkg={toPackageCardData(pkg, index)}
+            onSelect={() => setSelectedPackageId(pkg.id)}
+          />
         </ScrollReveal>
       ))}
+      {selectedPackage && (
+        <PublicBookingDialog
+          key={selectedPackage.id}
+          packageItem={selectedPackage}
+          open={Boolean(selectedPackageId)}
+          onOpenChange={(open) => !open && setSelectedPackageId(null)}
+        />
+      )}
     </div>
   );
 }

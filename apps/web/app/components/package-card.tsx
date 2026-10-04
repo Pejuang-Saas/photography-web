@@ -18,9 +18,10 @@ export interface PackageData {
 
 interface PackageCardProps {
   pkg: PackageData;
+  onSelect?: (packageId: string) => void;
 }
 
-export default function PackageCard({ pkg }: PackageCardProps) {
+export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
@@ -117,23 +118,40 @@ export default function PackageCard({ pkg }: PackageCardProps) {
         </div>
 
         {/* CTA Button with Nested Arrow Hover Physics */}
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(
-            `Halo Kayastory! Saya tertarik reservasi ${pkg.name} untuk wisuda.`,
-          )}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`group/btn mt-7 flex items-center justify-center gap-2 rounded-full py-3.5 px-6 text-center text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.97] ${
-            pkg.isFeatured
-              ? 'bg-accent text-accent-fg hover:bg-accent-light shadow-lg shadow-accent/20'
-              : 'border border-white/15 bg-bg text-fg hover:border-accent hover:text-accent'
-          }`}
-        >
-          <span>Pilih {pkg.name}</span>
-          <span className="transition-transform duration-200 group-hover/btn:translate-x-1">
-            <ArrowRight size={13} weight="bold" />
-          </span>
-        </a>
+        {onSelect ? (
+          <button
+            type="button"
+            onClick={() => onSelect(pkg.id)}
+            className={`group/btn mt-7 flex items-center justify-center gap-2 rounded-full py-3.5 px-6 text-center text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.97] ${
+              pkg.isFeatured
+                ? 'bg-accent text-accent-fg hover:bg-accent-light shadow-lg shadow-accent/20'
+                : 'border border-white/15 bg-bg text-fg hover:border-accent hover:text-accent'
+            }`}
+          >
+            <span>Pilih {pkg.name}</span>
+            <span className="transition-transform duration-200 group-hover/btn:translate-x-1">
+              <ArrowRight size={13} weight="bold" />
+            </span>
+          </button>
+        ) : (
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+              `Halo Kayastory! Saya tertarik reservasi ${pkg.name} untuk wisuda.`,
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`group/btn mt-7 flex items-center justify-center gap-2 rounded-full py-3.5 px-6 text-center text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.97] ${
+              pkg.isFeatured
+                ? 'bg-accent text-accent-fg hover:bg-accent-light shadow-lg shadow-accent/20'
+                : 'border border-white/15 bg-bg text-fg hover:border-accent hover:text-accent'
+            }`}
+          >
+            <span>Pilih {pkg.name}</span>
+            <span className="transition-transform duration-200 group-hover/btn:translate-x-1">
+              <ArrowRight size={13} weight="bold" />
+            </span>
+          </a>
+        )}
       </div>
     </div>
   );
