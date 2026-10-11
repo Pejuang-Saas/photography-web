@@ -2,8 +2,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { useAdmin } from '@/lib/admin-context';
-import { formatRupiah } from '@/lib/mock-data';
-import { Search, Clock, Calendar, Download, MessageCircle, Eye } from 'lucide-react';
+import { errorMessage, useAdminBookings } from '@/lib/admin-queries';
+import { bookingBadge, latestManualPayment } from '@/lib/booking-status';
+import { formatDay, formatRupiah, whatsappLink } from '@/lib/format';
+import { Search, Calendar, Download, MessageCircle, Eye } from 'lucide-react';
+import { QueryError } from '../components/query-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -17,38 +20,75 @@ import {
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 
+const CLOSED_STATUSES = ['REJECTED', 'EXPIRED', 'CANCELLED'];
+
+function csvCell(value: string | number) {
+  const text = String(value).replace(/"/g, '""');
+  // Stop spreadsheet apps from evaluating customer-supplied text as a formula.
+  return `"${/^[=+\-@]/.test(text) ? `'${text}` : text}"`;
+}
+
 export default function BookingsManagementPage() {
-  const { bookings, setSelectedBooking } = useAdmin();
+  const { setSelectedBooking } = useAdmin();
+  const bookingsQuery = useAdminBookings();
+  const bookings = useMemo(() => bookingsQuery.data ?? [], [bookingsQuery.data]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<string>('ALL');
-  const [selectedUniversity, setSelectedUniversity] = useState<string>('ALL');
+  const [selectedMode, setSelectedMode] = useState<string>('ALL');
 
   const filteredBookings = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return bookings.filter((b) => {
+      if (activeTab === 'UNPAID' && b.status !== 'PENDING_PAYMENT') return false;
       if (activeTab === 'PENDING' && b.status !== 'PENDING_VERIFICATION') return false;
       if (activeTab === 'CONFIRMED' && b.status !== 'CONFIRMED') return false;
       if (activeTab === 'COMPLETED' && b.status !== 'COMPLETED') return false;
+      if (activeTab === 'CLOSED' && !CLOSED_STATUSES.includes(b.status)) return false;
+      if (selectedMode !== 'ALL' && b.paymentMode !== selectedMode) return false;
 
-      if (selectedUniversity !== 'ALL' && !b.university.includes(selectedUniversity)) {
-        return false;
-      }
-
-      if (searchQuery.trim() !== '') {
-        const query = searchQuery.toLowerCase();
-        const matchName = b.customerName.toLowerCase().includes(query);
-        const matchCode = b.bookingCode.toLowerCase().includes(query);
-        const matchPhone = b.customerPhone.includes(query);
-        const matchUniv = b.university.toLowerCase().includes(query);
-        if (!matchName && !matchCode && !matchPhone && !matchUniv) {
-          return false;
-        }
-      }
-
-      return true;
+      if (!query) return true;
+      return (
+        b.customerName.toLowerCase().includes(query) ||
+        b.bookingCode.toLowerCase().includes(query) ||
+        b.customerPhone.includes(query) ||
+        b.packageName.toLowerCase().includes(query)
+      );
     });
-  }, [bookings, activeTab, selectedUniversity, searchQuery]);
+  }, [bookings, activeTab, selectedMode, searchQuery]);
 
   const pendingCount = bookings.filter((b) => b.status === 'PENDING_VERIFICATION').length;
+
+  const exportCsv = () => {
+    const header = 'Kode,Nama,Telepon,Email,Paket,Total,Dibayar,Metode,Tanggal,Status\n';
+    const rows = filteredBookings
+      .map((b) =>
+        [
+          b.bookingCode,
+          b.customerName,
+          b.customerPhone,
+          b.customerEmail,
+          b.packageName,
+          b.totalAmount,
+          b.payments
+            .filter((p) => p.status === 'PAID_DP' || p.status === 'PAID_FULL')
+            .reduce((sum, p) => sum + p.amount, 0),
+          b.paymentMode,
+          b.sessionDate.slice(0, 10),
+          bookingBadge(b).label,
+        ]
+          .map(csvCell)
+          .join(','),
+      )
+      .join('\n');
+    const url = URL.createObjectURL(new Blob([header + rows], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'kayastory-reservasi.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -66,24 +106,7 @@ export default function BookingsManagementPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            const csvContent =
-              'Kode,Nama,Telepon,Universitas,Paket,Total,Tanggal,Status\n' +
-              filteredBookings
-                .map(
-                  (b) =>
-                    `"${b.bookingCode}","${b.customerName}","${b.customerPhone}","${b.university}","${b.packageName}",${b.totalPrice},"${b.sessionDate}","${b.status}"`,
-                )
-                .join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `kayastory-reservasi.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }}
+          onClick={exportCsv}
           className="h-9 gap-1.5 border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           <Download className="size-3.5 text-amber-500" />
@@ -103,6 +126,12 @@ export default function BookingsManagementPage() {
               Semua ({bookings.length})
             </TabsTrigger>
             <TabsTrigger
+              value="UNPAID"
+              className="text-xs px-3.5 py-1.5 rounded-lg text-zinc-700 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white data-active:bg-white dark:data-active:bg-zinc-800 data-active:text-zinc-900 dark:data-active:text-white font-semibold data-active:shadow-sm transition-all"
+            >
+              Belum Bayar
+            </TabsTrigger>
+            <TabsTrigger
               value="PENDING"
               className="text-xs px-3.5 py-1.5 rounded-lg text-zinc-700 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white data-active:bg-white dark:data-active:bg-zinc-800 data-active:text-amber-600 dark:data-active:text-amber-400 font-semibold data-active:shadow-sm transition-all"
             >
@@ -120,6 +149,12 @@ export default function BookingsManagementPage() {
             >
               Selesai
             </TabsTrigger>
+            <TabsTrigger
+              value="CLOSED"
+              className="text-xs px-3.5 py-1.5 rounded-lg text-zinc-700 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white data-active:bg-white dark:data-active:bg-zinc-800 data-active:text-rose-600 dark:data-active:text-rose-400 font-semibold data-active:shadow-sm transition-all"
+            >
+              Ditutup
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -128,30 +163,33 @@ export default function BookingsManagementPage() {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400 dark:text-zinc-500" />
             <Input
-              placeholder="Cari klien, telp, kode..."
+              placeholder="Cari klien, telp, kode, paket..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 rounded-xl border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-9 pr-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             />
           </div>
 
-          <Select
-            value={selectedUniversity}
-            onValueChange={(val) => val && setSelectedUniversity(val)}
-          >
+          <Select value={selectedMode} onValueChange={(val) => val && setSelectedMode(val)}>
             <SelectTrigger className="h-10 w-full sm:w-44 rounded-xl border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-800 dark:text-zinc-200">
-              <SelectValue placeholder="Semua Kampus" />
+              <SelectValue placeholder="Semua Metode" />
             </SelectTrigger>
             <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs">
-              <SelectItem value="ALL">Semua Kampus</SelectItem>
-              <SelectItem value="Undip">Undip</SelectItem>
-              <SelectItem value="Unnes">Unnes</SelectItem>
-              <SelectItem value="Udinus">Udinus</SelectItem>
-              <SelectItem value="Polines">Polines</SelectItem>
+              <SelectItem value="ALL">Semua Metode</SelectItem>
+              <SelectItem value="MANUAL">Transfer Manual</SelectItem>
+              <SelectItem value="GATEWAY">Payment Gateway</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
+
+      {bookingsQuery.isError && (
+        <QueryError
+          title="Reservasi tidak dapat dimuat"
+          message={errorMessage(bookingsQuery.error)}
+          retry={() => bookingsQuery.refetch()}
+        />
+      )}
 
       {/* Main Table */}
       <Card className="rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 overflow-hidden shadow-sm">
@@ -160,7 +198,7 @@ export default function BookingsManagementPage() {
             <thead className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
               <tr>
                 <th className="p-3.5 pl-5 font-semibold">Kode & Klien</th>
-                <th className="p-3.5 font-semibold">Universitas</th>
+                <th className="p-3.5 font-semibold">Metode</th>
                 <th className="p-3.5 font-semibold">Paket & Total</th>
                 <th className="p-3.5 font-semibold">Jadwal Sesi</th>
                 <th className="p-3.5 font-semibold">Status Pembayaran</th>
@@ -171,12 +209,19 @@ export default function BookingsManagementPage() {
               {filteredBookings.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-zinc-500">
-                    Tidak ditemukan data reservasi yang cocok.
+                    {bookingsQuery.isLoading
+                      ? 'Memuat reservasi...'
+                      : 'Tidak ditemukan data reservasi yang cocok.'}
                   </td>
                 </tr>
               ) : (
                 filteredBookings.map((booking) => {
-                  const waLink = `https://wa.me/${booking.customerPhone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20kak%20${encodeURIComponent(booking.customerName)}`;
+                  const waLink = whatsappLink(
+                    booking.customerPhone,
+                    `Halo kak ${booking.customerName}`,
+                  );
+                  const badge = bookingBadge(booking);
+                  const manual = latestManualPayment(booking);
 
                   return (
                     <tr
@@ -198,11 +243,13 @@ export default function BookingsManagementPage() {
 
                       <td className="p-3.5">
                         <div className="text-zinc-900 dark:text-zinc-200 font-medium">
-                          {booking.university}
+                          {booking.paymentMode === 'GATEWAY'
+                            ? 'Payment Gateway'
+                            : 'Transfer Manual'}
                         </div>
-                        {booking.faculty && (
-                          <div className="text-[11px] text-zinc-500">{booking.faculty}</div>
-                        )}
+                        <div className="text-[11px] text-zinc-500">
+                          {booking.paymentPlan === 'FULL' ? 'Bayar Lunas' : 'DP 50%'}
+                        </div>
                       </td>
 
                       <td className="p-3.5">
@@ -210,14 +257,14 @@ export default function BookingsManagementPage() {
                           {booking.packageName}
                         </div>
                         <div className="font-mono font-bold text-zinc-900 dark:text-white text-xs">
-                          {formatRupiah(booking.totalPrice)}
+                          {formatRupiah(booking.totalAmount)}
                         </div>
                       </td>
 
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5 text-zinc-800 dark:text-zinc-300 font-medium">
                           <Calendar className="size-3.5 text-amber-500" />
-                          {booking.sessionDate}
+                          {formatDay(booking.sessionDate)}
                         </div>
                         <div className="font-mono text-[11px] text-zinc-500 pl-5">
                           {booking.timeSlot} WIB
@@ -225,23 +272,17 @@ export default function BookingsManagementPage() {
                       </td>
 
                       <td className="p-3.5">
-                        {booking.status === 'PENDING_VERIFICATION' ? (
-                          <div className="space-y-1">
-                            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold gap-1 animate-pulse">
-                              <Clock className="size-3" /> Verifikasi Struk
-                            </Badge>
-                            <div className="text-[10px] font-mono text-zinc-500">
-                              {booking.paymentBank}
-                            </div>
+                        <Badge
+                          className={`${badge.className} text-[10px] font-bold ${
+                            booking.status === 'PENDING_VERIFICATION' ? 'animate-pulse' : ''
+                          }`}
+                        >
+                          {badge.label}
+                        </Badge>
+                        {manual?.manualAccount && booking.status === 'PENDING_VERIFICATION' && (
+                          <div className="mt-1 text-[10px] font-mono text-zinc-500">
+                            {manual.manualAccount.bankName}
                           </div>
-                        ) : booking.paymentStatus === 'PAID_FULL' ? (
-                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
-                            Lunas ({formatRupiah(booking.totalPrice)})
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-[10px] font-bold">
-                            DP Terverifikasi
-                          </Badge>
                         )}
                       </td>
 

@@ -1,35 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import type { AdminBooking } from '@/lib/admin-api';
 import { useAdmin } from '@/lib/admin-context';
-import { formatRupiah } from '@/lib/mock-data';
+import { errorMessage, useAdminBookings } from '@/lib/admin-queries';
+import { bookingBadge, SLOT_HOLDING_STATUSES } from '@/lib/booking-status';
+import { formatRupiah, todayWib, toDay, whatsappLink } from '@/lib/format';
 import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
   Clock,
-  MapPin,
-  Camera,
   MessageCircle,
   Eye,
 } from 'lucide-react';
+import { QueryError } from '../components/query-state';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 export default function CalendarSchedulePage() {
-  const { bookings, setSelectedBooking } = useAdmin();
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(7); // August (0-indexed 7)
-  const [selectedDateStr, setSelectedDateStr] = useState('2026-08-25');
-  const [selectedPhotographer, setSelectedPhotographer] = useState('ALL');
+  const { setSelectedBooking } = useAdmin();
+  const bookingsQuery = useAdminBookings();
+  const today = todayWib();
+  const [currentYear, setCurrentYear] = useState(Number(today.slice(0, 4)));
+  const [currentMonth, setCurrentMonth] = useState(Number(today.slice(5, 7)) - 1);
+  const [selectedDateStr, setSelectedDateStr] = useState(today);
 
   const monthNames = [
     'Januari',
@@ -65,9 +61,9 @@ export default function CalendarSchedulePage() {
   };
 
   const handleToday = () => {
-    setCurrentYear(2026);
-    setCurrentMonth(7);
-    setSelectedDateStr('2026-08-25');
+    setCurrentYear(Number(today.slice(0, 4)));
+    setCurrentMonth(Number(today.slice(5, 7)) - 1);
+    setSelectedDateStr(today);
   };
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -76,14 +72,18 @@ export default function CalendarSchedulePage() {
   const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const emptyLeadingDays = Array.from({ length: (firstDayOfWeek + 6) % 7 }, (_, i) => i);
 
-  const filteredBookings = bookings.filter((b) => {
-    if (selectedPhotographer !== 'ALL' && !b.photographer.includes(selectedPhotographer)) {
-      return false;
+  const bookingsByDay = useMemo(() => {
+    const byDay = new Map<string, AdminBooking[]>();
+    for (const booking of bookingsQuery.data ?? []) {
+      if (!SLOT_HOLDING_STATUSES.has(booking.status)) continue;
+      const day = toDay(booking.sessionDate);
+      byDay.set(day, [...(byDay.get(day) ?? []), booking]);
     }
-    return true;
-  });
+    for (const list of byDay.values()) list.sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
+    return byDay;
+  }, [bookingsQuery.data]);
 
-  const selectedDayBookings = filteredBookings.filter((b) => b.sessionDate === selectedDateStr);
+  const selectedDayBookings = bookingsByDay.get(selectedDateStr) ?? [];
 
   return (
     <div className="space-y-6">
@@ -95,30 +95,15 @@ export default function CalendarSchedulePage() {
               Kalender Jadwal
             </h1>
             <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-xs font-semibold">
-              Agustus 2026
+              {monthNames[currentMonth]} {currentYear}
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Jadwal sesi foto wisuda studio & outdoor terintegrasi kalender.
+            Slot sesi foto yang terkunci atau menunggu pembayaran.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Select
-            value={selectedPhotographer}
-            onValueChange={(val) => val && setSelectedPhotographer(val)}
-          >
-            <SelectTrigger className="h-9 w-44 rounded-xl border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-zinc-800 dark:text-zinc-200">
-              <SelectValue placeholder="Semua Fotografer" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white text-xs">
-              <SelectItem value="ALL">Semua Fotografer</SelectItem>
-              <SelectItem value="Bima">Bima Satria</SelectItem>
-              <SelectItem value="Rian">Rian Maulana</SelectItem>
-              <SelectItem value="Arif">Arif Wicaksono</SelectItem>
-            </SelectContent>
-          </Select>
-
           <div className="flex items-center gap-1 bg-zinc-200/70 dark:bg-zinc-900 border border-zinc-300/80 dark:border-zinc-800 p-1 rounded-xl">
             <Button
               variant="ghost"
@@ -152,6 +137,14 @@ export default function CalendarSchedulePage() {
         </div>
       </div>
 
+      {bookingsQuery.isError && (
+        <QueryError
+          title="Jadwal tidak dapat dimuat"
+          message={errorMessage(bookingsQuery.error)}
+          retry={() => bookingsQuery.refetch()}
+        />
+      )}
+
       {/* Main Grid: Calendar (8 cols) + Selected Day (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Calendar Matrix */}
@@ -179,9 +172,9 @@ export default function CalendarSchedulePage() {
             {daysArray.map((day) => {
               const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isSelected = selectedDateStr === dayStr;
-              const isToday = dayStr === '2026-08-25';
+              const isToday = dayStr === today;
 
-              const dayEvents = filteredBookings.filter((b) => b.sessionDate === dayStr);
+              const dayEvents = bookingsByDay.get(dayStr) ?? [];
 
               return (
                 <div
@@ -266,7 +259,8 @@ export default function CalendarSchedulePage() {
             ) : (
               <div className="space-y-3">
                 {selectedDayBookings.map((bk) => {
-                  const waLink = `https://wa.me/${bk.customerPhone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20kak%20${encodeURIComponent(bk.customerName)}`;
+                  const waLink = whatsappLink(bk.customerPhone, `Halo kak ${bk.customerName}`);
+                  const badge = bookingBadge(bk);
 
                   return (
                     <div
@@ -281,14 +275,8 @@ export default function CalendarSchedulePage() {
                           </div>
                           <div className="text-[11px] text-zinc-500">{bk.packageName}</div>
                         </div>
-                        <Badge
-                          className={`text-[10px] font-bold ${
-                            bk.status === 'CONFIRMED'
-                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                              : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30'
-                          }`}
-                        >
-                          {bk.status === 'CONFIRMED' ? 'Terkunci' : 'Pending'}
+                        <Badge className={`${badge.className} text-[10px] font-bold`}>
+                          {badge.label}
                         </Badge>
                       </div>
 
@@ -297,14 +285,6 @@ export default function CalendarSchedulePage() {
                           <Clock className="size-3.5" />
                           <span>{bk.timeSlot} WIB</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="size-3.5 text-zinc-400 shrink-0" />
-                          <span className="truncate">{bk.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Camera className="size-3.5 text-zinc-400 shrink-0" />
-                          <span>{bk.photographer}</span>
-                        </div>
                       </div>
 
                       <div
@@ -312,7 +292,7 @@ export default function CalendarSchedulePage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <span className="font-mono text-xs font-bold text-zinc-900 dark:text-white">
-                          {formatRupiah(bk.totalPrice)}
+                          {formatRupiah(bk.totalAmount)}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <Button

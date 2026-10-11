@@ -4,6 +4,7 @@ jest.mock('../../outbox/outbox.service', () => ({
   OutboxService: class OutboxService {},
 }));
 
+import { GatewayPaymentStateService } from './gateway-payment-state.service';
 import { MidtransWebhookService } from './midtrans.webhook.service';
 
 const webhook = {
@@ -63,7 +64,11 @@ function setup() {
   };
   const midtrans = { verifySignature: jest.fn().mockResolvedValue(true) };
   const outbox = { createInTransaction: jest.fn() };
-  const service = new MidtransWebhookService(prisma as never, midtrans as never, outbox as never);
+  const service = new MidtransWebhookService(
+    prisma as never,
+    midtrans as never,
+    new GatewayPaymentStateService(outbox as never),
+  );
 
   return { service, prisma, tx, midtrans, outbox };
 }
@@ -116,5 +121,31 @@ describe('MidtransWebhookService', () => {
 
     await expect(service.handle(webhook)).rejects.toThrow('Invalid Midtrans signature');
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('does not settle a card pre-authorisation', async () => {
+    const { service, tx } = setup();
+
+    await expect(service.handle({ ...webhook, transactionStatus: 'authorize' })).resolves.toEqual({
+      status: 'processed',
+    });
+    expect(tx.payment.updateMany).not.toHaveBeenCalled();
+    expect(tx.booking.updateMany).not.toHaveBeenCalled();
+    expect(tx.invoice.upsert).not.toHaveBeenCalled();
+  });
+
+  it('keeps the booking payable after a failed attempt so a retry can still settle', async () => {
+    const { service, tx } = setup();
+
+    await service.handle({ ...webhook, transactionStatus: 'expire' });
+
+    expect(tx.payment.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: PaymentStatus.REJECTED }),
+      }),
+    );
+    // booking.paymentStatus must stay UNPAID, otherwise settle() (which requires UNPAID) would
+    // throw for the customer's next successful attempt.
+    expect(tx.booking.updateMany).not.toHaveBeenCalled();
   });
 });

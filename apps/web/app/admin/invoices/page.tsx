@@ -1,49 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAdmin } from '@/lib/admin-context';
-import { formatRupiah } from '@/lib/mock-data';
-import {
-  FileText,
-  Search,
-  MessageCircle,
-  Eye,
-  CheckCircle2,
-} from 'lucide-react';
+import { errorMessage, useAdminBookings } from '@/lib/admin-queries';
+import { bookingBadge, PAID_PAYMENT_STATUSES } from '@/lib/booking-status';
+import { formatDay, formatRupiah, whatsappLink } from '@/lib/format';
+import { FileText, Search, MessageCircle, Eye, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { QueryError } from '../components/query-state';
 
 export default function InvoicesManagementPage() {
-  const { bookings, setSelectedInvoice } = useAdmin();
+  const { setSelectedInvoice } = useAdmin();
+  const bookingsQuery = useAdminBookings();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const invoiceList = bookings.filter(
-    (b) => b.status === 'CONFIRMED' || b.status === 'COMPLETED' || b.invoiceNumber,
-  );
-
-  const filteredInvoices = invoiceList.filter((inv) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const invNum = (inv.invoiceNumber || '').toLowerCase();
-    const name = inv.customerName.toLowerCase();
-    const code = inv.bookingCode.toLowerCase();
-    const phone = inv.customerPhone;
-    return (
-      invNum.includes(query) ||
-      name.includes(query) ||
-      code.includes(query) ||
-      phone.includes(query)
-    );
-  });
-
-  const handleResendWA = (inv: (typeof bookings)[0]) => {
-    toast.success('Invoice Berhasil Dikirim', {
-      description: `Invoice ${inv.invoiceNumber || 'INV-KYA-2026'} dikirim ke WhatsApp ${inv.customerName} (${inv.customerPhone}).`,
-    });
-  };
+  const filteredInvoices = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return (bookingsQuery.data ?? [])
+      .filter((booking) => booking.invoice)
+      .filter(
+        (booking) =>
+          !query ||
+          booking.invoice!.invoiceNumber.toLowerCase().includes(query) ||
+          booking.customerName.toLowerCase().includes(query) ||
+          booking.bookingCode.toLowerCase().includes(query) ||
+          booking.customerPhone.includes(query),
+      );
+  }, [bookingsQuery.data, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -69,6 +55,14 @@ export default function InvoicesManagementPage() {
         </div>
       </div>
 
+      {bookingsQuery.isError && (
+        <QueryError
+          title="Invoice tidak dapat dimuat"
+          message={errorMessage(bookingsQuery.error)}
+          retry={() => bookingsQuery.refetch()}
+        />
+      )}
+
       {/* Invoice Table */}
       <Card className="rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -77,7 +71,7 @@ export default function InvoicesManagementPage() {
               <tr>
                 <th className="p-3.5 pl-5 font-semibold">No. Invoice</th>
                 <th className="p-3.5 font-semibold">Klien / Wisudawan</th>
-                <th className="p-3.5 font-semibold">Paket & Lokasi</th>
+                <th className="p-3.5 font-semibold">Paket & Jadwal</th>
                 <th className="p-3.5 font-semibold">Nominal Tagihan</th>
                 <th className="p-3.5 font-semibold">Status</th>
                 <th className="p-3.5 pr-5 text-right font-semibold">Aksi</th>
@@ -87,19 +81,24 @@ export default function InvoicesManagementPage() {
               {filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-zinc-500">
-                    Belum ada invoice yang terbit atau sesuai dengan pencarian.
+                    {bookingsQuery.isLoading
+                      ? 'Memuat invoice...'
+                      : 'Belum ada invoice yang terbit atau sesuai dengan pencarian.'}
                   </td>
                 </tr>
               ) : (
-                filteredInvoices.map((inv) => {
-                  const invoiceNum =
-                    inv.invoiceNumber || `INV-KYA-2026-${inv.bookingCode.slice(-3)}`;
+                filteredInvoices.map((booking) => {
+                  const invoice = booking.invoice!;
+                  const paid = booking.payments
+                    .filter((payment) => PAID_PAYMENT_STATUSES.has(payment.status))
+                    .reduce((sum, payment) => sum + payment.amount, 0);
+                  const badge = bookingBadge(booking);
 
                   return (
                     <tr
-                      key={inv.id}
+                      key={booking.id}
                       className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer"
-                      onClick={() => setSelectedInvoice(inv)}
+                      onClick={() => setSelectedInvoice(booking)}
                     >
                       <td className="p-3.5 pl-5">
                         <div className="flex items-center gap-2.5">
@@ -108,50 +107,48 @@ export default function InvoicesManagementPage() {
                           </div>
                           <div>
                             <div className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs">
-                              {invoiceNum}
+                              {invoice.invoiceNumber}
                             </div>
-                            <div className="text-[10px] text-zinc-500">{inv.sessionDate}</div>
+                            <div className="text-[10px] text-zinc-500">
+                              {formatDay(invoice.issuedAt)}
+                            </div>
                           </div>
                         </div>
                       </td>
 
                       <td className="p-3.5">
                         <div className="font-bold text-zinc-900 dark:text-white text-xs">
-                          {inv.customerName}
+                          {booking.customerName}
                         </div>
                         <div className="text-[11px] text-zinc-500 font-mono">
-                          {inv.customerPhone}
+                          {booking.customerPhone}
                         </div>
                       </td>
 
                       <td className="p-3.5">
                         <div className="text-zinc-800 dark:text-zinc-200 font-medium">
-                          {inv.packageName}
+                          {booking.packageName}
                         </div>
-                        <div className="text-[10px] text-zinc-500">{inv.location}</div>
+                        <div className="text-[10px] text-zinc-500">
+                          {formatDay(booking.sessionDate)} · {booking.timeSlot} WIB
+                        </div>
                       </td>
 
                       <td className="p-3.5">
                         <div className="font-mono font-bold text-zinc-900 dark:text-white text-xs">
-                          {formatRupiah(inv.totalPrice)}
+                          {formatRupiah(booking.totalAmount)}
                         </div>
-                        {inv.paymentAmount && (
+                        {paid > 0 && (
                           <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
-                            Telah Bayar: {formatRupiah(inv.paymentAmount)}
+                            Telah Bayar: {formatRupiah(paid)}
                           </div>
                         )}
                       </td>
 
                       <td className="p-3.5">
-                        {inv.paymentStatus === 'PAID_FULL' ? (
-                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
-                            <CheckCircle2 className="size-3 mr-1" /> Lunas
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-[10px] font-bold">
-                            <CheckCircle2 className="size-3 mr-1" /> DP Terverifikasi
-                          </Badge>
-                        )}
+                        <Badge className={`${badge.className} text-[10px] font-bold`}>
+                          <CheckCircle2 className="size-3 mr-1" /> {badge.label}
+                        </Badge>
                       </td>
 
                       <td className="p-3.5 pr-5 text-right" onClick={(e) => e.stopPropagation()}>
@@ -159,21 +156,25 @@ export default function InvoicesManagementPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedInvoice(inv)}
+                            onClick={() => setSelectedInvoice(booking)}
                             className="h-8 gap-1 border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700"
                           >
                             <Eye className="size-3.5 text-amber-500" />
                             Pratinjau
                           </Button>
 
-                          <Button
-                            size="sm"
-                            onClick={() => handleResendWA(inv)}
-                            className="h-8 gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-sm"
+                          <a
+                            href={whatsappLink(
+                              booking.customerPhone,
+                              `Halo kak ${booking.customerName}, berikut invoice ${invoice.invoiceNumber}.`,
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
                           >
                             <MessageCircle className="size-3.5" />
-                            Kirim WA
-                          </Button>
+                            Chat WA
+                          </a>
                         </div>
                       </td>
                     </tr>

@@ -6,16 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Camera } from 'lucide-react';
 import { useMounted } from '@/lib/use-mounted';
 
-const packageData = [
-  { name: 'Squad Circle', value: 164, color: '#d97706' },
-  { name: 'Solo Kebaya', value: 142, color: '#f59e0b' },
-  { name: 'Duo Bestie', value: 98, color: '#fbbf24' },
-  { name: 'Family Portrait', value: 87, color: '#71717a' },
-  { name: '35mm Film', value: 54, color: '#a1a1aa' },
-];
+const PALETTE = ['#d97706', '#f59e0b', '#fbbf24', '#71717a', '#a1a1aa', '#d4d4d8'];
 
-export function PackageBreakdownChart() {
+export function PackageBreakdownChart({ data }: { data: Array<{ name: string; value: number }> }) {
   const mounted = useMounted();
+  const packageData = data.map((item, index) => ({
+    ...item,
+    color: PALETTE[index % PALETTE.length],
+  }));
 
   return (
     <Card className="rounded-lg border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm flex flex-col justify-between">
@@ -25,13 +23,17 @@ export function PackageBreakdownChart() {
           Paket Terfavorit
         </CardTitle>
         <CardDescription className="text-xs text-zinc-500">
-          Persentase pilihan paket photoshoot wisuda
+          Jumlah reservasi aktif per paket
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pt-4 pb-3">
         <div className="h-44 w-full min-h-[170px]">
-          {mounted ? (
+          {packageData.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+              Belum ada reservasi.
+            </div>
+          ) : mounted ? (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={160}>
               <PieChart>
                 <Tooltip

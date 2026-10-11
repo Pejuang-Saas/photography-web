@@ -1,9 +1,9 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
-import { BookingStatus, GatewayProvider, PaymentStatus, Prisma } from '@prisma/client';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { GatewayProvider, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
-import { OutboxService } from '../../outbox/outbox.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MidtransWebhookDto } from '../dto/payment.dto';
+import { GatewayPaymentStateService } from './gateway-payment-state.service';
 import { MidtransClient } from './midtrans.client';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class MidtransWebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly midtrans: MidtransClient,
-    private readonly outbox: OutboxService,
+    private readonly state: GatewayPaymentStateService,
   ) {}
 
   async handle(dto: MidtransWebhookDto) {
@@ -59,10 +59,16 @@ export class MidtransWebhookService {
           throw new BadRequestException('Midtrans amount does not match the booking amount');
         }
 
+        const metadata = { transactionId: dto.transactionId, status: dto.transactionStatus };
         if (this.isSuccessful(dto)) {
-          await this.markSuccessful(tx, payment, dto);
+          await this.state.settle(tx, payment, metadata);
         } else if (this.isFailed(dto)) {
-          await this.markFailed(tx, payment, dto);
+          await this.state.fail(
+            tx,
+            payment,
+            `Midtrans transaction ${dto.transactionStatus}`,
+            metadata,
+          );
         }
 
         await tx.gatewayWebhookEvent.update({
@@ -78,100 +84,11 @@ export class MidtransWebhookService {
     return { status: 'processed' };
   }
 
-  private async markSuccessful(
-    tx: Prisma.TransactionClient,
-    payment: Prisma.PaymentGetPayload<{ include: { booking: true } }>,
-    dto: MidtransWebhookDto,
-  ) {
-    if (payment.status === PaymentStatus.PAID_DP || payment.status === PaymentStatus.PAID_FULL) {
-      return;
-    }
-    const paymentStatus = payment.plan === 'FULL' ? PaymentStatus.PAID_FULL : PaymentStatus.PAID_DP;
-    const claimedPayment = await tx.payment.updateMany({
-      where: {
-        id: payment.id,
-        status: { notIn: [PaymentStatus.PAID_DP, PaymentStatus.PAID_FULL] },
-      },
-      data: {
-        status: paymentStatus,
-        paidAt: new Date(),
-        metadata: { transactionId: dto.transactionId, status: dto.transactionStatus },
-      },
-    });
-    if (claimedPayment.count !== 1) return;
-
-    const claimedBooking = await tx.booking.updateMany({
-      where: {
-        id: payment.bookingId,
-        status: BookingStatus.PENDING_PAYMENT,
-        paymentStatus: PaymentStatus.UNPAID,
-      },
-      data: { status: BookingStatus.CONFIRMED, paymentStatus },
-    });
-    if (claimedBooking.count !== 1) {
-      throw new ConflictException('Booking is no longer waiting for gateway payment');
-    }
-
-    const invoice = await tx.invoice.upsert({
-      where: { bookingId: payment.bookingId },
-      create: {
-        bookingId: payment.bookingId,
-        invoiceNumber: `INV-${payment.booking.bookingCode}`,
-        amount: payment.amount,
-      },
-      update: { amount: payment.amount, status: 'ISSUED' },
-    });
-    await tx.notification.create({
-      data: {
-        bookingId: payment.bookingId,
-        type: 'PAYMENT_VERIFIED',
-        title: 'Pembayaran Gateway Berhasil',
-        message: `Invoice ${invoice.invoiceNumber} telah diterbitkan.`,
-      },
-    });
-    await this.outbox.createInTransaction(tx, {
-      eventKey: `payment-verified:${payment.id}`,
-      eventType: 'PAYMENT_VERIFIED',
-      aggregateType: 'Payment',
-      aggregateId: payment.id,
-      payload: {
-        bookingId: payment.bookingId,
-        paymentId: payment.id,
-        invoiceNumber: invoice.invoiceNumber,
-        customerName: payment.booking.customerName,
-        customerEmail: payment.booking.customerEmail,
-      },
-    });
-  }
-
-  private async markFailed(
-    tx: Prisma.TransactionClient,
-    payment: Prisma.PaymentGetPayload<{ include: { booking: true } }>,
-    dto: MidtransWebhookDto,
-  ) {
-    await tx.payment.updateMany({
-      where: { id: payment.id, status: PaymentStatus.UNPAID },
-      data: {
-        status: PaymentStatus.REJECTED,
-        rejectionReason: `Midtrans transaction ${dto.transactionStatus}`,
-        metadata: { transactionId: dto.transactionId, status: dto.transactionStatus },
-      },
-    });
-    await tx.booking.updateMany({
-      where: {
-        id: payment.bookingId,
-        status: BookingStatus.PENDING_PAYMENT,
-        paymentStatus: PaymentStatus.UNPAID,
-      },
-      data: { paymentStatus: PaymentStatus.REJECTED },
-    });
-  }
-
   private isSuccessful(dto: MidtransWebhookDto) {
+    // 'authorize' is only a card pre-authorisation, not captured funds, so it is not a success.
     return (
       dto.transactionStatus === 'settlement' ||
-      (dto.transactionStatus === 'capture' && dto.fraudStatus === 'accept') ||
-      dto.transactionStatus === 'authorize'
+      (dto.transactionStatus === 'capture' && dto.fraudStatus === 'accept')
     );
   }
 

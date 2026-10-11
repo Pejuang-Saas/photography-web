@@ -4,15 +4,12 @@ import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAdmin } from '@/lib/admin-context';
 import {
-  Bell,
-  Search,
-  Plus,
-  Menu,
-  Calendar,
-  CreditCard,
-  MessageSquare,
-  LogOut,
-} from 'lucide-react';
+  useAdminNotifications,
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+} from '@/lib/admin-queries';
+import { formatDateTime } from '@/lib/format';
+import { Bell, Search, Menu, Calendar, CreditCard, MessageSquare, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,15 +20,18 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import type { AdminUser } from '@/lib/admin-auth';
 
 interface AdminTopbarProps {
-  onOpenNewBooking?: () => void;
   onSignOut: () => void;
   user: AdminUser;
 }
 
-export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: AdminTopbarProps) {
+export default function AdminTopbar({ onSignOut, user }: AdminTopbarProps) {
   const pathname = usePathname();
-  const { notifications, unreadCount, markAllNotificationsRead, setSelectedBooking, bookings } =
-    useAdmin();
+  const { openBookingById } = useAdmin();
+  const notificationsQuery = useAdminNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+  const notifications = notificationsQuery.data?.items ?? [];
+  const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
   const [searchQuery, setSearchQuery] = useState('');
 
   const getPageTitle = () => {
@@ -49,13 +49,9 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
     return 'Admin Dashboard';
   };
 
-  const handleNotificationClick = (bookingId?: string) => {
-    if (bookingId) {
-      const found = bookings.find((b) => b.id === bookingId);
-      if (found) {
-        setSelectedBooking(found);
-      }
-    }
+  const handleNotificationClick = (notification: (typeof notifications)[number]) => {
+    if (!notification.isRead) markRead.mutate(notification.id);
+    if (notification.bookingId) openBookingById(notification.bookingId);
   };
 
   return (
@@ -138,7 +134,7 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
               </div>
               {unreadCount > 0 && (
                 <button
-                  onClick={markAllNotificationsRead}
+                  onClick={() => markAllRead.mutate()}
                   className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                 >
                   Tandai Dibaca
@@ -155,16 +151,20 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
                 notifications.map((n) => (
                   <div
                     key={n.id}
-                    onClick={() => handleNotificationClick(n.bookingId)}
+                    onClick={() => handleNotificationClick(n)}
                     className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-                      n.read
+                      n.isRead
                         ? 'hover:bg-zinc-50 dark:hover:bg-zinc-900/50 opacity-60'
                         : 'bg-amber-500/[0.04] hover:bg-amber-500/[0.08]'
                     }`}
                   >
                     <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                      {n.type === 'PAYMENT_PROOF' && <CreditCard className="size-3.5" />}
-                      {n.type === 'BOOKING_NEW' && <Calendar className="size-3.5" />}
+                      {(n.type === 'PAYMENT_PROOF' ||
+                        n.type === 'PAYMENT_VERIFIED' ||
+                        n.type === 'PAYMENT_REJECTED') && <CreditCard className="size-3.5" />}
+                      {(n.type === 'BOOKING_NEW' || n.type === 'BOOKING_EXPIRED') && (
+                        <Calendar className="size-3.5" />
+                      )}
                       {n.type === 'SYSTEM' && <MessageSquare className="size-3.5" />}
                     </div>
                     <div className="flex-1 space-y-0.5">
@@ -172,7 +172,9 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
                         <span className="text-xs font-bold text-zinc-900 dark:text-white">
                           {n.title}
                         </span>
-                        <span className="text-[10px] text-zinc-400">{n.timestamp}</span>
+                        <span className="text-[10px] text-zinc-400">
+                          {formatDateTime(n.createdAt)}
+                        </span>
                       </div>
                       <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400 line-clamp-2">
                         {n.message}
@@ -197,16 +199,6 @@ export default function AdminTopbar({ onOpenNewBooking, onSignOut, user }: Admin
         >
           <LogOut className="size-4" />
           <span className="sr-only">Keluar</span>
-        </Button>
-
-        {/* Quick Add Booking Action */}
-        <Button
-          onClick={onOpenNewBooking}
-          size="sm"
-          className="h-9 gap-1.5 rounded-lg bg-amber-500 px-3.5 text-xs font-bold text-zinc-950 shadow-sm shadow-amber-500/20 hover:bg-amber-600"
-        >
-          <Plus className="size-3.5" />
-          <span className="hidden sm:inline">Tambah Booking</span>
         </Button>
       </div>
     </header>

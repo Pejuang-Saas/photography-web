@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -94,6 +95,8 @@ export class PaymentsService {
           data: {
             status: BookingStatus.PENDING_VERIFICATION,
             paymentStatus: PaymentStatus.WAITING_CONFIRMATION,
+            // Money may already have moved; admin review must not race the payment deadline.
+            expiresAt: null,
           },
         });
         if (claimedBooking.count !== 1) {
@@ -181,6 +184,9 @@ export class PaymentsService {
     }
     if (settings.gatewayProvider !== GatewayProvider.MOCK) {
       throw new BadRequestException('Real gateway payments are confirmed by provider webhook');
+    }
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException('Mock gateway payments are disabled in production');
     }
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
       throw new ConflictException('This booking is no longer waiting for payment');

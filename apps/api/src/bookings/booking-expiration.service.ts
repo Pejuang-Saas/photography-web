@@ -15,7 +15,7 @@ export class BookingExpirationService {
   async sweep() {
     const expired = await this.prisma.booking.findMany({
       where: {
-        status: { in: [BookingStatus.PENDING_PAYMENT, BookingStatus.PENDING_VERIFICATION] },
+        status: BookingStatus.PENDING_PAYMENT,
         expiresAt: { lte: new Date() },
       },
       select: { id: true, bookingCode: true },
@@ -38,7 +38,7 @@ export class BookingExpirationService {
         const result = await tx.booking.updateMany({
           where: {
             id,
-            status: { in: [BookingStatus.PENDING_PAYMENT, BookingStatus.PENDING_VERIFICATION] },
+            status: BookingStatus.PENDING_PAYMENT,
             expiresAt: { lte: new Date() },
           },
           data: {

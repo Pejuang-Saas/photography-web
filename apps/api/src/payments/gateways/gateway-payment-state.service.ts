@@ -81,13 +81,7 @@ export class GatewayPaymentStateService {
       where: { id: payment.id, status: PaymentStatus.UNPAID },
       data: { status: PaymentStatus.REJECTED, rejectionReason: reason, metadata },
     });
-    await tx.booking.updateMany({
-      where: {
-        id: payment.bookingId,
-        status: BookingStatus.PENDING_PAYMENT,
-        paymentStatus: PaymentStatus.UNPAID,
-      },
-      data: { paymentStatus: PaymentStatus.REJECTED },
-    });
+    // The booking stays UNPAID so the customer can retry; settle() requires UNPAID, and the
+    // expiration sweep releases the slot if no attempt succeeds.
   }
 }

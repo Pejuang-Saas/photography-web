@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminProvider } from '@/lib/admin-context';
 import type { AdminUser } from '@/lib/admin-auth';
@@ -12,11 +12,9 @@ import AdminSidebar from './components/sidebar';
 import AdminTopbar from './components/topbar';
 import BookingDetailModal from './components/booking-detail-modal';
 import InvoicePreviewModal from './components/invoice-preview-modal';
-import NewBookingModal from './components/new-booking-modal';
 
 export default function AdminShell({ children, user }: { children: ReactNode; user: AdminUser }) {
   const router = useRouter();
-  const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
 
   const handleSignOut = async () => {
     const { error } = await authClient.signOut();
@@ -34,18 +32,13 @@ export default function AdminShell({ children, user }: { children: ReactNode; us
           <div className="min-h-screen bg-[#f5f6f8] text-zinc-900 antialiased transition-colors duration-150 dark:bg-[#0f141d] dark:text-zinc-100">
             <AdminSidebar user={user} />
             <div className="flex min-h-screen flex-col lg:pl-60">
-              <AdminTopbar
-                onOpenNewBooking={() => setIsNewBookingOpen(true)}
-                onSignOut={handleSignOut}
-                user={user}
-              />
+              <AdminTopbar onSignOut={handleSignOut} user={user} />
               <main className="flex-1 w-full p-4 sm:p-5 lg:p-7">
                 <div className="mx-auto w-full max-w-[1600px]">{children}</div>
               </main>
             </div>
             <BookingDetailModal />
             <InvoicePreviewModal />
-            <NewBookingModal open={isNewBookingOpen} onOpenChange={setIsNewBookingOpen} />
             <Toaster
               position="top-right"
               richColors={false}

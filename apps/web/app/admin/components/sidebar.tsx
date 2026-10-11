@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAdmin } from '@/lib/admin-context';
+import { useAdminBookings } from '@/lib/admin-queries';
 import type { AdminUser } from '@/lib/admin-auth';
 import {
   LayoutDashboard,
@@ -20,10 +20,122 @@ import {
   HelpCircle,
   MessageSquareQuote,
   PanelsTopLeft,
+  CreditCard,
+  MessageSquare,
+  ChevronDown,
+  type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+
+type NavLeaf = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  badge?: number | null;
+  badgeColor?: string;
+};
+
+type NavGroup = {
+  title: string;
+  icon: LucideIcon;
+  children: NavLeaf[];
+};
+
+type NavEntry = NavLeaf | NavGroup;
+
+const isGroup = (entry: NavEntry): entry is NavGroup => 'children' in entry;
+
+function isActive(pathname: string, item: NavLeaf) {
+  return item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+const itemClass = (active: boolean) =>
+  cn(
+    'group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+    active
+      ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
+      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
+  );
+
+const iconClass = (active: boolean) =>
+  cn(
+    'size-4 transition-colors',
+    active
+      ? 'text-amber-600 dark:text-amber-400'
+      : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300',
+  );
+
+function NavLink({ item, pathname }: { item: NavLeaf; pathname: string }) {
+  const active = isActive(pathname, item);
+  const Icon = item.icon;
+
+  return (
+    <Link href={item.href} className={itemClass(active)}>
+      <div className="flex items-center gap-3">
+        <Icon className={iconClass(active)} />
+        <span>{item.title}</span>
+      </div>
+      {item.badge !== null && item.badge !== undefined && (
+        <span
+          className={cn(
+            'flex h-5 items-center justify-center rounded-full px-1.5 text-[10px] font-mono font-extrabold',
+            item.badgeColor || 'bg-amber-500 text-zinc-950',
+          )}
+        >
+          {item.badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function NavSubmenu({ group, pathname }: { group: NavGroup; pathname: string }) {
+  const hasActiveChild = group.children.some((child) => isActive(pathname, child));
+  // Follows the current route until the user toggles it by hand.
+  const [override, setOverride] = useState<boolean | null>(null);
+  const open = override ?? hasActiveChild;
+  const Icon = group.icon;
+
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOverride(!open)}
+        className={cn(
+          itemClass(false),
+          'w-full',
+          hasActiveChild && 'text-zinc-900 dark:text-white',
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <Icon
+            className={cn(
+              'size-4',
+              hasActiveChild ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-400',
+            )}
+          />
+          <span>{group.title}</span>
+        </div>
+        <ChevronDown
+          className={cn('size-3.5 text-zinc-400 transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      {open && (
+        <div className="mt-1 ml-5 space-y-1 border-l border-zinc-200 pl-2 dark:border-zinc-800">
+          {group.children.map((child) => (
+            <NavLink key={child.href} item={child} pathname={pathname} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminSidebar({
   user,
@@ -33,19 +145,14 @@ export default function AdminSidebar({
   mobile?: boolean;
 }) {
   const pathname = usePathname();
-  const { bookings } = useAdmin();
+  const bookings = useAdminBookings();
 
-  const pendingCount = bookings.filter(
-    (b) => b.status === 'PENDING_VERIFICATION' || b.paymentStatus === 'WAITING_CONFIRMATION',
+  const pendingCount = (bookings.data ?? []).filter(
+    (b) => b.status === 'PENDING_VERIFICATION',
   ).length;
 
-  const navItems = [
-    {
-      title: 'Dashboard',
-      href: '/admin',
-      icon: LayoutDashboard,
-      exact: true,
-    },
+  const studioNav: NavEntry[] = [
+    { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
     {
       title: 'Reservasi & Verifikasi',
       href: '/admin/bookings',
@@ -53,27 +160,51 @@ export default function AdminSidebar({
       badge: pendingCount > 0 ? pendingCount : null,
       badgeColor: 'bg-amber-500 text-zinc-950',
     },
-    {
-      title: 'Kalender Jadwal',
-      href: '/admin/calendar',
-      icon: CalendarDays,
-    },
-    {
-      title: 'Invoice & Pembayaran',
-      href: '/admin/invoices',
-      icon: Receipt,
-    },
-    {
-      title: 'Paket & Layanan',
-      href: '/admin/packages',
-      icon: Layers,
-    },
+    { title: 'Kalender Jadwal', href: '/admin/calendar', icon: CalendarDays },
+    { title: 'Invoice & Pembayaran', href: '/admin/invoices', icon: Receipt },
+    { title: 'Paket & Layanan', href: '/admin/packages', icon: Layers },
+    // Integration features from other specs (WAHA / template builder / SMTP) add their pages here.
     {
       title: 'Pengaturan & Integrasi',
-      href: '/admin/settings',
       icon: Settings2,
+      children: [
+        {
+          title: 'WhatsApp & Email',
+          href: '/admin/settings',
+          icon: MessageSquare,
+          exact: true,
+        },
+        {
+          title: 'Metode Pembayaran',
+          href: '/admin/settings/metode-pembayaran',
+          icon: CreditCard,
+        },
+      ],
     },
   ];
+
+  const contentNav: NavEntry[] = [
+    {
+      title: 'CMS',
+      icon: PanelsTopLeft,
+      children: [
+        { title: 'Gallery', href: '/admin/cms/gallery', icon: Images },
+        { title: 'Kategori Gallery', href: '/admin/cms/categories', icon: FolderKanban },
+        { title: 'Marquee', href: '/admin/cms/marquee', icon: Megaphone },
+        { title: 'FAQ', href: '/admin/cms/faq', icon: HelpCircle },
+        { title: 'Testimonial', href: '/admin/cms/testimonials', icon: MessageSquareQuote },
+      ],
+    },
+  ];
+
+  const renderEntries = (entries: NavEntry[]) =>
+    entries.map((entry) =>
+      isGroup(entry) ? (
+        <NavSubmenu key={entry.title} group={entry} pathname={pathname} />
+      ) : (
+        <NavLink key={entry.href} item={entry} pathname={pathname} />
+      ),
+    );
 
   return (
     <aside
@@ -106,134 +237,12 @@ export default function AdminSidebar({
         <div className="mb-2 px-3 text-[10px] font-bold tracking-[0.14em] text-zinc-400 dark:text-zinc-500 uppercase">
           Menu Studio
         </div>
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-                  isActive
-                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    className={cn(
-                      'size-4 transition-colors',
-                      isActive
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300',
-                    )}
-                  />
-                  <span>{item.title}</span>
-                </div>
-
-                {item.badge !== null && item.badge !== undefined && (
-                  <span
-                    className={cn(
-                      'flex h-5 items-center justify-center rounded-full px-1.5 text-[10px] font-mono font-extrabold',
-                      item.badgeColor || 'bg-amber-500 text-zinc-950',
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+        <nav className="space-y-1">{renderEntries(studioNav)}</nav>
 
         <div className="mb-2 mt-8 px-3 text-[10px] font-bold tracking-[0.14em] text-zinc-400 dark:text-zinc-500 uppercase">
           Konten Website
         </div>
-        <nav className="space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">
-            <PanelsTopLeft className="size-4 text-amber-500" />
-            CMS
-          </div>
-          <Link
-            href="/admin/cms/gallery"
-            className={cn(
-              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-              pathname === '/admin/cms/gallery' ||
-                (pathname.startsWith('/admin/cms/gallery/') &&
-                  !pathname.startsWith('/admin/cms/gallery/categories'))
-                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
-            )}
-          >
-            <Images className="size-4" />
-            Gallery
-          </Link>
-          <Link
-            href="/admin/cms/categories"
-            className={cn(
-              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-              pathname.startsWith('/admin/cms/categories')
-                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
-            )}
-          >
-            <FolderKanban className="size-4" />
-            Kategori Gallery
-          </Link>
-          <Link
-            href="/admin/cms/marquee"
-            className={cn(
-              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-              pathname.startsWith('/admin/cms/marquee')
-                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
-            )}
-          >
-            <Megaphone className="size-4" />
-            Marquee
-          </Link>
-          <Link
-            href="/admin/cms/faq"
-            className={cn(
-              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-              pathname.startsWith('/admin/cms/faq')
-                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
-            )}
-          >
-            <HelpCircle className="size-4" />
-            FAQ
-          </Link>
-          <Link
-            href="/admin/cms/testimonials"
-            className={cn(
-              'ml-3 flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-              pathname.startsWith('/admin/cms/testimonials')
-                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
-            )}
-          >
-            <MessageSquareQuote className="size-4" />
-            Testimonial
-          </Link>
-        </nav>
-
-        {/* WhatsApp Gateway Status Card */}
-        <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3.5 space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-            <span className="size-2 rounded-full bg-emerald-500" />
-            <span>WA Gateway Terhubung</span>
-          </div>
-          <p className="text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Notifikasi invoice & jadwal otomatis dikirim via WhatsApp.
-          </p>
-        </div>
+        <nav className="space-y-1">{renderEntries(contentNav)}</nav>
       </div>
 
       {/* Footer Profile & Website Link */}

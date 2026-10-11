@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PaymentMode, Prisma } from '@prisma/client';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { GatewayProvider, PaymentMode, Prisma } from '@prisma/client';
 import { decryptSecret, encryptSecret } from '../common/secret-box';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -82,6 +82,9 @@ export class PaymentSettingsService {
   }
 
   async update(dto: UpdatePaymentSettingsDto) {
+    if (dto.gatewayProvider === GatewayProvider.MOCK && process.env.NODE_ENV === 'production') {
+      throw new BadRequestException('The mock gateway cannot be selected in production');
+    }
     const current = await this.getCurrent();
     const data: Prisma.PaymentSettingUpdateInput = {
       activeMode: dto.activeMode,

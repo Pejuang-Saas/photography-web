@@ -1,26 +1,31 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useAdmin } from '@/lib/admin-context';
-import { formatRupiah } from '@/lib/mock-data';
+import { errorMessage, useAdminBookings } from '@/lib/admin-queries';
+import { monthlyTrend, monthSummary, packageBreakdown } from '@/lib/admin-stats';
+import { bookingBadge } from '@/lib/booking-status';
+import { formatDay, formatRupiah } from '@/lib/format';
+import { QueryError } from './components/query-state';
 import StatCard from './components/stat-card';
 import { CustomerGrowthChart } from './components/customer-growth-chart';
 import { PackageBreakdownChart } from './components/package-breakdown-chart';
-import { Banknote, CalendarCheck, Clock, ArrowUpRight, Camera } from 'lucide-react';
+import { Banknote, CalendarCheck, Clock, ArrowUpRight, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function AdminDashboardPage() {
-  const { bookings, setSelectedBooking } = useAdmin();
+  const { setSelectedBooking } = useAdmin();
+  const bookingsQuery = useAdminBookings();
+  const bookings = useMemo(() => bookingsQuery.data ?? [], [bookingsQuery.data]);
 
   const pendingBookings = bookings.filter((b) => b.status === 'PENDING_VERIFICATION');
-  const totalRevenue = bookings
-    .filter((b) => b.paymentStatus === 'PAID_FULL' || b.paymentStatus === 'PAID_DP')
-    .reduce((acc, curr) => acc + (curr.paymentAmount || curr.totalPrice), 0);
-
-  const totalBookingCount = bookings.length;
+  const unpaidCount = bookings.filter((b) => b.status === 'PENDING_PAYMENT').length;
+  const summary = useMemo(() => monthSummary(bookings), [bookings]);
+  const trend = useMemo(() => monthlyTrend(bookings, 6), [bookings]);
+  const packages = useMemo(() => packageBreakdown(bookings), [bookings]);
 
   return (
     <div className="space-y-5">
@@ -63,23 +68,31 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {bookingsQuery.isError && (
+        <QueryError
+          title="Data dashboard tidak dapat dimuat"
+          message={errorMessage(bookingsQuery.error)}
+          retry={() => bookingsQuery.refetch()}
+        />
+      )}
+
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Pendapatan"
-          value={formatRupiah(totalRevenue + 24500000)}
-          subtitle="Bulan ini (DP & Pelunasan)"
-          change="+18.4%"
-          isPositive={true}
+          title="Pendapatan Bulan Ini"
+          value={formatRupiah(summary.revenue)}
+          subtitle="Pembayaran terverifikasi (DP & pelunasan)"
+          change={summary.revenueChange ?? '—'}
+          isPositive={!summary.revenueChange?.startsWith('-')}
           icon={Banknote}
           variant="emerald"
         />
         <StatCard
-          title="Total Booking"
-          value={`${totalBookingCount + 36} Sesi`}
-          subtitle="Bulan ini"
-          change="+14.2%"
-          isPositive={true}
+          title="Reservasi Bulan Ini"
+          value={`${summary.bookings} Sesi`}
+          subtitle="Dibuat bulan berjalan"
+          change={summary.bookingsChange ?? '—'}
+          isPositive={!summary.bookingsChange?.startsWith('-')}
           icon={CalendarCheck}
           variant="indigo"
         />
@@ -93,26 +106,22 @@ export default function AdminDashboardPage() {
           variant="rose"
         />
         <StatCard
-          title="Slot Terisi"
-          value="82%"
-          subtitle="Agustus 2026 (Semarang)"
-          change="+5.0%"
-          isPositive={true}
-          icon={Camera}
+          title="Belum Dibayar"
+          value={`${unpaidCount} Klien`}
+          subtitle="Slot ditahan sementara"
+          change={unpaidCount > 0 ? 'Menunggu pembayaran' : 'Tidak ada'}
+          isPositive={unpaidCount === 0}
+          icon={Wallet}
           variant="amber"
         />
       </div>
 
-      {/* Main Charts Section (Recharts) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        {/* Left: Customer Growth & Revenue Chart (8 cols) */}
         <div className="lg:col-span-8">
-          <CustomerGrowthChart />
+          <CustomerGrowthChart data={trend} />
         </div>
-
-        {/* Right: Package Breakdown Donut Chart (4 cols) */}
         <div className="lg:col-span-4">
-          <PackageBreakdownChart />
+          <PackageBreakdownChart data={packages} />
         </div>
       </div>
 
@@ -141,7 +150,7 @@ export default function AdminDashboardPage() {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
                   <tr>
-                    <th className="p-3 pl-4 font-semibold">Klien & Kampus</th>
+                    <th className="p-3 pl-4 font-semibold">Klien</th>
                     <th className="p-3 font-semibold">Paket & Jadwal</th>
                     <th className="p-3 font-semibold">Status</th>
                     <th className="p-3 pr-4 text-right font-semibold">Aksi</th>
@@ -159,7 +168,7 @@ export default function AdminDashboardPage() {
                           {booking.customerName}
                         </div>
                         <div className="text-[11px] text-zinc-500 truncate max-w-[150px]">
-                          {booking.university}
+                          {booking.customerPhone}
                         </div>
                       </td>
                       <td className="p-3">
@@ -167,23 +176,15 @@ export default function AdminDashboardPage() {
                           {booking.packageName}
                         </div>
                         <div className="text-[11px] font-mono text-zinc-500">
-                          {booking.sessionDate} • {booking.timeSlot}
+                          {formatDay(booking.sessionDate)} • {booking.timeSlot}
                         </div>
                       </td>
                       <td className="p-3">
-                        {booking.status === 'PENDING_VERIFICATION' ? (
-                          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-semibold">
-                            Pending Verifikasi
-                          </Badge>
-                        ) : booking.status === 'CONFIRMED' ? (
-                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">
-                            Dikonfirmasi
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[10px] font-semibold">
-                            Selesai
-                          </Badge>
-                        )}
+                        <Badge
+                          className={`${bookingBadge(booking).className} text-[10px] font-semibold`}
+                        >
+                          {bookingBadge(booking).label}
+                        </Badge>
                       </td>
                       <td className="p-3 pr-4 text-right">
                         <Button

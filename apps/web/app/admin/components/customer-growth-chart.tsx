@@ -11,22 +11,13 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { formatRupiah } from '@/lib/mock-data';
+import { formatRupiah } from '@/lib/format';
 import { TrendingUp } from 'lucide-react';
 import { useMounted } from '@/lib/use-mounted';
 
-const monthlyData = [
-  { month: 'Jan', bookings: 14, revenue: 8400000 },
-  { month: 'Feb', bookings: 19, revenue: 12200000 },
-  { month: 'Mar', bookings: 28, revenue: 17800000 },
-  { month: 'Apr', bookings: 22, revenue: 14500000 },
-  { month: 'Mei', bookings: 35, revenue: 23600000 },
-  { month: 'Jun', bookings: 31, revenue: 20100000 },
-  { month: 'Jul', bookings: 42, revenue: 27900000 },
-  { month: 'Ags', bookings: 48, revenue: 32650000 },
-];
+type TrendPoint = { key: string; month: string; bookings: number; revenue: number };
 
-export function CustomerGrowthChart() {
+export function CustomerGrowthChart({ data }: { data: TrendPoint[] }) {
   const [metric, setMetric] = useState<'revenue' | 'bookings'>('revenue');
   const mounted = useMounted();
 
@@ -38,12 +29,10 @@ export function CustomerGrowthChart() {
             <CardTitle className="text-sm font-bold text-zinc-900 dark:text-white">
               Tren Pertumbuhan & Omset
             </CardTitle>
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              <TrendingUp className="size-3" /> +18.4%
-            </span>
+            <TrendingUp className="size-3.5 text-emerald-500" />
           </div>
           <CardDescription className="text-xs text-zinc-500 mt-0.5">
-            Grafik pemesanan photoshoot wisuda periode 2026
+            Reservasi dibuat dan omset terbayar, 6 bulan terakhir
           </CardDescription>
         </div>
 
@@ -77,7 +66,7 @@ export function CustomerGrowthChart() {
         <div className="h-64 w-full min-h-[250px]">
           {mounted ? (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
-              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+              <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="cohesiveAmberGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.35} />
@@ -98,7 +87,9 @@ export function CustomerGrowthChart() {
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(val) => (metric === 'revenue' ? `${val / 1000000}jt` : `${val}`)}
+                  tickFormatter={(val) =>
+                    metric === 'revenue' ? `${Math.round(val / 100000) / 10}jt` : `${val}`
+                  }
                   className="text-[11px] fill-zinc-500 font-mono"
                 />
                 <Tooltip
@@ -108,7 +99,7 @@ export function CustomerGrowthChart() {
                       return (
                         <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 p-3 shadow-xl backdrop-blur-md text-xs">
                           <p className="font-bold text-zinc-900 dark:text-white">
-                            Bulan {label} 2026
+                            {label} ({data.key})
                           </p>
                           <div className="mt-1.5 space-y-1">
                             <div className="flex items-center justify-between gap-4">
