@@ -2,11 +2,13 @@ import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { Roles } from '@thallesp/nestjs-better-auth';
 import { PackagesService } from './packages.service';
 import { CreateServicePackageDto, UpdateServicePackageDto } from './dto/package.dto';
+import { Public } from '../common/public.decorator';
 
 @Controller()
 export class PackagesController {
   constructor(private readonly packagesService: PackagesService) {}
 
+  @Public()
   @Get('public/packages')
   listPublic() {
     return this.packagesService.list();

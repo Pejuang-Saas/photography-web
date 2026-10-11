@@ -20,6 +20,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
+    "seed": "node dist/seed/seed.js",
     "auth:create-admin": "npx auth@1.7.5 create-admin --config src/auth/auth.ts --role admin"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "dotenv": "^17.4.1",
+    "ioredis": "^6.0.0",
     "nodemailer": "^10.0.13",
     "redis": "^6.2.1",
     "reflect-metadata": "^0.2.2",

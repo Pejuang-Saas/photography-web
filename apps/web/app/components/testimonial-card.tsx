@@ -9,7 +9,6 @@ export interface TestimonialStory {
   quote: string;
   author: string;
   campus: string;
-  photo: string;
   photoUrl?: string;
   rating?: number;
 }
@@ -53,18 +52,20 @@ export default function TestimonialCard({ story }: TestimonialCardProps) {
 
       {/* Left: Large Photo (38%) with 35mm Frame Notches */}
       <div className="relative aspect-[4/3] md:aspect-auto md:w-[38%] min-h-[260px] overflow-hidden bg-black shrink-0 z-10">
-        <Image
-          src={story.photoUrl || `/portfolio/kayastory-${story.photo}.jpg`}
-          alt={`Foto Sesi Wisuda ${story.author}`}
-          fill
-          sizes="(max-width: 768px) 100vw, 400px"
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-        />
+        {story.photoUrl && (
+          <Image
+            src={story.photoUrl}
+            alt={`Foto Sesi Wisuda ${story.author}`}
+            fill
+            sizes="(max-width: 768px) 100vw, 400px"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+        )}
 
         {/* 35mm Optical Watermark */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/80 backdrop-blur-md">
           <Camera size={11} className="text-accent" />
-          <span>FRAME #{story.photo}</span>
+          <span>KAYASTORY</span>
         </div>
       </div>
 

@@ -52,9 +52,12 @@ export class StorageService {
       throw new BadRequestException('Only image files can be uploaded');
     }
 
-    await this.ensureBucket();
-
     const key = `cms/${new Date().toISOString().slice(0, 10)}/${randomUUID()}-${this.sanitizeFilename(file.originalname)}`;
+    return this.uploadPublicObject(key, file);
+  }
+
+  async uploadPublicObject(key: string, file: UploadedImage) {
+    await this.ensureBucket();
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,

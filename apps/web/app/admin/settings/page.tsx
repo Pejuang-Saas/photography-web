@@ -6,18 +6,12 @@ import {
   Mail,
   Building2,
   QrCode,
-  CheckCircle2,
   RefreshCw,
   Send,
   Save,
-  Copy,
   Smartphone,
   Server,
   Key,
-  Globe,
-  Sliders,
-  Sparkles,
-  Info,
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,7 +28,7 @@ export default function AdminSettingsPage() {
   // WhatsApp Baileys State
   const [waEndpoint, setWaEndpoint] = useState('http://localhost:8000/api/wa-baileys');
   const [waApiKey, setWaApiKey] = useState('kaya_sec_live_98a72b14f5e6');
-  const [waSenderPhone, setWaSenderPhone] = useState('+62 858-7654-3210');
+  const [waSenderPhone] = useState('+62 858-7654-3210');
   const [waConnected, setWaConnected] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState('081234567890');
@@ -58,11 +52,6 @@ export default function AdminSettingsPage() {
   const [smtpPassword, setSmtpPassword] = useState('••••••••••••••••');
   const [smtpSenderName, setSmtpSenderName] = useState('Kayastory Photography Studio');
   const [testEmail, setTestEmail] = useState('admin@kayastory.id');
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} Disalin!`);
-  };
 
   const handleSendTestWA = () => {
     if (!testPhoneNumber) {

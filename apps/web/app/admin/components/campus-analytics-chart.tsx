@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GraduationCap } from 'lucide-react';
+import { useMounted } from '@/lib/use-mounted';
 
 const campusData = [
   { campus: 'Undip', clients: 44, fullName: 'Universitas Diponegoro' },
@@ -24,12 +25,8 @@ const campusData = [
 ];
 
 export function CampusAnalyticsChart() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <Card className="rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm">

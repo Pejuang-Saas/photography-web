@@ -27,7 +27,7 @@ export default function BookingDetailModal() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [isFullPayment, setIsFullPayment] = useState(true);
-  const [customAmount, setCustomAmount] = useState<number>(0);
+  const [customAmount] = useState<number>(0);
   const [isZoomed, setIsZoomed] = useState(false);
 
   if (!selectedBooking) return null;
@@ -267,6 +267,7 @@ export default function BookingDetailModal() {
               {/* Proof Image */}
               {selectedBooking.paymentProofUrl ? (
                 <div className="relative group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- remote proof URL from storage, domain not fixed */}
                   <img
                     src={selectedBooking.paymentProofUrl}
                     alt="Bukti Transfer"

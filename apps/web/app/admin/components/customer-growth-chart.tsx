@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   AreaChart,
   Area,
@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { formatRupiah } from '@/lib/mock-data';
 import { TrendingUp } from 'lucide-react';
+import { useMounted } from '@/lib/use-mounted';
 
 const monthlyData = [
   { month: 'Jan', bookings: 14, revenue: 8400000 },
@@ -27,11 +28,7 @@ const monthlyData = [
 
 export function CustomerGrowthChart() {
   const [metric, setMetric] = useState<'revenue' | 'bookings'>('revenue');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useMounted();
 
   return (
     <Card className="rounded-lg border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm">

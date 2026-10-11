@@ -37,9 +37,13 @@ export async function getLandingCmsContent(): Promise<LandingCmsContent | null> 
       next: { revalidate: 60, tags: ['landing-cms'] },
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error(`[landing-cms] ${response.status} from /public/cms/landing`);
+      return null;
+    }
     return (await response.json()) as LandingCmsContent;
-  } catch {
+  } catch (error) {
+    console.error('[landing-cms] fetch failed', error);
     return null;
   }
 }

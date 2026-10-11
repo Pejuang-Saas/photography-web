@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImagePlus, MessageSquareQuote, Save } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -50,10 +50,6 @@ export function TestimonialDialog({
       isPublished: item?.isPublished ?? false,
     },
   });
-  useEffect(() => {
-    setFile(undefined);
-    setPreview(item?.mediaAsset?.url ?? '');
-  }, [item]);
   const save = useMutation({
     mutationFn: (values: Values) => {
       const payload: TestimonialPayload = {

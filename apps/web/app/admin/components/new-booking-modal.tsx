@@ -29,8 +29,8 @@ export default function NewBookingModal({ open, onOpenChange }: NewBookingModalP
   const [selectedPackageId, setSelectedPackageId] = useState(packages[0]?.id || '');
   const [sessionDate, setSessionDate] = useState('2026-08-27');
   const [timeSlot, setTimeSlot] = useState('10:00 - 11:00');
-  const [location, setLocation] = useState('Studio Kayastory (Tembalang)');
-  const [photographer, setPhotographer] = useState('Bima Satria (Lead)');
+  const [location] = useState('Studio Kayastory (Tembalang)');
+  const [photographer] = useState('Bima Satria (Lead)');
   const [notes, setNotes] = useState('');
 
   const selectedPkg = packages.find((p) => p.id === selectedPackageId) || packages[0];

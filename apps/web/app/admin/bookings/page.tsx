@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAdmin } from '@/lib/admin-context';
 import { formatRupiah } from '@/lib/mock-data';
-import { Search, Clock, Calendar, Download, CreditCard, MessageCircle, Eye } from 'lucide-react';
+import { Search, Clock, Calendar, Download, MessageCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

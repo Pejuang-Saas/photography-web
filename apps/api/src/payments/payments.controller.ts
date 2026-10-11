@@ -29,6 +29,7 @@ import {
 } from './dto/payment.dto';
 import { MidtransWebhookService } from './gateways/midtrans.webhook.service';
 import { XenditWebhookService } from './gateways/xendit.webhook.service';
+import { Public } from '../common/public.decorator';
 
 @Controller()
 export class PaymentsController {
@@ -39,11 +40,13 @@ export class PaymentsController {
     private readonly xenditWebhook: XenditWebhookService,
   ) {}
 
+  @Public()
   @Get('public/payment-settings')
   getPublicSettings() {
     return this.paymentSettings.getPublic();
   }
 
+  @Public()
   @Post('public/bookings/:id/manual-payment')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   submitManualPayment(
@@ -56,6 +59,7 @@ export class PaymentsController {
     return this.paymentsService.submitManualPayment(id, dto, file, idempotencyKey);
   }
 
+  @Public()
   @Post('public/bookings/:id/gateway/confirm')
   confirmGatewayPayment(
     @Param('id') id: string,
@@ -65,6 +69,7 @@ export class PaymentsController {
     return this.paymentsService.confirmGatewayPayment(id, dto, idempotencyKey);
   }
 
+  @Public()
   @Post('public/bookings/:id/gateway/intent')
   createGatewayIntent(
     @Param('id') id: string,
@@ -73,12 +78,14 @@ export class PaymentsController {
     return this.paymentsService.createGatewayIntent(id, idempotencyKey);
   }
 
+  @Public()
   @Post('webhooks/payments/midtrans')
   @HttpCode(200)
   handleMidtransWebhook(@Body() dto: MidtransWebhookDto) {
     return this.midtransWebhook.handle(dto);
   }
 
+  @Public()
   @Post('webhooks/payments/xendit')
   @HttpCode(200)
   handleXenditWebhook(

@@ -3,16 +3,19 @@ import { BookingStatus } from '@prisma/client';
 import { Roles } from '@thallesp/nestjs-better-auth';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/booking.dto';
+import { Public } from '../common/public.decorator';
 
 @Controller()
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
+  @Public()
   @Post('public/bookings')
   create(@Body() dto: CreateBookingDto, @Headers('idempotency-key') idempotencyKey?: string) {
     return this.bookingsService.create(dto, idempotencyKey);
   }
 
+  @Public()
   @Get('public/bookings/:bookingCode')
   getPublic(@Param('bookingCode') bookingCode: string) {
     return this.bookingsService.getPublic(bookingCode);

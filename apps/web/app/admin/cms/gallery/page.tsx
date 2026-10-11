@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, ImageIcon, Plus, RotateCcw, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -44,6 +45,7 @@ function GalleryCard({
   isReordering: boolean;
   isPublishing: boolean;
 }) {
+  const router = useRouter();
   return (
     <article className="group min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white transition-colors hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
       <div className="p-2 pb-0">
@@ -97,7 +99,7 @@ function GalleryCard({
               isPublished={item.isPublished}
               onTogglePublish={onPublish}
               isPublishPending={isPublishing}
-              onEdit={() => window.location.assign(`/admin/cms/gallery/${item.id}/edit`)}
+              onEdit={() => router.push(`/admin/cms/gallery/${item.id}/edit`)}
               onDelete={onDelete}
               isDeletePending={isDeleting}
             />

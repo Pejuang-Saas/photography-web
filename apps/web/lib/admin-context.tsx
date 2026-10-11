@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { Booking, PackageItem, AdminNotification, BookingStatus } from '@/types/admin';
 import { INITIAL_BOOKINGS, INITIAL_PACKAGES, INITIAL_NOTIFICATIONS } from '@/lib/mock-data';
 import { toast } from 'sonner';

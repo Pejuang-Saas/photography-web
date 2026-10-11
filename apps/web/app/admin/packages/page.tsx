@@ -11,7 +11,6 @@ import {
   Clock,
   Users,
   Image as ImageIcon,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

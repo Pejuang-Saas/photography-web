@@ -26,61 +26,6 @@ import {
 // DATA
 // ────────────────────────────────────────────────
 
-const portfolioTiles = [
-  { src: '01', w: 2160, h: 2700, alt: 'Wisudawati berkebaya memegang map ijazah di lobi kampus' },
-  {
-    src: '02',
-    w: 2160,
-    h: 2700,
-    alt: 'Sekelompok wisudawan berpose ceria bersama di tangga kampus',
-  },
-  { src: '03', w: 2160, h: 2700, alt: 'Wisudawati membawa buket bunga tersenyum lepas' },
-  { src: '04', w: 2160, h: 2880, alt: 'Wisudawan berfoto bersama di Tugu Muda saat senja' },
-  { src: '05', w: 2160, h: 2877, alt: 'Wisudawan melambaikan tangan dari mobil golf kampus' },
-  { src: '06', w: 2160, h: 2700, alt: 'Wisudawan tersenyum dengan toga lengkap' },
-  { src: '07', w: 2160, h: 2700, alt: 'Wisudawati berkebaya di halaman gedung kampus' },
-  { src: '08', w: 2160, h: 2700, alt: 'Momen bahagia wisudawati bersama keluarga' },
-  { src: '09', w: 2160, h: 2700, alt: 'Wisudawati menunjukkan medali kelulusan' },
-  { src: '10', w: 2160, h: 2700, alt: 'Detail medali wisuda dalam genggaman tangan' },
-  { src: '11', w: 2160, h: 2700, alt: 'Dua wisudawan bersalaman merayakan kelulusan bersama' },
-  { src: '12', w: 2160, h: 2700, alt: 'Wisudawan berpose candid di sudut kampus' },
-  { src: '13', w: 2160, h: 2700, alt: 'Wisudawati berbusana merah muda di taman kampus' },
-  { src: '14', w: 2160, h: 2700, alt: 'Tiga sahabat berfoto bersama saat wisuda' },
-  { src: '15', w: 2160, h: 2700, alt: 'Wisudawati memegang selempang sarjana hukum' },
-  { src: '16', w: 2160, h: 2700, alt: 'Dua wisudawati duduk santai di rumput lapangan kampus' },
-  { src: '17', w: 2160, h: 2700, alt: 'Sekelompok wisudawati merayakan kelulusan bersama' },
-  { src: '18', w: 2160, h: 2700, alt: 'Wisudawati tersenyum cerah di bawah sinar matahari' },
-  { src: '19', w: 2160, h: 2700, alt: 'Pose elegan wisudawati berlatar arsitektur kampus' },
-  { src: '21', w: 2700, h: 3375, alt: 'Dua wisudawati berpose menunjuk ke kamera dengan riang' },
-  { src: '22', w: 2880, h: 3840, alt: 'Momen wisuda malam hari penuh keceriaan' },
-  { src: '24', w: 2880, h: 3840, alt: 'Sesi foto kelompok saat malam hari bertema nocturnal' },
-];
-
-// Studix-style Featured Testimonial Stories
-const featuredStories = [
-  {
-    quote:
-      'Hasilnya jauh di atas ekspektasi. Fotografernya sabar banget mengarahkan pose, jadi kami yang awalnya kaku pun kelihatan lepas dan natural.',
-    author: 'HASNA AULIA',
-    campus: 'Universitas Dian Nuswantoro, Semarang',
-    photo: '01',
-  },
-  {
-    quote:
-      'Kami foto berlima dan semuanya kebagian momen bagus. Tone warnanya konsisten, detail kebaya keluar rapi tanpa over-editing.',
-    author: 'GLORIA MARGARETHA',
-    campus: 'Universitas Diponegoro, Tembalang',
-    photo: '16',
-  },
-  {
-    quote:
-      'Proses booking gampang, tim responsif di WhatsApp. Pas hari-H fotografer datang on-time dan hasilnya selesai tepat 7 hari kerja.',
-    author: 'PASHA RAHMADANI',
-    campus: 'Universitas Negeri Semarang, Sekaran',
-    photo: '07',
-  },
-];
-
 const steps = [
   {
     num: '01',
@@ -104,33 +49,6 @@ const steps = [
   },
 ];
 
-const faqs = [
-  {
-    q: 'Berapa lama proses editing sampai foto diterima?',
-    a: 'Rata-rata 7 hari kerja setelah kamu memilih foto favoritmu. Jika membutuhkan foto lebih cepat, tersedia layanan Express 48 Jam.',
-  },
-  {
-    q: 'Apakah bisa request lokasi foto di luar kampus?',
-    a: 'Bisa. Untuk Paket Family, lokasi sudah bebas di area Semarang. Untuk paket Solo dan Squad, lokasi luar kampus dikenakan penyesuaian biaya transport yang wajar.',
-  },
-  {
-    q: 'Bagaimana cara reservasi dan pembayarannya?',
-    a: 'Pilih paket, isi form reservasi di WhatsApp, lalu bayar DP 50% untuk mengunci tanggal. Sisanya dilunasi setelah sesi foto selesai.',
-  },
-  {
-    q: 'Apakah seluruh foto mentah ikut diberikan?',
-    a: 'Ya. Seluruh file foto mentah kualitas original tanpa watermark dibagikan via link Google Drive, di samping foto-foto yang sudah diedit.',
-  },
-  {
-    q: 'Bagaimana jika terjadi hujan atau jadwal wisuda berubah?',
-    a: 'Reschedule gratis satu kali selama dikabari minimal H-1 sebelum pemotretan. DP tetap berlaku dan tidak hangus.',
-  },
-  {
-    q: 'Apakah orang yang belum pernah photoshoot bisa diarahkan?',
-    a: 'Tentu. Mayoritas klien kami baru pertama kali foto profesional. Fotografer kami memandu pose, gestur, dan ekspresi dari awal sampai selesai.',
-  },
-];
-
 const navLinks = [
   { href: '#portfolio', label: 'Galeri', idx: '01' },
   { href: '#tentang', label: 'Tentang', idx: '02' },
@@ -140,58 +58,44 @@ const navLinks = [
   { href: '#faq', label: 'FAQ', idx: '06' },
 ];
 
-const campuses = [
-  'UNIVERSITAS DIPONEGORO',
-  'UNIVERSITAS NEGERI SEMARANG',
-  'UNIVERSITAS DIAN NUSWANTORO',
-  'POLINES',
-  'UNIKA SOEGIJAPRANATA',
-  'UIN WALISONGO',
-];
-
 // ────────────────────────────────────────────────
 // MAIN COMPONENT
 // ────────────────────────────────────────────────
 
 export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent | null }) {
   const cmsGallery = cmsContent?.gallery ?? [];
-  const galleryTiles = cmsGallery.length
-    ? cmsGallery.map((item) => ({
-        src: item.mediaAsset.url,
-        w: 2160,
-        h: 2700,
-        alt: item.altText || item.title,
-        category: item.category?.slug,
-        categoryLabel: item.category?.name,
-        campus: item.location ?? undefined,
-        title: item.title,
-      }))
-    : portfolioTiles;
-  const galleryCategories = cmsGallery.length
-    ? Array.from(
-        new Map(
-          cmsGallery
-            .filter((item) => item.category)
-            .map((item) => [item.category!.slug, { id: item.category!.slug, label: item.category!.name }]),
-        ).values(),
-      )
-    : undefined;
-  const landingMarquee = cmsContent?.marquee?.length
-    ? cmsContent.marquee.map((item) => item.text)
-    : campuses;
-  const landingFaqs = cmsContent?.faqs?.length
-    ? cmsContent.faqs.map((item) => ({ q: item.question, a: item.answer }))
-    : faqs;
-  const landingStories = cmsContent?.testimonials?.length
-    ? cmsContent.testimonials.map((item) => ({
-        quote: item.quote,
-        author: item.customerName,
-        campus: item.university || item.customerRole || 'Customer Kayastory',
-        photo: '',
-        photoUrl: item.mediaAsset?.url,
-        rating: item.rating,
-      }))
-    : featuredStories;
+  const galleryTiles = cmsGallery.map((item) => ({
+    src: item.mediaAsset.url,
+    w: 2160,
+    h: 2700,
+    alt: item.altText || item.title,
+    category: item.category?.slug,
+    categoryLabel: item.category?.name,
+    campus: item.location ?? undefined,
+    title: item.title,
+  }));
+  const galleryCategories = Array.from(
+    new Map(
+      cmsGallery
+        .filter((item) => item.category)
+        .map((item) => [
+          item.category!.slug,
+          { id: item.category!.slug, label: item.category!.name },
+        ]),
+    ).values(),
+  );
+  const landingMarquee = (cmsContent?.marquee ?? []).map((item) => item.text);
+  const landingFaqs = (cmsContent?.faqs ?? []).map((item) => ({
+    q: item.question,
+    a: item.answer,
+  }));
+  const landingStories = (cmsContent?.testimonials ?? []).map((item) => ({
+    quote: item.quote,
+    author: item.customerName,
+    campus: item.university || item.customerRole || '',
+    photoUrl: item.mediaAsset?.url,
+    rating: item.rating,
+  }));
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-bg text-fg relative film-grain selection:bg-accent selection:text-accent-fg">
