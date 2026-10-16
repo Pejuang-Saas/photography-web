@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Camera, MapPin, ShieldCheck } from 'lucide-react';
+import { Camera, Check, MapPin, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { ServicePackage } from '@/lib/booking-api';
 import type { PaymentMode, PaymentPlan } from '@/lib/api-types';
 import { dpAmount, featureList, type CustomerForm } from '@/lib/booking-form';
@@ -16,6 +16,28 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="flex justify-between gap-4">
       <span className="text-muted">{label}</span>
       <span className="text-right font-medium">{children}</span>
+    </div>
+  );
+}
+
+function InfoItem({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+        <Icon className="size-4" />
+      </span>
+      <div className="min-w-0 text-sm">
+        <p className="mb-0.5 text-[11px] uppercase tracking-wider text-muted-dim">{label}</p>
+        {children}
+      </div>
     </div>
   );
 }
@@ -138,58 +160,57 @@ export default function StepOrderPreview({
             span="none"
             className="border-accent/30 bg-accent/[0.05]"
           >
-            <div className="space-y-2.5 text-sm">
-              {studio?.address && (
-                <p className="flex gap-2 text-xs">
-                  <MapPin className="mt-0.5 size-3.5 shrink-0 text-accent" />
-                  <span>
-                    {studio.address}
-                    {studio.mapsUrl && (
-                      <>
-                        {' '}
+            <div className="grid gap-5 sm:grid-cols-2 sm:gap-8">
+              {(studio?.address || studio?.instagramUrl) && (
+                <div className="space-y-4">
+                  {studio.address && (
+                    <InfoItem icon={MapPin} label="Alamat studio">
+                      <p className="leading-snug">{studio.address}</p>
+                      {studio.mapsUrl && (
                         <a
                           href={studio.mapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline hover:text-accent"
+                          className="mt-0.5 inline-block text-xs text-accent underline-offset-2 hover:underline"
                         >
-                          Lihat di peta
+                          Lihat di peta ↗
                         </a>
-                      </>
-                    )}
-                  </span>
-                </p>
-              )}
-
-              {studio?.instagramUrl && (
-                <p className="flex gap-2 text-xs">
-                  <Camera className="mt-0.5 size-3.5 shrink-0 text-accent" />
-                  <span>
-                    Cek portofolio klien asli di{' '}
-                    <a
-                      href={studio.instagramUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-semibold underline hover:text-accent"
-                    >
-                      @{studio.instagramHandle}
-                    </a>
-                  </span>
-                </p>
+                      )}
+                    </InfoItem>
+                  )}
+                  {studio.instagramUrl && (
+                    <InfoItem icon={Camera} label="Instagram resmi">
+                      <a
+                        href={studio.instagramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold underline-offset-2 hover:text-accent hover:underline"
+                      >
+                        @{studio.instagramHandle}
+                      </a>
+                      <p className="mt-0.5 text-xs text-muted">Cek portofolio klien asli</p>
+                    </InfoItem>
+                  )}
+                </div>
               )}
 
               {studio && studio.guarantees.length > 0 && (
-                <ul className="flex flex-wrap gap-2 pt-1">
-                  {studio.guarantees.map((guarantee) => (
-                    <li
-                      key={guarantee}
-                      className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px]"
-                    >
-                      <ShieldCheck className="size-3 text-accent" />
-                      {guarantee}
-                    </li>
-                  ))}
-                </ul>
+                <div className="sm:border-l sm:border-white/10 sm:pl-8">
+                  <p className="mb-3 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-dim">
+                    <ShieldCheck className="size-3.5 text-accent" />
+                    Jaminan studio
+                  </p>
+                  <ul className="space-y-2.5 text-sm">
+                    {studio.guarantees.map((guarantee) => (
+                      <li key={guarantee} className="flex items-start gap-2.5">
+                        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                          <Check className="size-2.5" strokeWidth={3} />
+                        </span>
+                        <span className="leading-snug">{guarantee}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           </StepCard>
