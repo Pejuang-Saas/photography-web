@@ -2,8 +2,9 @@
 
 import { motion, useReducedMotion, type Variants } from 'motion/react';
 import { ArrowRight } from '@phosphor-icons/react';
+import type { LandingContent } from '@/lib/landing-content-api';
 
-export default function HeroEntrance() {
+export default function HeroEntrance({ hero }: { hero: LandingContent['hero'] }) {
   const shouldReduceMotion = useReducedMotion();
 
   const variants: Variants = {
@@ -29,7 +30,7 @@ export default function HeroEntrance() {
         variants={variants}
       >
         <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-card px-4 py-1.5 text-xs text-muted font-mono tracking-wider uppercase shadow-sm">
-          Semarang, Jawa Tengah • Wisuda 2026
+          {hero.badge}
         </span>
       </motion.div>
 
@@ -42,7 +43,7 @@ export default function HeroEntrance() {
           variants={variants}
           className="block text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98]"
         >
-          Hari ini berlalu cepat,
+          {hero.headlineLine1}
         </motion.span>
         <motion.span
           custom={3}
@@ -51,7 +52,7 @@ export default function HeroEntrance() {
           variants={variants}
           className="mt-2 block text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] text-white"
         >
-          sebuah frame
+          {hero.headlineLine2}
         </motion.span>
         <motion.span
           custom={4}
@@ -60,7 +61,7 @@ export default function HeroEntrance() {
           variants={variants}
           className="mt-2 block text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] text-accent"
         >
-          membuatnya abadi.
+          {hero.headlineLine3}
         </motion.span>
       </h1>
 
@@ -72,8 +73,7 @@ export default function HeroEntrance() {
         variants={variants}
         className="mt-7 max-w-xl text-base sm:text-lg leading-relaxed text-muted font-normal"
       >
-        Spesialis fotografi wisuda di Semarang. Mengabadikan momen kelulusan, kebaya, dan
-        kebersamaan sahabat dalam estetika warna yang abadi.
+        {hero.subtitle}
       </motion.p>
 
       {/* Action Buttons */}
@@ -88,7 +88,7 @@ export default function HeroEntrance() {
           href="#paket"
           className="group inline-flex items-center gap-3 rounded-full bg-accent px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.97] shadow-xl shadow-accent/15"
         >
-          <span>Reservasi Sekarang</span>
+          <span>{hero.primaryCta}</span>
           <span className="transition-transform duration-200 group-hover:translate-x-1">
             <ArrowRight size={15} weight="bold" />
           </span>
@@ -98,7 +98,7 @@ export default function HeroEntrance() {
           href="#portfolio"
           className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-card px-6 py-4 text-xs sm:text-sm font-semibold tracking-wide text-fg transition-all duration-200 hover:border-white/30 hover:bg-card-hover active:scale-[0.97]"
         >
-          <span>Lihat Galeri Foto</span>
+          <span>{hero.secondaryCta}</span>
         </a>
       </motion.div>
     </div>

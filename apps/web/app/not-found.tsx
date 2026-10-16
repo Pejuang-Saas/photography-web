@@ -1,7 +1,12 @@
+import { getStudioInfo } from '@/lib/landing-data';
+import { brandMark, FALLBACK_STUDIO_NAME } from '@/lib/studio-api';
 import Link from 'next/link';
 import { ArrowLeft, FilmStrip } from '@phosphor-icons/react/dist/ssr';
 
-export default function NotFound() {
+export default async function NotFound() {
+  const studio = await getStudioInfo();
+  const studioName = studio?.studioName ?? FALLBACK_STUDIO_NAME;
+
   return (
     <div className="min-h-[100dvh] flex flex-col justify-between bg-bg text-fg film-grain px-6 py-10 selection:bg-accent selection:text-accent-fg relative overflow-hidden">
       {/* Ambient Top Glow */}
@@ -13,7 +18,8 @@ export default function NotFound() {
           href="/"
           className="text-lg sm:text-xl font-black tracking-tighter text-fg hover:opacity-80 transition-opacity"
         >
-          KAYASTORY<span className="text-accent">.</span>
+          {brandMark(studioName)}
+          <span className="text-accent">.</span>
         </Link>
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-dim">
           EXP // 404
@@ -74,7 +80,10 @@ export default function NotFound() {
 
       {/* Bottom Footer */}
       <footer className="mx-auto w-full max-w-5xl text-center font-mono text-[11px] text-muted-dim">
-        <p>&copy; 2026 KAYASTORY PHOTOGRAPHY. SEMARANG, ID.</p>
+        <p>
+          &copy; {new Date().getFullYear()} {studioName.toUpperCase()}
+          {studio?.city ? `. ${studio.city.toUpperCase()}, ID.` : '.'}
+        </p>
       </footer>
     </div>
   );

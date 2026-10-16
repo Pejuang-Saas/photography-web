@@ -14,6 +14,10 @@ import QuickBookingDock from './components/quick-booking-dock';
 import FrameCounter from './components/frame-counter';
 import StructuredData from './components/structured-data';
 import type { LandingCmsContent } from '@/lib/landing-cms';
+import type { ServicePackage } from '@/lib/booking-api';
+import { formatClock, whatsappLink } from '@/lib/format';
+import type { LandingContent } from '@/lib/landing-content-api';
+import { brandMark, FALLBACK_STUDIO_NAME, type StudioInfo } from '@/lib/studio-api';
 import {
   FilmStrip,
   Sparkle,
@@ -26,28 +30,7 @@ import {
 // DATA
 // ────────────────────────────────────────────────
 
-const steps = [
-  {
-    num: '01',
-    title: 'Pilih Paket',
-    desc: 'Tentukan paket yang sesuai kebutuhanmu, dari sesi Solo, Squad, hingga Family.',
-  },
-  {
-    num: '02',
-    title: 'Kunci Jadwal',
-    desc: 'Konfirmasi tanggal lewat WhatsApp dengan DP 50% untuk mengamankan slot fotografer.',
-  },
-  {
-    num: '03',
-    title: 'Sesi Hari-H',
-    desc: 'Tim fotografer hadir di kampus pilihanmu dan mengarahkan pose secara santai.',
-  },
-  {
-    num: '04',
-    title: 'Terima Arsip',
-    desc: 'Akses seluruh file mentah di Drive dan terima hasil color grading dalam 7 hari kerja.',
-  },
-];
+const POINT_ICONS = [Sparkle, ShieldCheck, FilmStrip];
 
 const navLinks = [
   { href: '#portfolio', label: 'Galeri', idx: '01' },
@@ -62,7 +45,24 @@ const navLinks = [
 // MAIN COMPONENT
 // ────────────────────────────────────────────────
 
-export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent | null }) {
+export default function Landing({
+  cmsContent,
+  content,
+  studio,
+  packages,
+  allowDownPayment = true,
+}: {
+  cmsContent?: LandingCmsContent | null;
+  content: LandingContent | null;
+  studio?: StudioInfo | null;
+  packages?: ServicePackage[] | null;
+  allowDownPayment?: boolean;
+}) {
+  const studioName = studio?.studioName ?? FALLBACK_STUDIO_NAME;
+  const greeting = `Halo ${studioName}!`;
+  const waLink = (text: string) =>
+    whatsappLink(studio?.whatsappNumber ?? '', `${greeting} ${text}`);
+  const steps = content?.steps ?? [];
   const cmsGallery = cmsContent?.gallery ?? [];
   const galleryTiles = cmsGallery.map((item) => ({
     src: item.mediaAsset.url,
@@ -99,15 +99,21 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-bg text-fg relative film-grain selection:bg-accent selection:text-accent-fg">
-      <StructuredData faqs={landingFaqs.map((item) => ({ question: item.q, answer: item.a }))} />
+      <StructuredData
+        studio={studio}
+        description={content?.seo.description}
+        packages={packages}
+        testimonials={cmsContent?.testimonials}
+        faqs={landingFaqs.map((item) => ({ question: item.q, answer: item.a }))}
+      />
       {/* ── 35MM ASSET PRELOADER ── */}
-      <Preloader />
+      <Preloader brand={brandMark(studioName)} />
 
       {/* ── AMBIENT TOP GLOW ── */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] glow-gold-top -z-10" />
 
       {/* ── CAMERA VIEWFINDER FRAMING HEADER ── */}
-      <HeaderViewfinder navLinks={navLinks} />
+      <HeaderViewfinder navLinks={navLinks} brand={brandMark(studioName)} />
 
       {/* ── SECTION 1: HERO ── */}
       <section
@@ -116,7 +122,7 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
       >
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-12 lg:gap-8">
           {/* Left Column: Staggered Entrance */}
-          <HeroEntrance />
+          {content && <HeroEntrance hero={content.hero} />}
 
           {/* Right Column: Dual Infinite Film Strips with Spring Interactive Tilt */}
           <div className="flex items-center justify-center lg:col-span-5 lg:justify-end">
@@ -137,17 +143,21 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
           <ScrollReveal>
             <div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-fg">
-                Katalog Foto Wisuda
+                {content?.portfolio.heading}
               </h2>
               <p className="mt-3 max-w-xl text-sm text-muted leading-relaxed">
-                Setiap foto diproses dengan color grading berkarakter untuk mempertahankan detail
-                natural dan keanggunan kebaya wisuda.
+                {content?.portfolio.description}
               </p>
             </div>
           </ScrollReveal>
 
           {/* Gallery with Morphing Pills & 35mm Lightbox Modal */}
-          <Gallery tiles={galleryTiles} categoryOptions={galleryCategories} />
+          <Gallery
+            tiles={galleryTiles}
+            categoryOptions={galleryCategories}
+            whatsappNumber={studio?.whatsappNumber ?? null}
+            studioName={studioName}
+          />
         </div>
       </section>
 
@@ -160,50 +170,39 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
           {/* Left: Editorial Statements */}
           <ScrollReveal className="lg:col-span-7">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.08] text-fg">
-              Bukan sekadar foto toga kaku.
-              <br />
-              <span className="text-muted font-normal">
-                Kami menangkap rasa bangga, haru, dan tawa yang sesungguhnya.
-              </span>
+              {content?.about.heading}
+              {content?.about.subheading && (
+                <>
+                  <br />
+                  <span className="text-muted font-normal">{content.about.subheading}</span>
+                </>
+              )}
             </h2>
 
-            <p className="mt-6 text-sm sm:text-base leading-relaxed text-muted max-w-xl">
-              Kayastory berdiri di Semarang dari keyakinan sederhana: wisuda adalah puncak dari
-              tahun-tahun perjuanganmu. Hari istimewa ini layak diabadikan dengan pengarahan gaya
-              yang santai dan penuh makna.
-            </p>
+            {content?.about.body && (
+              <p className="mt-6 text-sm sm:text-base leading-relaxed text-muted max-w-xl">
+                {content.about.body}
+              </p>
+            )}
 
-            {/* 3 Core Points */}
+            {/* Key points, managed in the admin */}
             <div className="mt-10 space-y-6">
-              {[
-                {
-                  title: 'Kamu Tidak Perlu Berbakat Pose',
-                  desc: 'Fotografer kami memandu dari gestur tangan, arah pandangan, hingga interaksi santai agar hasil foto terlihat lepas.',
-                  icon: Sparkle,
-                },
-                {
-                  title: 'Satu Hari, Slot Terkunci Khusus',
-                  desc: 'Kami tidak menduplikasi jadwal pemotretan di jam yang sama. Waktu tim sepenuhnya didedikasikan untukmu.',
-                  icon: ShieldCheck,
-                },
-                {
-                  title: 'Seluruh File Mentah Diserahkan Penuh',
-                  desc: 'Tidak ada biaya tersembunyi per-foto. Semua foto RAW dan JPG resolusi asli langsung menjadi arsip pribadimu.',
-                  icon: FilmStrip,
-                },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start gap-4">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card border border-white/10 text-accent mt-0.5 shadow-sm">
-                    <item.icon size={18} weight="bold" />
+              {(content?.about.points ?? []).map((item, idx) => {
+                const Icon = POINT_ICONS[idx % POINT_ICONS.length];
+                return (
+                  <div key={idx} className="flex items-start gap-4">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card border border-white/10 text-accent mt-0.5 shadow-sm">
+                      <Icon size={18} weight="bold" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-fg">{item.title}</h3>
+                      <p className="mt-1 text-xs sm:text-sm text-muted leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-fg">{item.title}</h3>
-                    <p className="mt-1 text-xs sm:text-sm text-muted leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollReveal>
 
@@ -220,16 +219,18 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
           <ScrollReveal>
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-fg">
-                Pilihan Paket Foto
+                {content?.packages.heading}
               </h2>
               <p className="mt-3 text-sm text-muted">
-                Semua paket sudah termasuk seluruh file mentah dan foto edited kualitas master.
-                Cukup DP 50% untuk mengunci tanggal wisudamu.
+                {content?.packages.description}{' '}
+                {allowDownPayment
+                  ? 'Cukup DP 50% untuk mengunci tanggal wisudamu.'
+                  : 'Bayar lunas untuk mengunci tanggal wisudamu.'}
               </p>
             </div>
           </ScrollReveal>
 
-          <PublicPackageCatalog />
+          <PublicPackageCatalog initialPackages={packages} />
         </div>
       </section>
 
@@ -253,15 +254,15 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
           {/* 4 Steps (Original Clean Minimalist Layout) */}
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, idx) => (
-              <ScrollReveal key={step.title} delay={idx * 0.08}>
+              <ScrollReveal key={idx} delay={idx * 0.08}>
                 <div className="flex flex-col border-t border-white/15 pt-6 group">
                   <span className="font-mono text-xs font-bold text-accent transition-colors duration-200 group-hover:text-accent-light">
-                    LANGKAH {step.num}
+                    LANGKAH {String(idx + 1).padStart(2, '0')}
                   </span>
                   <h3 className="mt-3 text-lg font-bold text-fg group-hover:text-white transition-colors duration-200">
                     {step.title}
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">{step.desc}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted">{step.description}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -335,7 +336,7 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
                   </div>
                 </div>
                 <a
-                  href="https://wa.me/?text=Halo%20Kayastory!%20Saya%20ingin%20tanya%20seputar%20paket%20foto%20wisuda"
+                  href={waLink('Saya ingin tanya seputar paket foto wisuda')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-5 block w-full rounded-xl bg-accent px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-accent-fg hover:bg-accent-light transition-all duration-200 active:scale-[0.97] shadow-md shadow-accent/10"
@@ -376,7 +377,7 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
 
               <div className="lg:col-span-4 lg:flex lg:justify-end">
                 <MagneticButton
-                  href="https://wa.me/?text=Halo%20Kayastory!%20Saya%20ingin%20reservasi%20slot%20foto%20wisuda"
+                  href={waLink('Saya ingin reservasi slot foto wisuda')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group inline-flex items-center gap-3 rounded-full bg-accent px-8 py-5 text-sm font-bold uppercase tracking-wider text-accent-fg transition-all duration-300 hover:bg-accent-light shadow-2xl shadow-accent/25 hover:shadow-accent/40"
@@ -455,19 +456,20 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
               </ul>
             </div>
 
-            {/* Col 3: Area Kampus Semarang (2 cols) */}
+            {/* Col 3: Area Kampus (2 cols), taken from the marquee list managed in the CMS */}
             <div className="lg:col-span-2">
-              <span className="block font-mono text-xs uppercase tracking-widest text-muted-dim mb-4">
-                Area Kampus
-              </span>
-              <ul className="space-y-2 text-xs font-mono text-muted-dim">
-                <li>UNDIP Tembalang</li>
-                <li>UNNES Sekaran</li>
-                <li>UDINUS Semarang</li>
-                <li>POLINES</li>
-                <li>UNIKA Soegijapranata</li>
-                <li>UIN Walisongo</li>
-              </ul>
+              {landingMarquee.length > 0 && (
+                <>
+                  <span className="block font-mono text-xs uppercase tracking-widest text-muted-dim mb-4">
+                    Area Kampus
+                  </span>
+                  <ul className="space-y-2 text-xs font-mono text-muted-dim">
+                    {landingMarquee.map((campus) => (
+                      <li key={campus}>{campus}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
 
             {/* Col 4: Kontak & Studio Hours (3 cols) */}
@@ -476,11 +478,31 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
                 Kontak & Studio
               </span>
               <div className="space-y-3 text-xs text-muted">
-                <p className="font-mono text-[11px] text-fg">Semarang, Jawa Tengah, ID</p>
-                <p className="text-[11px]">Jam Operasional: 08.00 - 21.00 WIB</p>
+                {studio?.address && (
+                  <p className="font-mono text-[11px] text-fg">
+                    {studio.mapsUrl ? (
+                      <a
+                        href={studio.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline-offset-2 hover:text-accent hover:underline"
+                      >
+                        {studio.address}
+                      </a>
+                    ) : (
+                      studio.address
+                    )}
+                  </p>
+                )}
+                {studio?.openTime && studio.closeTime && (
+                  <p className="text-[11px]">
+                    Jam Operasional: {formatClock(studio.openTime)} -{' '}
+                    {formatClock(studio.closeTime)} WIB
+                  </p>
+                )}
                 <div className="pt-2 flex items-center gap-3">
                   <a
-                    href="https://wa.me/?text=Halo%20Kayastory!%20Saya%20ingin%20tanya%20seputar%20foto%20wisuda"
+                    href={waLink('Saya ingin tanya seputar foto wisuda')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-semibold text-fg hover:border-accent hover:text-accent active:scale-95 transition-all duration-150"
@@ -488,15 +510,17 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
                     <WhatsappLogo size={14} weight="bold" />
                     <span>WhatsApp</span>
                   </a>
-                  <a
-                    href="https://instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-semibold text-fg hover:border-accent hover:text-accent active:scale-95 transition-all duration-150"
-                  >
-                    <InstagramLogo size={14} weight="bold" />
-                    <span>Instagram</span>
-                  </a>
+                  {studio?.instagramUrl && (
+                    <a
+                      href={studio.instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-semibold text-fg hover:border-accent hover:text-accent active:scale-95 transition-all duration-150"
+                    >
+                      <InstagramLogo size={14} weight="bold" />
+                      <span>Instagram</span>
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -504,7 +528,9 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
 
           {/* Bottom Bar: Copyright & Back to Top */}
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-muted-dim">
-            <p>&copy; 2026 KAYASTORY PHOTOGRAPHY. ALL RIGHTS RESERVED.</p>
+            <p>
+              &copy; {new Date().getFullYear()} {studioName.toUpperCase()}. ALL RIGHTS RESERVED.
+            </p>
             <a
               href="#top"
               className="inline-flex items-center gap-1.5 hover:text-fg transition-colors active:scale-95"
@@ -517,7 +543,7 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
           {/* Giant Studio Architectural Watermark */}
           <div className="mt-14 text-center select-none pointer-events-none overflow-hidden">
             <span className="block text-[clamp(3.5rem,14vw,9.5rem)] font-black tracking-tighter text-white/[0.03] leading-none uppercase">
-              KAYASTORY
+              {studioName.split(' ')[0].toUpperCase()}
             </span>
           </div>
         </div>
@@ -525,7 +551,7 @@ export default function Landing({ cmsContent }: { cmsContent?: LandingCmsContent
 
       {/* ── 35MM RANGEFINDER SCROLL TRACKER & QUICK BOOKING DOCK ── */}
       <FrameCounter />
-      <QuickBookingDock />
+      <QuickBookingDock whatsappNumber={studio?.whatsappNumber ?? null} studioName={studioName} />
     </div>
   );
 }

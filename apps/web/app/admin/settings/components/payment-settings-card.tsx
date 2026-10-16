@@ -6,6 +6,7 @@ import type { AdminPaymentSettings, UpdatePaymentSettingsInput } from '@/lib/adm
 import type { PaymentMode } from '@/lib/api-types';
 import { errorMessage, useUpdatePaymentSettings } from '@/lib/admin-queries';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import GatewayConfigForm, { type GatewayDraft } from './gateway-config-form';
@@ -23,11 +24,8 @@ function ModeBadge({ active }: { active: boolean }) {
   );
 }
 
-export default function PaymentSettingsCard({ settings }: { settings: AdminPaymentSettings }) {
-  const update = useUpdatePaymentSettings();
-  const [mode, setMode] = useState<PaymentMode>(settings.activeMode);
-  const [allowDownPayment, setAllowDownPayment] = useState(settings.allowDownPayment);
-  const [gateway, setGateway] = useState<GatewayDraft>({
+function initialGateway(settings: AdminPaymentSettings): GatewayDraft {
+  return {
     gatewayProvider: settings.gatewayProvider ?? 'MIDTRANS',
     gatewayEnvironment: settings.gatewayEnvironment ?? 'SANDBOX',
     merchantId: settings.merchantId ?? '',
@@ -36,7 +34,27 @@ export default function PaymentSettingsCard({ settings }: { settings: AdminPayme
     publicKey: settings.publicKey ?? '',
     secretKey: '',
     webhookToken: '',
-  });
+  };
+}
+
+export default function PaymentSettingsCard({ settings }: { settings: AdminPaymentSettings }) {
+  const update = useUpdatePaymentSettings();
+  const [mode, setMode] = useState<PaymentMode>(settings.activeMode);
+  const [allowDownPayment, setAllowDownPayment] = useState(settings.allowDownPayment);
+  const [gateway, setGateway] = useState<GatewayDraft>(() => initialGateway(settings));
+
+  const saved = initialGateway(settings);
+  const dirty =
+    mode !== settings.activeMode ||
+    allowDownPayment !== settings.allowDownPayment ||
+    (Object.keys(saved) as Array<keyof GatewayDraft>).some((key) => gateway[key] !== saved[key]);
+
+  function handleReset() {
+    setMode(settings.activeMode);
+    setAllowDownPayment(settings.allowDownPayment);
+    setGateway(initialGateway(settings));
+    update.reset();
+  }
 
   const configured = {
     serverKey: settings.serverKeyConfigured,
@@ -119,16 +137,54 @@ export default function PaymentSettingsCard({ settings }: { settings: AdminPayme
         ))}
       </div>
 
-      <label className="flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
-          checked={allowDownPayment}
-          onChange={(event) => setAllowDownPayment(event.target.checked)}
-        />
-        <span className="text-zinc-700 dark:text-zinc-300">
-          Izinkan customer memilih DP 50% (jika dimatikan, hanya bayar lunas)
-        </span>
-      </label>
+      <Card className="rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
+        <CardContent className="space-y-4 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-0.5">
+              <h3 id="dp-title" className="text-sm font-bold text-zinc-900 dark:text-white">
+                Skema Pembayaran: DP 50%
+              </h3>
+              <p className="text-xs text-zinc-500">
+                Jika dimatikan, customer hanya bisa membayar lunas di awal.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2.5">
+              <span
+                className={`text-xs font-semibold ${
+                  allowDownPayment ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500'
+                }`}
+              >
+                {allowDownPayment ? 'Diizinkan' : 'Dimatikan'}
+              </span>
+              <Switch
+                checked={allowDownPayment}
+                onCheckedChange={setAllowDownPayment}
+                aria-labelledby="dp-title"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-800">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+              Pilihan yang dilihat customer
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span
+                className={`rounded-lg border px-3 py-1.5 font-medium ${
+                  allowDownPayment
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                    : 'border-zinc-200 text-zinc-400 line-through dark:border-zinc-800'
+                }`}
+              >
+                DP 50%
+              </span>
+              <span className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 font-medium text-amber-700 dark:text-amber-300">
+                Bayar Lunas
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card
         className={`rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 ${
@@ -159,28 +215,6 @@ export default function PaymentSettingsCard({ settings }: { settings: AdminPayme
         </CardContent>
       </Card>
 
-      {missing.length > 0 && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-          Lengkapi dulu sebelum mengaktifkan gateway: {missing.join(', ')}.
-        </p>
-      )}
-      {update.isError && (
-        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
-          {errorMessage(update.error)}
-        </p>
-      )}
-
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={update.isPending || missing.length > 0}
-          className="h-9 gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-600"
-        >
-          <Save className="size-3.5" />
-          {update.isPending ? 'Menyimpan...' : 'Simpan Pengaturan'}
-        </Button>
-      </div>
-
       <Card
         className={`rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 ${
           mode === 'MANUAL' ? '' : 'opacity-50'
@@ -205,6 +239,42 @@ export default function PaymentSettingsCard({ settings }: { settings: AdminPayme
           </fieldset>
         </CardContent>
       </Card>
+      {(dirty || update.isError) && (
+        <div className="sticky bottom-4 z-10 space-y-2 rounded-xl border border-amber-500/40 bg-white/95 p-3 shadow-lg backdrop-blur dark:bg-zinc-950/95">
+          {missing.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Lengkapi dulu sebelum mengaktifkan gateway: {missing.join(', ')}.
+            </p>
+          )}
+          {update.isError && (
+            <p className="text-xs text-rose-700 dark:text-rose-300">{errorMessage(update.error)}</p>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Ada perubahan yang belum disimpan
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                disabled={update.isPending}
+                className="h-9 text-xs"
+              >
+                Batalkan
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={update.isPending || missing.length > 0}
+                className="h-9 gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-600"
+              >
+                <Save className="size-3.5" />
+                {update.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

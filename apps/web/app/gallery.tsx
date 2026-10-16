@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { WhatsappLogo, X, ArrowsOut, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { whatsappLink } from '@/lib/format';
 
 export type Tile = {
   src: string;
@@ -31,7 +32,17 @@ const DEFAULT_CATEGORIES = [
   { id: 'details', label: 'Detail & Medali' },
 ];
 
-export default function Gallery({ tiles, categoryOptions }: { tiles: Tile[]; categoryOptions?: Array<{ id: string; label: string }> }) {
+export default function Gallery({
+  tiles,
+  categoryOptions,
+  whatsappNumber = null,
+  studioName = 'Kayastory',
+}: {
+  tiles: Tile[];
+  categoryOptions?: Array<{ id: string; label: string }>;
+  whatsappNumber?: string | null;
+  studioName?: string;
+}) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [showAll, setShowAll] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -357,9 +368,10 @@ export default function Gallery({ tiles, categoryOptions }: { tiles: Tile[]; cat
 
                 {/* Refined CTA Button */}
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(
-                    `Halo Kayastory! Saya tertarik dengan konsep foto wisuda katalog #${selectedTile.src} (${selectedTile.title} di ${selectedTile.campus}). Boleh info paketnya?`,
-                  )}`}
+                  href={whatsappLink(
+                    whatsappNumber ?? '',
+                    `Halo ${studioName}! Saya tertarik dengan konsep foto wisuda katalog #${selectedTile.src} (${selectedTile.title} di ${selectedTile.campus}). Boleh info paketnya?`,
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.96] shadow-lg shadow-accent/20"

@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { revalidateWeb } from '../common/revalidate-web';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageCleanupService } from '../storage/storage-cleanup.service';
@@ -49,16 +50,8 @@ export class CmsService {
     private readonly storageCleanup: StorageCleanupService,
   ) {}
 
-  private async revalidateLandingContent() {
-    const url = process.env.WEB_REVALIDATE_URL;
-    const secret = process.env.WEB_REVALIDATE_SECRET;
-    if (!url || !secret) return;
-
-    try {
-      await fetch(url, { method: 'POST', headers: { 'x-revalidate-secret': secret } });
-    } catch (error) {
-      console.error('Landing ISR revalidation failed', error);
-    }
+  private revalidateLandingContent() {
+    return revalidateWeb();
   }
 
   async getLandingContent() {

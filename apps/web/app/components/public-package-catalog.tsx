@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { bookingApi, type ServicePackage } from '@/lib/booking-api';
 import PackageCard, { type PackageData } from './package-card';
-import PublicBookingDialog from './public-booking-dialog';
+import BookingMultiStepModal from './booking/booking-multi-step-modal';
 import ScrollReveal from './scroll-reveal';
 
 const presentationBySlug: Record<string, { cover: string; badge?: string; isFeatured: boolean }> = {
@@ -41,11 +41,17 @@ function toPackageCardData(pkg: ServicePackage, index: number): PackageData {
   };
 }
 
-export default function PublicPackageCatalog() {
+export default function PublicPackageCatalog({
+  initialPackages,
+}: {
+  initialPackages?: ServicePackage[] | null;
+}) {
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const packages = useQuery({
     queryKey: ['public', 'packages'],
     queryFn: bookingApi.listPackages,
+    // Server-rendered list: the catalog is in the first HTML (SEO) and shows no loading flash.
+    initialData: initialPackages ?? undefined,
     staleTime: 60_000,
   });
 
@@ -89,7 +95,7 @@ export default function PublicPackageCatalog() {
         </ScrollReveal>
       ))}
       {selectedPackage && (
-        <PublicBookingDialog
+        <BookingMultiStepModal
           key={selectedPackage.id}
           packageItem={selectedPackage}
           open={Boolean(selectedPackageId)}

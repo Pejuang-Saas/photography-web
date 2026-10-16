@@ -3,8 +3,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { WhatsappLogo } from '@phosphor-icons/react';
+import { whatsappLink } from '@/lib/format';
 
-export default function QuickBookingDock() {
+export default function QuickBookingDock({
+  whatsappNumber = null,
+  studioName = 'Kayastory',
+}: {
+  whatsappNumber?: string | null;
+  studioName?: string;
+}) {
   const [isVisible, setIsVisible] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
@@ -48,7 +55,10 @@ export default function QuickBookingDock() {
 
             {/* Quick Action Button with WhatsApp Green Accent & Haptic Feedback */}
             <a
-              href="https://wa.me/?text=Halo%20Kayastory!%20Saya%20ingin%20tanya%20jadwal%20dan%20paket%20foto%20wisuda"
+              href={whatsappLink(
+                whatsappNumber ?? '',
+                `Halo ${studioName}! Saya ingin tanya jadwal dan paket foto wisuda`,
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.96] shadow-lg shadow-accent/25"

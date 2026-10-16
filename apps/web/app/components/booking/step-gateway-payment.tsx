@@ -1,0 +1,179 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ExternalLink, LoaderCircle } from 'lucide-react';
+import { ApiError } from '@/lib/api-client';
+import type { GatewayProvider } from '@/lib/api-types';
+import { bookingApi, type Booking, type GatewayIntent } from '@/lib/booking-api';
+import { formatDateTime, formatRupiah } from '@/lib/format';
+import { useIdempotencyKey } from '@/lib/use-idempotency-key';
+import { Button } from '@/components/ui/button';
+
+const POLL_MS = 4000;
+const DEAD_STATUSES = ['EXPIRED', 'CANCELLED', 'REJECTED'];
+
+function errorText(error: unknown) {
+  return error instanceof ApiError ? error.message : 'Pembayaran belum berhasil diproses.';
+}
+
+export default function StepGatewayPayment({
+  booking,
+  provider,
+  onConfirmed,
+  onRestart,
+}: {
+  booking: Booking;
+  provider: GatewayProvider | null;
+  onConfirmed: () => void;
+  onRestart: () => void;
+}) {
+  const keyFor = useIdempotencyKey();
+  const [intent, setIntent] = useState<GatewayIntent | null>(null);
+  const [simulatedFailure, setSimulatedFailure] = useState(false);
+  const notified = useRef(false);
+
+  const createIntent = useMutation({
+    mutationFn: () => bookingApi.createGatewayIntent(booking.id, keyFor(`intent:${booking.id}`)),
+    onSuccess: setIntent,
+  });
+
+  // Development-only simulation; the API refuses this endpoint for real providers and in production.
+  const confirmMock = useMutation({
+    mutationFn: () =>
+      bookingApi.confirmMockGatewayPayment(booking.id, keyFor(`mock:${booking.id}`)),
+    onSuccess: onConfirmed,
+  });
+
+  // A real gateway confirms through its webhook, so the page can only watch the booking status.
+  const status = useQuery({
+    queryKey: ['public', 'booking', booking.bookingCode],
+    queryFn: () => bookingApi.getPublicBooking(booking.bookingCode),
+    enabled: Boolean(intent),
+    refetchInterval: POLL_MS,
+  });
+
+  const bookingStatus = status.data?.status;
+  useEffect(() => {
+    if (bookingStatus === 'CONFIRMED' && !notified.current) {
+      notified.current = true;
+      onConfirmed();
+    }
+  }, [bookingStatus, onConfirmed]);
+
+  const dead = bookingStatus && DEAD_STATUSES.includes(bookingStatus);
+
+  const summary = (
+    <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4 text-center">
+      <p className="font-mono text-xs uppercase tracking-widest text-muted">Total pembayaran</p>
+      <p className="mt-1 text-2xl font-black text-accent">{formatRupiah(booking.requiredAmount)}</p>
+      {booking.expiresAt && (
+        <p className="mt-1 text-xs text-muted">
+          Selesaikan sebelum {formatDateTime(booking.expiresAt)} WIB agar slot tidak dilepas.
+        </p>
+      )}
+    </div>
+  );
+
+  if (provider === 'MOCK') {
+    return (
+      <div className="space-y-4 text-sm">
+        {summary}
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="font-bold">Simulasi Payment Gateway</p>
+          <p className="text-xs text-muted">
+            Mode pengembangan: pilih hasil pembayaran untuk menguji alur tanpa gateway sungguhan.
+          </p>
+          {(simulatedFailure || confirmMock.isError) && (
+            <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-red-200">
+              {confirmMock.isError
+                ? errorText(confirmMock.error)
+                : 'Pembayaran simulasi dibatalkan. Kamu bisa mencoba lagi.'}
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              disabled={confirmMock.isPending}
+              onClick={() => {
+                setSimulatedFailure(false);
+                confirmMock.mutate();
+              }}
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              {confirmMock.isPending ? 'Memproses...' : 'Simulasikan Bayar Berhasil'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={confirmMock.isPending}
+              onClick={() => setSimulatedFailure(true)}
+              className="border-red-400/40 text-red-300 hover:bg-red-400/10"
+            >
+              Simulasikan Gagal / Batal
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 text-sm">
+      {summary}
+
+      {dead ? (
+        <div className="space-y-3 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
+          <p className="text-red-200">
+            Waktu pembayaran habis dan slot telah dilepas. Silakan mulai reservasi lagi.
+          </p>
+          <Button type="button" onClick={onRestart}>
+            Mulai Reservasi Baru
+          </Button>
+        </div>
+      ) : !intent ? (
+        <>
+          <p className="text-xs text-muted">
+            Kamu akan diarahkan ke halaman pembayaran aman{' '}
+            {provider ? `(${provider === 'MIDTRANS' ? 'Midtrans' : 'Xendit'})` : ''}. Setelah
+            membayar, kembali ke halaman ini dan status akan terkonfirmasi otomatis.
+          </p>
+          {createIntent.isError && (
+            <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-red-200">
+              {errorText(createIntent.error)}
+            </p>
+          )}
+          <Button
+            type="button"
+            className="w-full"
+            disabled={createIntent.isPending}
+            onClick={() => createIntent.mutate()}
+          >
+            {createIntent.isPending ? 'Menyiapkan pembayaran...' : 'Bayar Sekarang'}
+          </Button>
+        </>
+      ) : (
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          {intent.redirectUrl && (
+            <a
+              href={intent.redirectUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-accent-fg"
+            >
+              Buka Halaman Pembayaran
+              <ExternalLink className="size-4" />
+            </a>
+          )}
+          <p
+            className="flex items-center justify-center gap-2 text-xs text-muted"
+            aria-live="polite"
+          >
+            <LoaderCircle className="size-3.5 animate-spin" />
+            Menunggu konfirmasi pembayaran...
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

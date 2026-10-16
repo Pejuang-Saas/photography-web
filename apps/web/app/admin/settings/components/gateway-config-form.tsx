@@ -153,6 +153,7 @@ export default function GatewayConfigForm({
               >
                 <input
                   type="radio"
+                  className="size-4 accent-amber-500"
                   name="gateway-environment"
                   checked={draft.gatewayEnvironment === value}
                   onChange={() => onChange({ gatewayEnvironment: value })}

@@ -68,6 +68,30 @@ export type Booking = {
   createdAt: string;
 };
 
+export type PublicBooking = {
+  bookingCode: string;
+  customerName: string;
+  packageName: string;
+  totalAmount: number;
+  requiredAmount: number;
+  paymentMode: PaymentMode;
+  paymentPlan: PaymentPlan;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  sessionDate: string;
+  timeSlot: string;
+  invoice: { invoiceNumber: string; amount: number; status: string; issuedAt: string } | null;
+};
+
+export type GatewayIntent = {
+  paymentId: string;
+  orderId: string | null;
+  provider: GatewayProvider | null;
+  token?: string;
+  redirectUrl?: string;
+  invoiceId?: string;
+};
+
 export const bookingApi = {
   listPackages: () => apiRequest<ServicePackage[]>('/public/packages'),
 
@@ -79,4 +103,26 @@ export const bookingApi = {
       body: JSON.stringify(payload),
       idempotencyKey,
     }),
+
+  getPublicBooking: (bookingCode: string) =>
+    apiRequest<PublicBooking>(`/public/bookings/${encodeURIComponent(bookingCode)}`),
+
+  createGatewayIntent: (bookingId: string, idempotencyKey: string) =>
+    apiRequest<GatewayIntent>(`/public/bookings/${bookingId}/gateway/intent`, {
+      method: 'POST',
+      idempotencyKey,
+    }),
+
+  /** Development only: the API refuses this outside the MOCK provider and in production. */
+  confirmMockGatewayPayment: (bookingId: string, idempotencyKey: string) =>
+    apiRequest<{ bookingId: string; status: string }>(
+      `/public/bookings/${bookingId}/gateway/confirm`,
+      { method: 'POST', body: JSON.stringify({}), idempotencyKey },
+    ),
+
+  submitManualPayment: (bookingId: string, body: FormData, idempotencyKey: string) =>
+    apiRequest<{ bookingId: string; status: string }>(
+      `/public/bookings/${bookingId}/manual-payment`,
+      { method: 'POST', body, idempotencyKey },
+    ),
 };

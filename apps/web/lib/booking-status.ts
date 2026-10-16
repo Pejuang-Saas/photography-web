@@ -3,7 +3,8 @@ import type { AdminBooking } from './admin-api';
 export type BadgeMeta = { label: string; className: string };
 
 const amber = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30';
-const emerald = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+const emerald =
+  'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
 const indigo = 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30';
 const rose = 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30';
 const zinc = 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/30';
@@ -17,7 +18,8 @@ export function bookingBadge(booking: Pick<AdminBooking, 'status' | 'paymentStat
       return { label: 'Verifikasi Struk', className: amber };
     case 'CONFIRMED':
       if (booking.paymentStatus === 'PAID_FULL') return { label: 'Lunas', className: emerald };
-      if (booking.paymentStatus === 'PAID_DP') return { label: 'DP Terverifikasi', className: indigo };
+      if (booking.paymentStatus === 'PAID_DP')
+        return { label: 'DP Terverifikasi', className: indigo };
       return { label: 'Terkonfirmasi', className: emerald };
     case 'COMPLETED':
       return { label: 'Selesai', className: indigo };

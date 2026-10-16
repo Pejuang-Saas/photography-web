@@ -40,3 +40,14 @@ export function whatsappLink(phone: string, text?: string): string {
   const digits = phone.replace(/\D/g, '').replace(/^0/, '62');
   return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 }
+
+/** Same normalisation the API applies: digits only, leading 0 becomes 62. */
+export function normalizeWhatsapp(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  return digits.startsWith('0') ? `62${digits.slice(1)}` : digits;
+}
+
+/** "08:00" -> "08.00", the way Indonesian opening hours are usually written. */
+export function formatClock(time: string): string {
+  return time.replace(':', '.');
+}

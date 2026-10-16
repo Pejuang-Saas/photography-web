@@ -9,6 +9,9 @@ import {
   type UpdatePaymentSettingsInput,
 } from './admin-api';
 import { ApiError } from './api-client';
+import { landingContentApi, type LandingContent } from './landing-content-api';
+import { studioApi, type UpdateStudioInput } from './studio-api';
+import { studioKeys } from './studio-queries';
 
 export const adminKeys = {
   bookings: ['admin', 'bookings'] as const,
@@ -17,6 +20,8 @@ export const adminKeys = {
   notifications: ['admin', 'notifications'] as const,
   paymentSettings: ['admin', 'payment-settings'] as const,
   manualAccounts: ['admin', 'payment-accounts'] as const,
+  studio: ['admin', 'studio-settings'] as const,
+  landing: ['admin', 'landing-content'] as const,
 };
 
 const POLL_MS = 30_000;
@@ -68,14 +73,8 @@ function useInvalidateBookingData() {
 export function useVerifyPayment() {
   const invalidate = useInvalidateBookingData();
   return useMutation({
-    mutationFn: ({
-      id,
-      ...body
-    }: {
-      id: string;
-      paymentPlan: 'DP_50' | 'FULL';
-      amount: number;
-    }) => adminApi.verifyPayment(id, body),
+    mutationFn: ({ id, ...body }: { id: string; paymentPlan: 'DP_50' | 'FULL'; amount: number }) =>
+      adminApi.verifyPayment(id, body),
     onSuccess: () => {
       toast.success('Pembayaran dikonfirmasi', {
         description: 'Invoice diterbitkan. Notifikasi ke customer dikirim lewat antrean.',
@@ -173,6 +172,39 @@ export function useDeleteManualAccount() {
         queryClient.invalidateQueries({ queryKey: adminKeys.manualAccounts }),
         queryClient.invalidateQueries({ queryKey: ['public', 'payment-settings'] }),
       ]);
+    },
+  });
+}
+
+export function useStudioSettings() {
+  return useQuery({ queryKey: adminKeys.studio, queryFn: studioApi.getAdmin });
+}
+
+export function useUpdateStudioSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateStudioInput) => studioApi.update(body),
+    onSuccess: () => {
+      toast.success('Profil studio disimpan');
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminKeys.studio }),
+        queryClient.invalidateQueries({ queryKey: studioKeys.public }),
+      ]);
+    },
+  });
+}
+
+export function useLandingContent() {
+  return useQuery({ queryKey: adminKeys.landing, queryFn: landingContentApi.getAdmin });
+}
+
+export function useUpdateLandingContent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: LandingContent) => landingContentApi.update(body),
+    onSuccess: (saved) => {
+      toast.success('Konten halaman disimpan');
+      queryClient.setQueryData(adminKeys.landing, saved);
     },
   });
 }

@@ -22,6 +22,8 @@ import {
   PanelsTopLeft,
   CreditCard,
   MessageSquare,
+  Store,
+  LayoutTemplate,
   ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
@@ -169,6 +171,11 @@ export default function AdminSidebar({
       icon: Settings2,
       children: [
         {
+          title: 'Profil Studio',
+          href: '/admin/settings/profil-studio',
+          icon: Store,
+        },
+        {
           title: 'WhatsApp & Email',
           href: '/admin/settings',
           icon: MessageSquare,
@@ -188,6 +195,7 @@ export default function AdminSidebar({
       title: 'CMS',
       icon: PanelsTopLeft,
       children: [
+        { title: 'Konten Halaman', href: '/admin/cms/landing', icon: LayoutTemplate },
         { title: 'Gallery', href: '/admin/cms/gallery', icon: Images },
         { title: 'Kategori Gallery', href: '/admin/cms/categories', icon: FolderKanban },
         { title: 'Marquee', href: '/admin/cms/marquee', icon: Megaphone },

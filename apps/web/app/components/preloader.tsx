@@ -24,9 +24,10 @@ const CRITICAL_IMAGES = [
 
 interface PreloaderProps {
   onComplete?: () => void;
+  brand: string;
 }
 
-export default function Preloader({ onComplete }: PreloaderProps) {
+export default function Preloader({ onComplete, brand }: PreloaderProps) {
   const [progress, setProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -106,7 +107,8 @@ export default function Preloader({ onComplete }: PreloaderProps) {
               transition={{ duration: 0.35, ease: 'easeOut' }}
               className="text-3xl sm:text-4xl font-black tracking-tighter text-fg"
             >
-              KAYASTORY<span className="text-accent">.</span>
+              {brand}
+              <span className="text-accent">.</span>
             </motion.h1>
 
             {/* Subtle Minimalist Line & Counter */}

@@ -12,9 +12,10 @@ export interface NavLink {
 
 interface HeaderViewfinderProps {
   navLinks: NavLink[];
+  brand: string;
 }
 
-export default function HeaderViewfinder({ navLinks }: HeaderViewfinderProps) {
+export default function HeaderViewfinder({ navLinks, brand }: HeaderViewfinderProps) {
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -85,7 +86,8 @@ export default function HeaderViewfinder({ navLinks }: HeaderViewfinderProps) {
             className="group flex items-center gap-3 text-fg active:scale-95 transition-transform duration-150"
           >
             <span className="text-lg sm:text-xl font-black tracking-tighter">
-              KAYASTORY<span className="text-accent">.</span>
+              {brand}
+              <span className="text-accent">.</span>
             </span>
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted">
               <span>35MM</span>

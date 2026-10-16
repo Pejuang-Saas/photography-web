@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { revalidateWeb } from '../common/revalidate-web';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServicePackageDto, UpdateServicePackageDto } from './dto/package.dto';
 
@@ -14,19 +15,23 @@ export class PackagesService {
     });
   }
 
-  create(dto: CreateServicePackageDto) {
-    return this.prisma.servicePackage.create({
+  async create(dto: CreateServicePackageDto) {
+    const created = await this.prisma.servicePackage.create({
       data: {
         ...dto,
         durationMinutes: dto.durationMinutes ?? 60,
         maxPeople: dto.maxPeople ?? 1,
       },
     });
+    void revalidateWeb();
+    return created;
   }
 
   async update(id: string, dto: UpdateServicePackageDto) {
     await this.requireActiveOrExisting(id, false);
-    return this.prisma.servicePackage.update({ where: { id }, data: dto });
+    const updated = await this.prisma.servicePackage.update({ where: { id }, data: dto });
+    void revalidateWeb();
+    return updated;
   }
 
   async requireActive(id: string) {

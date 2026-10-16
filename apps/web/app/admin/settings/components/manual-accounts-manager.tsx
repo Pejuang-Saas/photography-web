@@ -10,6 +10,7 @@ import {
   useSaveManualAccount,
 } from '@/lib/admin-queries';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { QueryError, QueryLoading } from '../../components/query-state';
 import { CmsDeleteDialog } from '../../components/cms-delete-dialog';
@@ -72,17 +73,17 @@ export default function ManualAccountsManager() {
             </div>
 
             <div className="flex items-center gap-1.5">
-              <label className="mr-1 flex cursor-pointer items-center gap-1.5 text-[11px] text-zinc-600 dark:text-zinc-400">
-                <input
-                  type="checkbox"
+              <div className="mr-1 flex items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-400">
+                <span>{account.isActive ? 'Aktif' : 'Nonaktif'}</span>
+                <Switch
                   checked={account.isActive}
                   disabled={save.isPending}
-                  onChange={(event) =>
-                    save.mutate({ id: account.id, body: { isActive: event.target.checked } })
+                  aria-label={`Aktifkan rekening ${account.bankName}`}
+                  onCheckedChange={(isActive) =>
+                    save.mutate({ id: account.id, body: { isActive } })
                   }
                 />
-                Aktif
-              </label>
+              </div>
               {!account.isPrimary && (
                 <Button
                   size="icon"

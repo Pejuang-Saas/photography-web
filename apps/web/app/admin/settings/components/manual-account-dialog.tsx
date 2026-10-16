@@ -93,6 +93,7 @@ export default function ManualAccountDialog({
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
+              className="size-4 accent-amber-500"
               checked={isPrimary}
               onChange={(event) => setIsPrimary(event.target.checked)}
             />

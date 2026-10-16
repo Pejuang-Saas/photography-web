@@ -165,6 +165,33 @@ model EmailSetting {
   @@map("email_settings")
 }
 
+model StudioSetting {
+  id              String   @id @default("default")
+  studioName      String   @default("Kayastory Photography") @map("studio_name")
+  whatsappNumber  String?  @map("whatsapp_number")
+  address         String?
+  mapsUrl         String?  @map("maps_url")
+  instagramHandle String?  @map("instagram_handle")
+  city            String?
+  region          String?
+  openTime        String?  @map("open_time")
+  closeTime       String?  @map("close_time")
+  guarantees      Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("studio_settings")
+}
+
+model LandingContent {
+  id        String   @id @default("default")
+  content   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("landing_content")
+}
+
 model ManualPaymentAccount {
   id            String   @id @default(uuid())
   bankName      String   @map("bank_name")

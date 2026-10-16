@@ -1,149 +1,143 @@
-export default function StructuredData({ faqs }: { faqs?: Array<{ question: string; answer: string }> }) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://photography-web-gules.vercel.app';
+import type { ServicePackage } from '@/lib/booking-api';
+import { featureList } from '@/lib/booking-form';
+import { getSiteUrl } from '@/lib/site-url';
+import { FALLBACK_STUDIO_NAME, type StudioInfo } from '@/lib/studio-api';
+
+type Props = {
+  studio?: StudioInfo | null;
+  description?: string;
+  packages?: ServicePackage[] | null;
+  testimonials?: Array<{ rating: number }> | null;
+  faqs?: Array<{ question: string; answer: string }>;
+};
+
+const formatIdr = (value: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/**
+ * JSON-LD for search engines. Everything here comes from what the admin has entered, so it always
+ * matches the visible page; fields without data are omitted rather than invented.
+ */
+export default function StructuredData({
+  studio,
+  description,
+  packages,
+  testimonials,
+  faqs,
+}: Props) {
+  const siteUrl = getSiteUrl();
+  const studioName = studio?.studioName ?? FALLBACK_STUDIO_NAME;
+  const activePackages = (packages ?? []).filter((pkg) => pkg.isActive);
+  const prices = activePackages.map((pkg) => pkg.price);
+  const ratings = (testimonials ?? []).map((item) => item.rating).filter((rating) => rating > 0);
 
   const localBusinessSchema = {
     '@context': 'https://schema.org',
     '@type': ['LocalBusiness', 'ProfessionalService'],
-    name: 'Kayastory Photography',
-    alternateName: 'Kayastory Graduation Studio Semarang',
-    description:
-      'Spesialis jasa fotografi wisuda di Semarang (Undip, Unnes, Udinus, Polines, Unika, UIN). Mengabadikan momen kelulusan, kebaya, solo, squad, dan keluarga dalam estetika 35mm.',
-    url: siteUrl,
-    logo: `${siteUrl}/icon.png`,
-    image: `${siteUrl}/opengraph-image.png`,
-    priceRange: 'Rp 350.000 - Rp 900.000',
+    name: studioName,
+    ...(description && { description }),
+    ...(siteUrl && {
+      url: siteUrl,
+      logo: `${siteUrl}/icon.png`,
+      image: `${siteUrl}/opengraph-image.png`,
+    }),
     currenciesAccepted: 'IDR',
-    paymentAccepted: 'Cash, Bank Transfer, QRIS',
+    ...(prices.length > 0 && {
+      priceRange:
+        Math.min(...prices) === Math.max(...prices)
+          ? formatIdr(prices[0])
+          : `${formatIdr(Math.min(...prices))} - ${formatIdr(Math.max(...prices))}`,
+    }),
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'Semarang',
-      addressRegion: 'Jawa Tengah',
+      ...(studio?.address && { streetAddress: studio.address }),
+      ...(studio?.city && { addressLocality: studio.city }),
+      ...(studio?.region && { addressRegion: studio.region }),
       addressCountry: 'ID',
     },
-    geo: {
-      '@type': 'GeoCoordinates',
-      latitude: -7.0494,
-      longitude: 110.4381,
-    },
-    openingHoursSpecification: [
-      {
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-        opens: '08:00',
-        closes: '21:00',
+    ...(studio?.whatsappNumber && { telephone: `+${studio.whatsappNumber}` }),
+    ...(studio?.mapsUrl && { hasMap: studio.mapsUrl }),
+    ...(studio?.instagramUrl && { sameAs: [studio.instagramUrl] }),
+    ...(studio?.openTime &&
+      studio.closeTime && {
+        openingHoursSpecification: [
+          {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ALL_DAYS,
+            opens: studio.openTime,
+            closes: studio.closeTime,
+          },
+        ],
+      }),
+    ...((studio?.city || studio?.region) && {
+      areaServed: [studio.city, studio.region]
+        .filter((name): name is string => Boolean(name))
+        .map((name) => ({ '@type': 'AdministrativeArea', name })),
+    }),
+    // Only real, published testimonials count; an invented rating violates search engine policies.
+    ...(ratings.length > 0 && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: (ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1),
+        reviewCount: String(ratings.length),
+        bestRating: '5',
+        worstRating: '1',
       },
-    ],
-    areaServed: [
-      { '@type': 'AdministrativeArea', name: 'Semarang' },
-      { '@type': 'AdministrativeArea', name: 'Jawa Tengah' },
-    ],
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.9',
-      reviewCount: '128',
-      bestRating: '5',
-      worstRating: '1',
-    },
-    hasOfferCatalog: {
-      '@type': 'OfferCatalog',
-      name: 'Paket Foto Wisuda Kayastory 2026',
-      itemListElement: [
-        {
+    }),
+    ...(activePackages.length > 0 && {
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: `Paket Foto Wisuda ${studioName}`,
+        itemListElement: activePackages.map((pkg) => ({
           '@type': 'Offer',
           itemOffered: {
             '@type': 'Service',
-            name: 'Solo Graduation Package',
+            name: pkg.name,
             description:
-              'Sesi personal 1 jam untuk foto kebaya dan toga wisuda dengan 30 foto edited color grade.',
+              pkg.description ??
+              (featureList(pkg.features).join(', ') ||
+                `${pkg.durationMinutes} menit sesi foto untuk maksimal ${pkg.maxPeople} orang.`),
           },
-          price: '350000',
+          price: String(pkg.price),
           priceCurrency: 'IDR',
-        },
-        {
-          '@type': 'Offer',
-          itemOffered: {
-            '@type': 'Service',
-            name: 'Squad Graduation Package',
-            description:
-              'Sesi foto bersama 2-5 sahabat wisuda dengan 60 foto edited color grade dan 2 titik lokasi kampus.',
-          },
-          price: '650000',
-          priceCurrency: 'IDR',
-        },
-        {
-          '@type': 'Offer',
-          itemOffered: {
-            '@type': 'Service',
-            name: 'Family Graduation Package',
-            description:
-              'Sesi hangat bersama keluarga besar 3 jam santai, 100 foto edited, dan 1 cetakan mini album fisik.',
-          },
-          price: '900000',
-          priceCurrency: 'IDR',
-        },
-      ],
-    },
+        })),
+      },
+    }),
   };
 
-  const faqItems = faqs?.length
-    ? faqs
-    : [
-        {
-          question: 'Berapa lama proses editing sampai foto diterima?',
-          answer:
-            'Rata-rata 7 hari kerja setelah kamu memilih foto favoritmu. Jika membutuhkan foto lebih cepat, tersedia layanan Express 48 Jam.',
-        },
-        {
-          question: 'Apakah bisa request lokasi foto di luar kampus?',
-          answer:
-            'Bisa. Untuk Paket Family, lokasi sudah bebas di area Semarang. Untuk paket Solo dan Squad, lokasi luar kampus dikenakan penyesuaian biaya transport yang wajar.',
-        },
-        {
-          question: 'Bagaimana cara reservasi dan pembayarannya?',
-          answer:
-            'Pilih paket, isi form reservasi di WhatsApp, lalu bayar DP 50% untuk mengunci tanggal. Sisanya dilunasi setelah sesi foto selesai.',
-        },
-        {
-          question: 'Apakah seluruh foto mentah ikut diberikan?',
-          answer:
-            'Ya. Seluruh file foto mentah kualitas original tanpa watermark dibagikan via link Google Drive, di samping foto-foto yang sudah diedit.',
-        },
-        {
-          question: 'Bagaimana jika terjadi hujan atau jadwal wisuda berubah?',
-          answer:
-            'Reschedule gratis satu kali selama dikabari minimal H-1 sebelum pemotretan. DP tetap berlaku dan tidak hangus.',
-        },
-        {
-          question: 'Apakah orang yang belum pernah photoshoot bisa diarahkan?',
-          answer:
-            'Tentu. Mayoritas klien kami baru pertama kali foto profesional. Fotografer kami memandu pose, gestur, dan ekspresi dari awal sampai selesai.',
-        },
-      ];
+  const faqSchema = faqs?.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: { '@type': 'Answer', text: item.answer },
+        })),
+      }
+    : null;
 
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqItems.map((item) => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: { '@type': 'Answer', text: item.answer },
-    })),
-  };
+  // "<" is escaped so user-entered text can never close the script tag.
+  const serialize = (schema: object) => JSON.stringify(schema).replace(/</g, '\\u003c');
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(localBusinessSchema),
-        }}
+        dangerouslySetInnerHTML={{ __html: serialize(localBusinessSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(faqSchema),
-        }}
-      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serialize(faqSchema) }}
+        />
+      )}
     </>
   );
 }

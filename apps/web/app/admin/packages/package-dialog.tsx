@@ -176,6 +176,7 @@ export default function PackageDialog({
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
+              className="size-4 accent-amber-500"
               checked={isActive}
               onChange={(event) => setIsActive(event.target.checked)}
             />

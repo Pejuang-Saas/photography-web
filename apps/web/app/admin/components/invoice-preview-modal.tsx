@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Printer, MessageCircle, QrCode } from 'lucide-react';
+import { useStudioInfo } from '@/lib/studio-queries';
 import { QueryError, QueryLoading } from './query-state';
 
 export default function InvoicePreviewModal() {
   const { selectedInvoiceBookingId, setSelectedInvoice } = useAdmin();
   const query = useAdminBooking(selectedInvoiceBookingId);
+  const studio = useStudioInfo(Boolean(selectedInvoiceBookingId)).data;
   const booking = query.data;
   const invoice = booking?.invoice;
 
@@ -89,13 +91,15 @@ export default function InvoicePreviewModal() {
               <div className="flex justify-between items-start border-b border-zinc-200 dark:border-zinc-800 pb-6">
                 <div>
                   <h2 className="font-bold text-zinc-900 dark:text-white text-base tracking-tight">
-                    KAYASTORY PHOTOGRAPHY
+                    {(studio?.studioName ?? 'Kayastory Photography').toUpperCase()}
                   </h2>
                   <p className="text-zinc-500 text-xs mt-0.5">
                     Spesialis Foto Wisuda & Kebaya Semarang
                   </p>
                   <p className="text-zinc-500 text-[11px]">
-                    Jl. Prof. Sudarto, Tembalang, Semarang | WA: 0812-3456-7890
+                    {[studio?.address, studio?.whatsappNumber && `WA: ${studio.whatsappNumber}`]
+                      .filter(Boolean)
+                      .join(' | ')}
                   </p>
                 </div>
 

@@ -1,7 +1,20 @@
 import type { AdminBooking } from './admin-api';
 import { PAID_PAYMENT_STATUSES } from './booking-status';
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'Mei',
+  'Jun',
+  'Jul',
+  'Agu',
+  'Sep',
+  'Okt',
+  'Nov',
+  'Des',
+];
 
 function monthKey(iso: string) {
   return iso.slice(0, 7);
