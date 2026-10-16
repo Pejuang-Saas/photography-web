@@ -22,6 +22,7 @@ import {
   hashIdempotencyPayload,
   requireIdempotencyKey,
 } from '../common/idempotency';
+import { assertPaymentWindowOpen, remainingSeconds } from '../common/payment-window';
 import { PaymentSettingsService } from './payment-settings.service';
 import { OutboxService } from '../outbox/outbox.service';
 import {
@@ -74,6 +75,7 @@ export class PaymentsService {
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
       throw new ConflictException('This booking is no longer waiting for payment');
     }
+    assertPaymentWindowOpen(booking.expiresAt);
     const account = await this.prisma.manualPaymentAccount.findFirst({
       where: { id: dto.manualAccountId, isActive: true },
     });
@@ -86,6 +88,7 @@ export class PaymentsService {
         if (!current || current.status !== BookingStatus.PENDING_PAYMENT) {
           throw new ConflictException('This booking is no longer waiting for payment');
         }
+        assertPaymentWindowOpen(current.expiresAt);
         const claimedBooking = await tx.booking.updateMany({
           where: {
             id,
@@ -191,6 +194,7 @@ export class PaymentsService {
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
       throw new ConflictException('This booking is no longer waiting for payment');
     }
+    assertPaymentWindowOpen(booking.expiresAt);
 
     return this.prisma
       .$transaction(async (tx) => {
@@ -301,6 +305,9 @@ export class PaymentsService {
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
       throw new ConflictException('This booking is no longer waiting for payment');
     }
+    assertPaymentWindowOpen(booking.expiresAt);
+    // The provider's pay page must expire together with the slot, never after it.
+    const secondsLeft = remainingSeconds(booking.expiresAt) ?? 0;
 
     const orderId = `ORDER-${booking.bookingCode}-${idempotencyHash.slice(0, 12)}`;
     let metadata: Prisma.InputJsonValue;
@@ -313,6 +320,7 @@ export class PaymentsService {
         customerEmail: booking.customerEmail,
         customerPhone: booking.customerPhone,
         itemName: booking.packageName,
+        expiresInMinutes: Math.ceil(secondsLeft / 60),
       });
       metadata = { token: intent.token, redirectUrl: intent.redirectUrl };
       response = { token: intent.token, redirectUrl: intent.redirectUrl };
@@ -323,6 +331,7 @@ export class PaymentsService {
         customerName: booking.customerName,
         customerEmail: booking.customerEmail,
         description: booking.packageName,
+        durationSeconds: secondsLeft,
       });
       metadata = { invoiceId: intent.invoiceId, redirectUrl: intent.invoiceUrl };
       response = { invoiceId: intent.invoiceId, redirectUrl: intent.invoiceUrl };

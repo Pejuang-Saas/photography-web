@@ -51,3 +51,21 @@ export function normalizeWhatsapp(value: string): string {
 export function formatClock(time: string): string {
   return time.replace(':', '.');
 }
+
+/** 45 -> "45 menit", 180 -> "3 jam", 90 -> "1 jam 30 menit". */
+export function formatDurationMinutes(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} menit`;
+  return minutes === 0 ? `${hours} jam` : `${hours} jam ${minutes} menit`;
+}
+
+/** Milliseconds as a countdown: "2:59:41" from one hour up, otherwise "59:41". */
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+}

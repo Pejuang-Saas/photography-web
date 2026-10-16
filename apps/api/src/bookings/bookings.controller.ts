@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { BookingStatus } from '@prisma/client';
 import { Roles } from '@thallesp/nestjs-better-auth';
 import { BookingsService } from './bookings.service';
@@ -13,6 +13,12 @@ export class BookingsController {
   @Post('public/bookings')
   create(@Body() dto: CreateBookingDto, @Headers('idempotency-key') idempotencyKey?: string) {
     return this.bookingsService.create(dto, idempotencyKey);
+  }
+
+  @Public()
+  @Get('public/bookings/:id/resume')
+  resume(@Param('id', ParseUUIDPipe) id: string) {
+    return this.bookingsService.getResume(id);
   }
 
   @Public()

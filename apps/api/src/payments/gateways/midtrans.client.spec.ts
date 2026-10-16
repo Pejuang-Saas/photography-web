@@ -54,6 +54,7 @@ describe('MidtransClient', () => {
         customerEmail: 'customer@example.com',
         customerPhone: '628123456789',
         itemName: 'Session package',
+        expiresInMinutes: 45,
       }),
     ).resolves.toEqual({
       token: 'snap-token',
@@ -67,5 +68,26 @@ describe('MidtransClient', () => {
         headers: expect.objectContaining({ authorization: expect.stringContaining('Basic ') }),
       }),
     );
+  });
+
+  it('makes the Snap page expire with the booking deadline', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ token: 't', redirect_url: 'https://app.midtrans.test/pay' }),
+    } as Response);
+
+    await client.createSnapIntent({
+      orderId: 'ORDER-1',
+      amount: 50000,
+      customerName: 'Customer',
+      customerEmail: 'customer@example.com',
+      customerPhone: '628123456789',
+      itemName: 'Session package',
+      expiresInMinutes: 45,
+    });
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.expiry).toEqual({ unit: 'minute', duration: 45 });
   });
 });

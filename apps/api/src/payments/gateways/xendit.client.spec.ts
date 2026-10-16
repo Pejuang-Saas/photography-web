@@ -27,6 +27,7 @@ describe('XenditClient', () => {
         customerName: 'Customer',
         customerEmail: 'customer@example.com',
         description: 'Session package',
+        durationSeconds: 2700,
       }),
     ).resolves.toEqual({
       invoiceId: 'invoice-1',
@@ -40,6 +41,26 @@ describe('XenditClient', () => {
         headers: expect.objectContaining({ authorization: expect.stringContaining('Basic ') }),
       }),
     );
+  });
+
+  it('makes the invoice expire with the booking deadline, not after a fixed day', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 'invoice-1', invoice_url: 'https://checkout.xendit.test/1' }),
+    } as Response);
+
+    await client.createInvoice({
+      externalId: 'ORDER-1',
+      amount: 50000,
+      customerName: 'Customer',
+      customerEmail: 'customer@example.com',
+      description: 'Session package',
+      durationSeconds: 2700,
+    });
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.invoice_duration).toBe(2700);
   });
 
   it('only accepts the configured callback token', async () => {

@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { bookingApi, type ServicePackage } from '@/lib/booking-api';
 import PackageCard, { type PackageData } from './package-card';
-import BookingMultiStepModal from './booking/booking-multi-step-modal';
 import ScrollReveal from './scroll-reveal';
 
 const presentationBySlug: Record<string, { cover: string; badge?: string; isFeatured: boolean }> = {
@@ -46,7 +45,7 @@ export default function PublicPackageCatalog({
 }: {
   initialPackages?: ServicePackage[] | null;
 }) {
-  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const router = useRouter();
   const packages = useQuery({
     queryKey: ['public', 'packages'],
     queryFn: bookingApi.listPackages,
@@ -74,7 +73,6 @@ export default function PublicPackageCatalog({
   }
 
   const activePackages = (packages.data ?? []).filter((pkg) => pkg.isActive);
-  const selectedPackage = activePackages.find((pkg) => pkg.id === selectedPackageId);
 
   if (activePackages.length === 0) {
     return (
@@ -90,18 +88,10 @@ export default function PublicPackageCatalog({
         <ScrollReveal key={pkg.id} delay={index * 0.1}>
           <PackageCard
             pkg={toPackageCardData(pkg, index)}
-            onSelect={() => setSelectedPackageId(pkg.id)}
+            onSelect={() => router.push(`/reservasi/${pkg.slug}`)}
           />
         </ScrollReveal>
       ))}
-      {selectedPackage && (
-        <BookingMultiStepModal
-          key={selectedPackage.id}
-          packageItem={selectedPackage}
-          open={Boolean(selectedPackageId)}
-          onOpenChange={(open) => !open && setSelectedPackageId(null)}
-        />
-      )}
     </div>
   );
 }

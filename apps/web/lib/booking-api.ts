@@ -34,6 +34,8 @@ export type ManualPaymentAccount = {
 export type PublicPaymentSettings = {
   activeMode: PaymentMode;
   allowDownPayment: boolean;
+  /** How long a booking holds its slot while waiting for payment, for the active mode. */
+  paymentWindowMinutes: number;
   gatewayProvider: GatewayProvider | null;
   gatewayEnvironment: GatewayEnvironment | null;
   manualAccounts: ManualPaymentAccount[];
@@ -83,6 +85,15 @@ export type PublicBooking = {
   invoice: { invoiceNumber: string; amount: number; status: string; issuedAt: string } | null;
 };
 
+/** What the API returns to redraw the checkout after a refresh (no contact details). */
+export type ResumedBooking = Booking & {
+  customerName: string;
+  /** Server clock at response time; the countdown is measured against it, not the visitor's clock. */
+  serverTime: string;
+  /** Open gateway pay page, so a refresh does not create a second transaction. */
+  gatewayRedirectUrl: string | null;
+};
+
 export type GatewayIntent = {
   paymentId: string;
   orderId: string | null;
@@ -103,6 +114,9 @@ export const bookingApi = {
       body: JSON.stringify(payload),
       idempotencyKey,
     }),
+
+  getResume: (bookingId: string) =>
+    apiRequest<ResumedBooking>(`/public/bookings/${bookingId}/resume`),
 
   getPublicBooking: (bookingCode: string) =>
     apiRequest<PublicBooking>(`/public/bookings/${encodeURIComponent(bookingCode)}`),

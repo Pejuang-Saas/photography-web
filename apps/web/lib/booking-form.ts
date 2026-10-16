@@ -1,4 +1,5 @@
 import { todayWib } from './format';
+import { isIdMobile, PHONE_ERROR } from './phone';
 
 export const TIME_SLOTS = [
   '08:30 - 09:30',
@@ -30,15 +31,12 @@ export type CustomerErrors = Partial<Record<keyof CustomerForm, string>>;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** Rules from the checkout spec: name >= 3, WhatsApp 10-14 digits, valid email, not in the past. */
+/** Rules from the checkout spec: name >= 3, Indonesian mobile number, valid email, not in the past. */
 export function validateCustomerForm(form: CustomerForm, today = todayWib()): CustomerErrors {
   const errors: CustomerErrors = {};
-  const digits = form.customerPhone.replace(/\D/g, '');
 
   if (form.customerName.trim().length < 3) errors.customerName = 'Nama minimal 3 huruf.';
-  if (!/^[+\d\s().-]+$/.test(form.customerPhone) || digits.length < 10 || digits.length > 14) {
-    errors.customerPhone = 'Nomor WhatsApp harus 10–14 digit angka.';
-  }
+  if (!isIdMobile(form.customerPhone.trim())) errors.customerPhone = PHONE_ERROR;
   if (!EMAIL_PATTERN.test(form.customerEmail.trim())) {
     errors.customerEmail = 'Format email belum benar.';
   }
@@ -67,4 +65,14 @@ export function featureList(features: unknown): string[] {
   return Array.isArray(features)
     ? features.filter((item): item is string => typeof item === 'string')
     : [];
+}
+
+/** "08:30 - 09:30" -> start, end and length in minutes, for a readable slot button. */
+export function slotParts(slot: string) {
+  const [start, end] = slot.split(' - ');
+  const minutes = (value: string) => {
+    const [h, m] = value.split(':').map(Number);
+    return h * 60 + m;
+  };
+  return { start, end, minutes: minutes(end) - minutes(start) };
 }

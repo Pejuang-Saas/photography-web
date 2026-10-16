@@ -6,9 +6,11 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { ID_MOBILE_MESSAGE, ID_MOBILE_PATTERN } from '../../common/phone';
 
 export class CreateBookingDto {
   @IsUUID()
@@ -20,8 +22,7 @@ export class CreateBookingDto {
   customerName: string;
 
   @IsString()
-  @MinLength(10)
-  @MaxLength(20)
+  @Matches(ID_MOBILE_PATTERN, { message: ID_MOBILE_MESSAGE })
   customerPhone: string;
 
   @IsEmail()

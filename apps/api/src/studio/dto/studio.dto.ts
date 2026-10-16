@@ -8,6 +8,7 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator';
+import { ID_MOBILE_MESSAGE, ID_MOBILE_PATTERN } from '../../common/phone';
 
 // Every field accepts an empty string, which clears the stored value.
 export class UpdateStudioSettingsDto {
@@ -17,7 +18,9 @@ export class UpdateStudioSettingsDto {
   studioName?: string;
 
   @IsOptional()
-  @Matches(/^$|^\+?[0-9][0-9\s().-]{7,19}$/, { message: 'WhatsApp number is not valid' })
+  // Blank clears the number; anything else must be a real Indonesian mobile number.
+  @ValidateIf((_object, value) => value !== undefined && value !== null && value !== '')
+  @Matches(ID_MOBILE_PATTERN, { message: ID_MOBILE_MESSAGE })
   whatsappNumber?: string;
 
   @IsOptional()

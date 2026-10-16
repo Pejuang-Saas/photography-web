@@ -6,11 +6,14 @@ import { Check, Copy, Upload } from 'lucide-react';
 import { ApiError } from '@/lib/api-client';
 import { bookingApi, type Booking, type ManualPaymentAccount } from '@/lib/booking-api';
 import { validateProofFile } from '@/lib/booking-form';
-import { formatDateTime, formatRupiah, whatsappLink } from '@/lib/format';
+import { formatRupiah, whatsappLink } from '@/lib/format';
 import type { StudioInfo } from '@/lib/studio-api';
+import { useDeadline } from '@/lib/use-deadline';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ExpiredNotice, PaymentCountdown } from './payment-countdown';
+import { BookingButton } from './booking-button';
+import { Field, labelClass, StepCard, StepFooter, StepGrid } from './step-layout';
+import { fieldCompactClass } from './ui';
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -34,16 +37,22 @@ function CopyButton({ value }: { value: string }) {
 
 export default function StepManualPayment({
   booking,
+  deadline,
+  onRestart,
   accounts,
   studio,
   onSubmitted,
 }: {
   booking: Booking;
+  deadline: number | null;
+  onRestart: () => void;
   accounts: ManualPaymentAccount[];
   studio: StudioInfo | undefined;
   onSubmitted: (senderName: string) => void;
 }) {
   const keyFor = useIdempotencyKey();
+  const remaining = useDeadline(deadline);
+  const expired = remaining === 0;
   const [accountId, setAccountId] = useState(
     () => (accounts.find((account) => account.isPrimary) ?? accounts[0])?.id ?? '',
   );
@@ -93,12 +102,14 @@ export default function StepManualPayment({
     setPreview(URL.createObjectURL(next));
   }
 
-  const canSubmit = Boolean(accountId && file && senderName.trim().length >= 2);
+  const canSubmit = Boolean(accountId && file && senderName.trim().length >= 2) && !expired;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (canSubmit) submit.mutate();
   }
+
+  if (expired) return <ExpiredNotice onRestart={onRestart} />;
 
   if (accounts.length === 0) {
     return (
@@ -123,100 +134,127 @@ export default function StepManualPayment({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 text-sm">
-      <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4 text-center">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted">
-          Nominal yang harus ditransfer
-        </p>
-        <p className="mt-1 text-2xl font-black text-accent">
-          {formatRupiah(booking.requiredAmount)}
-        </p>
-        {booking.expiresAt && (
-          <p className="mt-1 text-xs text-muted">
-            Selesaikan sebelum {formatDateTime(booking.expiresAt)} WIB agar slot tidak dilepas.
-          </p>
-        )}
-      </div>
-
-      <fieldset className="space-y-2">
-        <legend className="mb-1 text-muted">Transfer ke rekening *</legend>
-        {accounts.map((account) => (
-          <label
-            key={account.id}
-            className={`block cursor-pointer rounded-xl border p-3 transition-colors ${
-              accountId === account.id
-                ? 'border-accent bg-accent/10'
-                : 'border-white/10 hover:border-white/25'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name="manualAccount"
-                className="mt-1 size-4 accent-amber-500"
-                checked={accountId === account.id}
-                onChange={() => setAccountId(account.id)}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="font-bold">{account.bankName}</p>
-                <p className="font-mono text-base tracking-wide">{account.accountNumber}</p>
-                <p className="text-xs text-muted">a.n. {account.accountHolder}</p>
+    <form onSubmit={handleSubmit} className="text-sm">
+      <StepGrid>
+        <StepCard index={1} title="Nominal & Rekening Tujuan">
+          <div className="rounded-xl border border-accent/30 bg-accent/10 p-4 text-center">
+            <p className="text-xs text-muted">Nominal yang harus ditransfer</p>
+            <p className="mt-1 text-2xl font-black tabular-nums text-accent">
+              {formatRupiah(booking.requiredAmount)}
+            </p>
+            {remaining !== null && (
+              <div className="mt-3 border-t border-accent/20 pt-3">
+                <PaymentCountdown remainingMs={remaining} expiresAt={booking.expiresAt} />
               </div>
-              <CopyButton value={account.accountNumber} />
+            )}
+          </div>
+
+          <fieldset className="mt-4 space-y-2">
+            <legend className="sr-only">Transfer ke rekening</legend>
+            {accounts.map((account) => (
+              <label
+                key={account.id}
+                className={`block cursor-pointer rounded-xl border p-3 transition-colors ${
+                  accountId === account.id
+                    ? 'border-accent bg-accent/10'
+                    : 'border-white/10 hover:border-white/25'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="radio"
+                    name="manualAccount"
+                    className="mt-1 size-4 accent-amber-500"
+                    checked={accountId === account.id}
+                    onChange={() => setAccountId(account.id)}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold">{account.bankName}</p>
+                    <p className="text-base font-semibold tabular-nums tracking-wide">
+                      {account.accountNumber}
+                    </p>
+                    <p className="text-xs text-muted">a.n. {account.accountHolder}</p>
+                  </div>
+                  <CopyButton value={account.accountNumber} />
+                </div>
+              </label>
+            ))}
+          </fieldset>
+        </StepCard>
+
+        <StepCard index={2} title="Konfirmasi Bukti Transfer" span="right" className="gap-4">
+          <Field label="Nama pemilik rekening pengirim *">
+            <input
+              className={fieldCompactClass}
+              maxLength={120}
+              value={senderName}
+              onChange={(event) => setSenderName(event.target.value)}
+              placeholder="Nama yang tertera di mutasi bank kamu"
+            />
+          </Field>
+
+          <div className="grid flex-1 gap-3 sm:grid-cols-2">
+            <div>
+              <span className={`${labelClass} mb-2 [@media(min-height:900px)]:mb-3`}>
+                Bukti transfer * (JPG, PNG, WebP, maks. 5 MB)
+              </span>
+              <label className="flex h-[clamp(9rem,22vh,16rem)] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 p-4 text-center text-xs text-muted transition-colors hover:border-white/40">
+                <Upload className="size-6" />
+                <span className="line-clamp-2 break-all">
+                  {file ? file.name : 'Pilih foto struk dari galeri'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => handleFile(event.target.files?.[0])}
+                />
+              </label>
+              {fileError && <p className="mt-1.5 text-xs text-red-300">{fileError}</p>}
             </div>
-          </label>
-        ))}
-      </fieldset>
 
-      <label className="block space-y-1.5">
-        <span className="text-muted">Nama pemilik rekening pengirim *</span>
-        <Input
-          maxLength={120}
-          value={senderName}
-          onChange={(event) => setSenderName(event.target.value)}
-          placeholder="Nama yang tertera di mutasi bank kamu"
-        />
-      </label>
+            <div>
+              <span className={`${labelClass} mb-2 [@media(min-height:900px)]:mb-3`}>
+                Pratinjau
+              </span>
+              <div className="flex h-[clamp(9rem,22vh,16rem)] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                {preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- local blob preview, not optimizable
+                  <img
+                    src={preview}
+                    alt="Pratinjau bukti transfer"
+                    className="size-full object-contain"
+                  />
+                ) : (
+                  <span className="px-4 text-center text-xs text-muted-dim">
+                    Struk yang kamu pilih tampil di sini
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
 
-      <div className="space-y-1.5">
-        <span className="text-muted">Unggah bukti transfer * (JPG, PNG, WebP — maks. 5 MB)</span>
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 p-4 text-xs text-muted hover:border-white/40">
-          <Upload className="size-5" />
-          {file ? file.name : 'Pilih foto struk dari galeri'}
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={(event) => handleFile(event.target.files?.[0])}
-          />
-        </label>
-        {fileError && <p className="text-xs text-red-300">{fileError}</p>}
-        {preview && (
-          // eslint-disable-next-line @next/next/no-img-element -- local blob preview, not optimizable
-          <img
-            src={preview}
-            alt="Pratinjau bukti transfer"
-            className="max-h-64 w-full rounded-xl border border-white/10 object-contain"
-          />
-        )}
-      </div>
+          {submit.isError && (
+            <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-red-200">
+              {submit.error instanceof ApiError
+                ? submit.error.message
+                : 'Bukti belum berhasil dikirim. Silakan coba lagi.'}
+            </p>
+          )}
+        </StepCard>
+      </StepGrid>
 
-      {submit.isError && (
-        <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-red-200">
-          {submit.error instanceof ApiError
-            ? submit.error.message
-            : 'Bukti belum berhasil dikirim. Silakan coba lagi.'}
-        </p>
-      )}
-
-      <Button type="submit" className="w-full" disabled={!canSubmit || submit.isPending}>
-        {submit.isPending ? 'Mengirim bukti...' : 'Kirim Bukti Pembayaran'}
-      </Button>
-      {selected && (
-        <p className="text-center text-xs text-muted">
-          Pastikan nominal dan rekening tujuan ({selected.bankName}) sudah sesuai sebelum mengirim.
-        </p>
-      )}
+      <StepFooter
+        hint={
+          selected
+            ? `Pastikan nominal dan rekening tujuan (${selected.bankName}) sudah sesuai sebelum mengirim.`
+            : undefined
+        }
+      >
+        <BookingButton type="submit" className="sm:w-72" disabled={!canSubmit || submit.isPending}>
+          {submit.isPending ? 'Mengirim bukti...' : 'Kirim Bukti Pembayaran'}
+        </BookingButton>
+      </StepFooter>
     </form>
   );
 }

@@ -3,11 +3,13 @@ import type { ReactNode } from 'react';
 export function FormField({
   label,
   hint,
+  error,
   counter,
   children,
 }: {
   label: string;
   hint?: string;
+  error?: string;
   counter?: ReactNode;
   children: ReactNode;
 }) {
@@ -18,7 +20,11 @@ export function FormField({
         {counter}
       </span>
       {children}
-      {hint && <span className="block text-[11px] text-zinc-500">{hint}</span>}
+      {error ? (
+        <span className="block text-[11px] text-rose-600 dark:text-rose-400">{error}</span>
+      ) : (
+        hint && <span className="block text-[11px] text-zinc-500">{hint}</span>
+      )}
     </label>
   );
 }

@@ -19,6 +19,8 @@ export class MidtransClient {
     customerEmail: string;
     customerPhone: string;
     itemName: string;
+    /** Whole minutes until the booking deadline, so the pay page dies when the slot is released. */
+    expiresInMinutes: number;
   }): Promise<MidtransSnapIntent> {
     const settings = await this.paymentSettings.getGatewayCredentials();
     if (settings.provider !== 'MIDTRANS' || !settings.serverKey) {
@@ -50,6 +52,7 @@ export class MidtransClient {
             name: input.itemName.slice(0, 50),
           },
         ],
+        expiry: { unit: 'minute', duration: Math.max(1, Math.ceil(input.expiresInMinutes)) },
         customer_details: {
           first_name: input.customerName.slice(0, 50),
           email: input.customerEmail,

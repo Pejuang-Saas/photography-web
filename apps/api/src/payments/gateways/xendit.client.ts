@@ -17,6 +17,8 @@ export class XenditClient {
     customerName: string;
     customerEmail: string;
     description: string;
+    /** Seconds until the booking deadline, so the invoice expires when the slot is released. */
+    durationSeconds: number;
   }): Promise<XenditInvoiceIntent> {
     const settings = await this.paymentSettings.getGatewayCredentials();
     if (settings.provider !== GatewayProvider.XENDIT || !settings.secretKey) {
@@ -36,7 +38,7 @@ export class XenditClient {
         amount: input.amount,
         payer_email: input.customerEmail,
         description: input.description.slice(0, 255),
-        invoice_duration: 86400,
+        invoice_duration: Math.max(60, Math.ceil(input.durationSeconds)),
         should_send_email: false,
         customer: { given_names: input.customerName.slice(0, 120), email: input.customerEmail },
       }),

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BookingStatus, PaymentPlan, PaymentStatus, Prisma } from '@prisma/client';
 import { OutboxService } from '../../outbox/outbox.service';
 
@@ -36,7 +36,30 @@ export class GatewayPaymentStateService {
       data: { status: BookingStatus.CONFIRMED, paymentStatus },
     });
     if (claimedBooking.count !== 1) {
-      throw new ConflictException('Booking is no longer waiting for gateway payment');
+      // The money has arrived but the booking can no longer be confirmed (the slot was already
+      // released, or the booking is already paid). Throwing would make the provider retry forever
+      // and hide the payment, so keep it recorded as paid and ask an admin to resolve it.
+      await tx.notification.create({
+        data: {
+          bookingId: payment.bookingId,
+          type: 'SYSTEM',
+          title: 'Pembayaran masuk, booking tidak aktif',
+          message: `Pembayaran ${payment.booking.bookingCode} sebesar ${payment.amount} diterima, tetapi booking berstatus ${payment.booking.status}. Perlu refund atau konfirmasi manual.`,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: 'UNMATCHED_GATEWAY_PAYMENT',
+          entity: 'Payment',
+          entityId: payment.id,
+          metadata: {
+            bookingId: payment.bookingId,
+            bookingStatus: payment.booking.status,
+            amount: payment.amount,
+          },
+        },
+      });
+      return;
     }
 
     const invoice = await tx.invoice.upsert({

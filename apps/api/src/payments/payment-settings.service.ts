@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { GatewayProvider, PaymentMode, Prisma } from '@prisma/client';
+import { PAYMENT_WINDOW_MINUTES } from '../common/payment-window';
 import { decryptSecret, encryptSecret } from '../common/secret-box';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -37,6 +38,7 @@ export class PaymentSettingsService {
     return {
       activeMode: settings.activeMode,
       allowDownPayment: settings.allowDownPayment,
+      paymentWindowMinutes: PAYMENT_WINDOW_MINUTES[settings.activeMode],
       gatewayProvider: settings.gatewayProvider,
       gatewayEnvironment: settings.gatewayEnvironment,
       manualAccounts,

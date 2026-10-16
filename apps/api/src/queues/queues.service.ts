@@ -4,6 +4,14 @@ import { Queue } from 'bullmq';
 import { StorageBucket } from '@prisma/client';
 import { QUEUE_NAMES } from './queues.constants';
 
+/**
+ * Deterministic job id (so the same work is never queued twice). BullMQ rejects ":" in custom ids,
+ * and a rejected add fails silently into a log line, so the separator must be something else.
+ */
+export function jobId(...parts: string[]) {
+  return parts.join('-');
+}
+
 @Injectable()
 export class QueuesService {
   constructor(
@@ -21,7 +29,7 @@ export class QueuesService {
       'expire-booking',
       { bookingId },
       {
-        jobId: `booking-expiration:${bookingId}`,
+        jobId: jobId('booking-expiration', bookingId),
         delay,
         attempts: 5,
         backoff: { type: 'exponential', delay: 5_000 },
@@ -36,7 +44,7 @@ export class QueuesService {
       'cleanup-storage-object',
       { bucket, storageKey },
       {
-        jobId: `storage-cleanup:${bucket}:${storageKey}`,
+        jobId: jobId('storage-cleanup', bucket, storageKey),
         attempts: 10,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: 100,
@@ -50,7 +58,7 @@ export class QueuesService {
       'dispatch-outbox',
       { eventId },
       {
-        jobId: `outbox:${eventId}`,
+        jobId: jobId('outbox', eventId),
         attempts: 10,
         backoff: { type: 'exponential', delay: 5_000 },
         removeOnComplete: 100,

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ExternalLink, Save } from 'lucide-react';
 import type { AdminStudioSettings } from '@/lib/studio-api';
 import { normalizeWhatsapp } from '@/lib/format';
+import { isIdMobile, PHONE_ERROR, sanitizePhoneInput } from '@/lib/phone';
 import { errorMessage, useUpdateStudioSettings } from '@/lib/admin-queries';
 import { FormField } from '../../components/form-field';
 import { StringListEditor } from '../../components/list-editors';
@@ -43,7 +44,8 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
       (key) => key !== 'guarantees' && draft[key] !== saved[key],
     ) || JSON.stringify(cleaned(draft.guarantees)) !== JSON.stringify(saved.guarantees);
 
-  const waDigits = normalizeWhatsapp(draft.whatsappNumber);
+  const phoneInvalid = draft.whatsappNumber !== '' && !isIdMobile(draft.whatsappNumber);
+  const waDigits = phoneInvalid ? '' : normalizeWhatsapp(draft.whatsappNumber);
 
   function handleSave() {
     update.mutate({
@@ -80,19 +82,23 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
 
           <FormField
             label="Nomor WhatsApp CS"
+            error={phoneInvalid ? PHONE_ERROR : undefined}
             hint={
               waDigits
                 ? `Tersimpan sebagai ${waDigits}`
-                : 'Contoh: 0812-3456-7890. Kosong = customer memilih kontak sendiri.'
+                : 'Hanya angka, contoh 081234567890. Kosong = customer memilih kontak sendiri.'
             }
           >
             <div className="flex gap-2">
               <Input
+                type="tel"
                 inputMode="tel"
-                maxLength={20}
+                aria-invalid={phoneInvalid}
                 className="font-mono"
                 value={draft.whatsappNumber}
-                onChange={(event) => set({ whatsappNumber: event.target.value })}
+                onChange={(event) =>
+                  set({ whatsappNumber: sanitizePhoneInput(event.target.value) })
+                }
               />
               {waDigits.length >= 9 && (
                 <a
@@ -210,6 +216,11 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
 
       {(dirty || update.isError) && (
         <div className="sticky bottom-4 z-10 space-y-2 rounded-xl border border-amber-500/40 bg-white/95 p-3 shadow-lg backdrop-blur dark:bg-zinc-950/95">
+          {phoneInvalid && (
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Perbaiki nomor WhatsApp dulu sebelum menyimpan.
+            </p>
+          )}
           {update.isError && (
             <p className="text-xs text-rose-700 dark:text-rose-300">{errorMessage(update.error)}</p>
           )}
@@ -232,7 +243,7 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={update.isPending}
+                disabled={update.isPending || phoneInvalid}
                 className="h-9 gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-600"
               >
                 <Save className="size-3.5" />

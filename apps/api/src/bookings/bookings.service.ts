@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BookingStatus, PaymentMode, PaymentPlan, Prisma } from '@prisma/client';
+import { BookingStatus, PaymentStatus, PaymentPlan, Prisma } from '@prisma/client';
 import { randomInt } from 'crypto';
 import { PackagesService } from '../packages/packages.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,6 +17,7 @@ import {
   hashIdempotencyPayload,
   requireIdempotencyKey,
 } from '../common/idempotency';
+import { paymentDeadline } from '../common/payment-window';
 import { CreateBookingDto } from './dto/booking.dto';
 
 @Injectable()
@@ -57,9 +58,7 @@ export class BookingsService {
     const requiredAmount =
       dto.paymentPlan === PaymentPlan.DP_50 ? Math.ceil(totalAmount / 2) : totalAmount;
     const reservationKey = `${dateOnly}:${dto.timeSlot.trim()}`;
-    const expiresAt = new Date(
-      Date.now() + (settings.activeMode === PaymentMode.MANUAL ? 24 : 1) * 60 * 60 * 1000,
-    );
+    const expiresAt = paymentDeadline(settings.activeMode);
 
     try {
       const booking = await this.prisma.$transaction(async (tx) => {
@@ -208,6 +207,60 @@ export class BookingsService {
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
+  }
+
+  /**
+   * What the checkout page needs to redraw itself after a refresh. The booking id is an unguessable
+   * UUID and already the credential for the payment endpoints, so it is safe to key this on; the
+   * booking code is not (6 digits). No contact details or proof images are returned.
+   */
+  async getResume(id: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        bookingCode: true,
+        customerName: true,
+        packageId: true,
+        packageName: true,
+        packagePrice: true,
+        totalAmount: true,
+        requiredAmount: true,
+        paymentMode: true,
+        paymentPlan: true,
+        status: true,
+        paymentStatus: true,
+        sessionDate: true,
+        timeSlot: true,
+        expiresAt: true,
+        createdAt: true,
+        payments: {
+          where: { method: 'GATEWAY', status: PaymentStatus.UNPAID },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { metadata: true },
+        },
+      },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const { payments, ...rest } = booking;
+    return {
+      ...rest,
+      // Lets the client count down from the server's clock instead of the visitor's.
+      serverTime: new Date().toISOString(),
+      // Reusing the open pay page avoids creating a second gateway transaction after a refresh.
+      gatewayRedirectUrl:
+        booking.status === BookingStatus.PENDING_PAYMENT
+          ? this.redirectUrlFrom(payments[0]?.metadata)
+          : null,
+    };
+  }
+
+  private redirectUrlFrom(metadata: Prisma.JsonValue | undefined) {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+    const url = (metadata as { redirectUrl?: unknown }).redirectUrl;
+    return typeof url === 'string' ? url : null;
   }
 
   private parseSessionDate(value: string) {
