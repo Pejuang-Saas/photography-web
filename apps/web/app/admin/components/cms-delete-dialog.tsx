@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ export function CmsDeleteDialog({
   onConfirm,
   isPending,
   entityLabel = 'foto gallery',
+  description,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -27,6 +28,8 @@ export function CmsDeleteDialog({
   onConfirm: () => void;
   isPending: boolean;
   entityLabel?: string;
+  /** Replaces the default "photo will be deleted from the website" sentence. */
+  description?: ReactNode;
   trigger?: ReactElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -65,8 +68,13 @@ export function CmsDeleteDialog({
               Hapus {entityLabel}?
             </DialogTitle>
             <DialogDescription className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-              Foto <span className="font-semibold text-zinc-700 dark:text-zinc-300">“{title}”</span>{' '}
-              akan dihapus permanen dari konten website.
+              {description ?? (
+                <>
+                  Foto{' '}
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">“{title}”</span>{' '}
+                  akan dihapus permanen dari konten website.
+                </>
+              )}
             </DialogDescription>
           </div>
         </DialogHeader>

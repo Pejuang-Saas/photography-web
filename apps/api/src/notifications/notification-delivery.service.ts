@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailService } from './email.service';
+import { EmailQueueService } from './email-queue.service';
 import { EmailSettingsService } from './email-settings.service';
+import { readSmtpConfig } from './smtp-config';
+import { TEMPLATE_BY_EVENT } from './email-template-defaults';
+import { EmailTemplatesService } from './email-templates.service';
 import { WahaClient } from './waha.client';
 
 type DeliveryEvent = {
@@ -13,12 +16,15 @@ type DeliveryEvent = {
   payload: Prisma.JsonValue;
 };
 
+const CUSTOMER_EVENTS = ['PAYMENT_VERIFIED', 'PAYMENT_REJECTED', 'BOOKING_EXPIRED'];
+
 @Injectable()
 export class NotificationDeliveryService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly email: EmailService,
+    private readonly emailQueue: EmailQueueService,
     private readonly emailSettings: EmailSettingsService,
+    private readonly templates: EmailTemplatesService,
     private readonly waha: WahaClient,
   ) {}
 
@@ -30,41 +36,93 @@ export class NotificationDeliveryService {
     const booking = bookingId
       ? await this.prisma.booking.findUnique({
           where: { id: bookingId },
-          include: { invoice: true },
+          include: {
+            invoice: true,
+            // Only money actually received, for the paid and remaining amounts in the email.
+            payments: {
+              where: { status: { in: ['PAID_DP', 'PAID_FULL'] } },
+              select: { amount: true },
+            },
+          },
         })
       : null;
     const settings = await this.emailSettings.getCurrent();
-    const customerEvent = ['PAYMENT_VERIFIED', 'PAYMENT_REJECTED', 'BOOKING_EXPIRED'].includes(
-      event.eventType,
-    );
+    const customerEvent = CUSTOMER_EVENTS.includes(event.eventType);
+    // Studio-side events (new booking, payment proof) are never emailed; only customers get email.
+    // The studio is told in the admin panel, and over WhatsApp when that channel is enabled.
     const recipients = customerEvent
       ? { email: booking?.customerEmail, phone: booking?.customerPhone }
-      : {
-          email: settings.adminNotificationEmail ?? undefined,
-          phone: this.adminChatId(),
-        };
+      : { email: undefined, phone: this.adminChatId() };
+    if (!customerEvent && !(recipients.phone && this.waha.isEnabled())) return;
 
     const subject = this.subject(event.eventType, booking?.bookingCode);
     const message = this.message(event.eventType, booking, payload);
-    let delivered = 0;
+    let handled = 0;
 
-    if (
-      recipients.email &&
-      settings.enabled &&
-      !(event.eventType === 'PAYMENT_VERIFIED' && !settings.autoSendInvoice)
-    ) {
-      await this.email.send(recipients.email, subject, message, event.eventKey);
-      delivered += 1;
+    if (recipients.email) {
+      const request = {
+        dedupeKey: `${event.eventKey}:email`,
+        to: recipients.email,
+        subject,
+        text: message,
+        bookingId: booking?.id,
+      };
+      const skipReason = this.emailSkipReason(event.eventType, settings);
+      const templateCode = TEMPLATE_BY_EVENT[event.eventType];
+      // Queued mail is sent (and retried) by the email worker; the dedupe key makes a retry of
+      // this whole event, for example because WhatsApp failed, not send the email twice.
+      if (skipReason) {
+        await this.emailQueue.skip(request, skipReason);
+      } else if (customerEvent && templateCode && booking) {
+        const composed = await this.templates.compose(templateCode, {
+          booking,
+          rejectionReason: this.stringValue(payload.reason),
+        });
+        if (composed.status === 'inactive') {
+          await this.emailQueue.skip({ ...request, templateCode }, composed.reason);
+        } else {
+          await this.emailQueue.enqueue({
+            ...request,
+            subject: composed.subject,
+            text: composed.text,
+            html: composed.html,
+            templateCode,
+            attachments: [
+              ...composed.attachments,
+              // The invoice email also carries the invoice itself as a PDF.
+              ...(templateCode === 'INVOICE_OFFICIAL' && booking.invoice
+                ? [{ type: 'invoice-pdf' as const, invoiceId: booking.invoice.id }]
+                : []),
+            ],
+          });
+        }
+      } else {
+        await this.emailQueue.enqueue(request);
+      }
+      handled += 1;
     }
 
     if (recipients.phone && this.waha.isEnabled()) {
       await this.waha.sendText(recipients.phone, message);
-      delivered += 1;
+      handled += 1;
     }
 
-    if (delivered === 0) {
+    if (handled === 0) {
       throw new Error(`No notification delivery channel configured for ${event.eventType}`);
     }
+  }
+
+  /** Why an email that would otherwise go out is held back; null when it should be sent. */
+  emailSkipReason(eventType: string, settings: { enabled: boolean; autoSendInvoice: boolean }) {
+    if (!settings.enabled) return 'Pengiriman email dinonaktifkan di pengaturan';
+    const smtp = readSmtpConfig();
+    if (!smtp.configured) {
+      return `SMTP belum dikonfigurasi di environment: ${smtp.missing.join(', ')}`;
+    }
+    if (eventType === 'PAYMENT_VERIFIED' && !settings.autoSendInvoice) {
+      return 'Kirim invoice otomatis dimatikan';
+    }
+    return null;
   }
 
   private adminChatId() {

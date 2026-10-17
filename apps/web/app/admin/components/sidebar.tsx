@@ -23,6 +23,7 @@ import {
   CreditCard,
   MessageSquare,
   Store,
+  Mail,
   LayoutTemplate,
   ChevronDown,
   type LucideIcon,
@@ -176,10 +177,15 @@ export default function AdminSidebar({
           icon: Store,
         },
         {
-          title: 'WhatsApp & Email',
+          title: 'WhatsApp & Rekening',
           href: '/admin/settings',
           icon: MessageSquare,
           exact: true,
+        },
+        {
+          title: 'Notifikasi Email',
+          href: '/admin/settings/email',
+          icon: Mail,
         },
         {
           title: 'Metode Pembayaran',

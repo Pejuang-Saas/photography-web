@@ -22,8 +22,14 @@ export class OutboxService {
     private readonly delivery: NotificationDeliveryService,
   ) {}
 
-  createInTransaction(tx: Prisma.TransactionClient, input: OutboxEventInput) {
-    return tx.outboxEvent.create({ data: input });
+  async createInTransaction(tx: Prisma.TransactionClient, input: OutboxEventInput) {
+    const event = await tx.outboxEvent.create({ data: input });
+    // Deliver within seconds instead of waiting for the next sweep. Failing to queue is harmless:
+    // the row is already stored and the sweep will pick it up.
+    void this.queues.scheduleOutbox(event.id, { immediate: true }).catch((error) => {
+      this.logger.warn(`Could not queue outbox event ${event.id} immediately: ${error}`);
+    });
+    return event;
   }
 
   async sweep() {

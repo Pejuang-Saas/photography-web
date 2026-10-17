@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import {
   MessageSquare,
-  Mail,
   Building2,
   QrCode,
   RefreshCw,
@@ -45,14 +44,6 @@ export default function AdminSettingsPage() {
     PHOTO_DELIVERY: `Halo Kak *{customer_name}*! 🎉\n\nFoto wisuda Anda telah selesai diproses color grading oleh tim *Kayastory*! 🎓✨\n\n📁 Akses seluruh foto RAW & master edit melalui link Google Drive resmi Anda:\n🔗 {drive_url}\n\nTerima kasih telah mempercayakan momen wisuda Anda bersama kami. Jangan lupa tag *@kayastory* di Instagram ya Kak! 📸❤️`,
   });
 
-  // Email SMTP State
-  const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
-  const [smtpPort, setSmtpPort] = useState('587');
-  const [smtpUser, setSmtpUser] = useState('studio@kayastory.id');
-  const [smtpPassword, setSmtpPassword] = useState('••••••••••••••••');
-  const [smtpSenderName, setSmtpSenderName] = useState('Kayastory Photography Studio');
-  const [testEmail, setTestEmail] = useState('admin@kayastory.id');
-
   const handleSendTestWA = () => {
     if (!testPhoneNumber) {
       toast.error('Masukkan nomor WhatsApp tujuan');
@@ -60,16 +51,6 @@ export default function AdminSettingsPage() {
     }
     toast.success('Pesan Uji Coba Terkirim via Baileys WA!', {
       description: `Template "${selectedTemplate}" berhasil dikirim ke nomor ${testPhoneNumber}`,
-    });
-  };
-
-  const handleSendTestEmail = () => {
-    if (!testEmail) {
-      toast.error('Masukkan email tujuan');
-      return;
-    }
-    toast.success('Email Uji Coba Terkirim via SMTP!', {
-      description: `Email uji coba dikirim ke ${testEmail}`,
     });
   };
 
@@ -100,8 +81,7 @@ export default function AdminSettingsPage() {
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Konfigurasi Baileys WhatsApp (Gratis/Self-hosted), notifikasi email SMTP, dan rekening
-            studio.
+            Konfigurasi Baileys WhatsApp (Gratis/Self-hosted) dan rekening studio.
           </p>
         </div>
 
@@ -124,13 +104,6 @@ export default function AdminSettingsPage() {
           >
             <MessageSquare className="size-3.5" />
             WhatsApp Baileys
-          </TabsTrigger>
-          <TabsTrigger
-            value="email"
-            className="text-xs px-3.5 py-1.5 rounded-lg text-zinc-700 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white data-active:bg-white dark:data-active:bg-zinc-800 data-active:text-amber-600 dark:data-active:text-amber-400 font-semibold data-active:shadow-sm transition-all gap-1.5"
-          >
-            <Mail className="size-3.5" />
-            Email SMTP
           </TabsTrigger>
           <TabsTrigger
             value="studio"
@@ -531,154 +504,6 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </TabsContent>
-
-        {/* ────────────────────────────────────────────────
-            TAB 2: EMAIL SMTP NOTIFICATIONS
-        ──────────────────────────────────────────────── */}
-        <TabsContent value="email" className="space-y-6 pt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Card className="lg:col-span-8 rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm">
-              <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                  <Mail className="size-4 text-amber-500" />
-                  Konfigurasi Email SMTP Server
-                </CardTitle>
-                <CardDescription className="text-xs text-zinc-500">
-                  Untuk pengiriman salinan invoice digital PDF dan notifikasi internal admin
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="pt-4 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                      SMTP Host Provider:
-                    </label>
-                    <Input
-                      value={smtpHost}
-                      onChange={(e) => setSmtpHost(e.target.value)}
-                      placeholder="smtp.gmail.com"
-                      className="h-9 rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                      Port SMTP:
-                    </label>
-                    <Input
-                      value={smtpPort}
-                      onChange={(e) => setSmtpPort(e.target.value)}
-                      placeholder="587"
-                      className="h-9 rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                      Email Pengirim (Username):
-                    </label>
-                    <Input
-                      value={smtpUser}
-                      onChange={(e) => setSmtpUser(e.target.value)}
-                      placeholder="studio@kayastory.id"
-                      className="h-9 rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                      Password / App Password:
-                    </label>
-                    <Input
-                      type="password"
-                      value={smtpPassword}
-                      onChange={(e) => setSmtpPassword(e.target.value)}
-                      className="h-9 rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 text-xs">
-                  <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                    Nama Pengirim Resmi (Sender Name):
-                  </label>
-                  <Input
-                    value={smtpSenderName}
-                    onChange={(e) => setSmtpSenderName(e.target.value)}
-                    placeholder="Kayastory Photography Studio"
-                    className="h-9 rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs"
-                  />
-                </div>
-
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 p-3 text-xs space-y-2">
-                  <div className="font-semibold text-zinc-900 dark:text-white">
-                    Trigger Notifikasi Otomatis:
-                  </div>
-                  <div className="space-y-1.5 text-zinc-600 dark:text-zinc-300">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        defaultChecked
-                        className="rounded border-zinc-300 text-amber-500 focus:ring-amber-500"
-                      />
-                      <span>Kirim invoice PDF ke email customer saat pembayaran diverifikasi</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        defaultChecked
-                        className="rounded border-zinc-300 text-amber-500 focus:ring-amber-500"
-                      />
-                      <span>Kirim notifikasi ke email admin saat ada reservasi baru masuk</span>
-                    </label>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Test Email Card */}
-            <Card className="lg:col-span-4 rounded-xl border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 shadow-sm flex flex-col justify-between">
-              <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                  <Send className="size-4 text-amber-500" />
-                  Kirim Email Uji Coba
-                </CardTitle>
-                <CardDescription className="text-xs text-zinc-500">
-                  Verifikasi konektivitas SMTP server
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="pt-4 space-y-4">
-                <div className="space-y-1.5 text-xs">
-                  <label className="font-semibold text-zinc-700 dark:text-zinc-300">
-                    Email Tujuan Uji Coba:
-                  </label>
-                  <Input
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="admin@kayastory.id"
-                    className="h-9 font-mono text-xs rounded-xl border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950"
-                  />
-                </div>
-
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 p-3 text-xs space-y-1 text-zinc-500">
-                  <p>
-                    Email uji coba akan menyertakan ringkasan invoice simulasi dan status server.
-                  </p>
-                </div>
-
-                <Button
-                  onClick={handleSendTestEmail}
-                  className="w-full h-9 rounded-xl bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs gap-1.5 shadow-md shadow-amber-500/20"
-                >
-                  <Send className="size-3.5" />
-                  Kirim Email Uji Coba
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 

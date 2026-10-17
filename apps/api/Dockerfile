@@ -47,6 +47,7 @@ RUN adduser --system --uid 1001 nestjs
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/assets ./assets
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 COPY package.json ./
 

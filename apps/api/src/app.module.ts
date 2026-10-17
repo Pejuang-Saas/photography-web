@@ -17,6 +17,7 @@ import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { QueuesModule } from './queues/queues.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { InvoicesModule } from './invoices/invoices.module';
 import { LandingModule } from './landing/landing.module';
 import { StudioModule } from './studio/studio.module';
 
@@ -71,6 +72,7 @@ function positiveInteger(configService: ConfigService, key: string, fallback: nu
     NotificationsModule,
     StudioModule,
     LandingModule,
+    InvoicesModule,
   ],
   controllers: [AppController, AdminAuthController],
   providers: [

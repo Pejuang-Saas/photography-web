@@ -101,7 +101,6 @@ Fitur ini memiliki dua tujuan utama:
   - Input Nama Pengirim (_Sender Name_) yang tampil di kotak masuk pelanggan.
 - **Opsi Otomasi Transaksional**:
   - Checkbox toggle: _"Kirim invoice resmi secara otomatis saat admin memverifikasi pembayaran"_.
-  - Checkbox toggle: _"Kirim notifikasi email salinan ke tim studio setiap ada reservasi baru masuk"_.
 - **Kartu Uji Coba Pengiriman Email (Test Send)**:
   - Input alamat email tujuan uji coba (misal: email pribadi admin).
   - Tombol **"Kirim Email Uji Coba"**: Mengirimkan email simulasi yang memuat status koneksi server dan memunculkan toast notifikasi sukses.

@@ -8,7 +8,9 @@ import { formatDateTime, formatDay, formatRupiah, whatsappLink } from '@/lib/for
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Printer, MessageCircle, QrCode } from 'lucide-react';
+import Image from 'next/image';
+import { Download, Printer, MessageCircle, QrCode } from 'lucide-react';
+import { apiUrl } from '@/lib/api-client';
 import { useStudioInfo } from '@/lib/studio-queries';
 import { QueryError, QueryLoading } from './query-state';
 
@@ -61,6 +63,15 @@ export default function InvoicePreviewModal() {
               </div>
 
               <div className="flex items-center gap-2">
+                <a
+                  href={`${apiUrl}/public/invoices/${invoice.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  <Download className="size-3.5" />
+                  Unduh PDF
+                </a>
                 <Button
                   variant="outline"
                   size="sm"
@@ -89,18 +100,24 @@ export default function InvoicePreviewModal() {
             <div className="p-8 space-y-6 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 m-6 rounded-xl text-xs print:m-0 print:border-none shadow-sm">
               {/* Header */}
               <div className="flex justify-between items-start border-b border-zinc-200 dark:border-zinc-800 pb-6">
-                <div>
-                  <h2 className="font-bold text-zinc-900 dark:text-white text-base tracking-tight">
-                    {(studio?.studioName ?? 'Kayastory Photography').toUpperCase()}
-                  </h2>
-                  <p className="text-zinc-500 text-xs mt-0.5">
-                    Spesialis Foto Wisuda & Kebaya Semarang
-                  </p>
-                  <p className="text-zinc-500 text-[11px]">
-                    {[studio?.address, studio?.whatsappNumber && `WA: ${studio.whatsappNumber}`]
-                      .filter(Boolean)
-                      .join(' | ')}
-                  </p>
+                <div className="flex items-start gap-3">
+                  <Image
+                    src="/icon.png"
+                    alt={studio?.studioName ?? 'Logo studio'}
+                    width={44}
+                    height={44}
+                    className="size-11 rounded-full"
+                  />
+                  <div>
+                    <h2 className="font-bold text-zinc-900 dark:text-white text-base tracking-tight">
+                      {(studio?.studioName ?? 'Kayastory Photography').toUpperCase()}
+                    </h2>
+                    <p className="text-zinc-500 text-[11px] mt-0.5">
+                      {[studio?.address, studio?.whatsappNumber && `WA: ${studio.whatsappNumber}`]
+                        .filter(Boolean)
+                        .join(' | ')}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="text-right">

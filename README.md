@@ -225,15 +225,25 @@ curl -X GET http://localhost:3002/docs-json
 
 ## 🔗 URL Referensi Sistem
 
-| Komponen                | URL Akses                                                          | Keterangan                                  |
-| :---------------------- | :----------------------------------------------------------------- | :------------------------------------------ |
-| **Landing Page Publik** | [http://localhost:3000](http://localhost:3000)                     | Katalog paket foto, ulasan, & checkout      |
-| **Admin Dashboard**     | [http://localhost:3000/admin](http://localhost:3000/admin)         | Metrik pendapatan, daftar booking, kalender |
-| **Admin Mini CRM**      | [http://localhost:3000/admin/crm](http://localhost:3000/admin/crm) | Obrolan WhatsApp & penanda anti-ban         |
-| **API Base URL**        | [http://localhost:3002](http://localhost:3002)                     | NestJS REST API Gateway                     |
-| **API Health Check**    | [http://localhost:3002/health](http://localhost:3002/health)       | Ping status server & database               |
-| **API Swagger Docs**    | [http://localhost:3002/docs](http://localhost:3002/docs)           | OpenAPI Interactive Documentation           |
-| **Prisma Studio**       | `npx prisma studio` (via API)                                      | GUI Manajemen Data Database                 |
+| Komponen                | URL Akses                                                          | Keterangan                                   |
+| :---------------------- | :----------------------------------------------------------------- | :------------------------------------------- |
+| **Landing Page Publik** | [http://localhost:3000](http://localhost:3000)                     | Katalog paket foto, ulasan, & checkout       |
+| **Admin Dashboard**     | [http://localhost:3000/admin](http://localhost:3000/admin)         | Metrik pendapatan, daftar booking, kalender  |
+| **Admin Mini CRM**      | [http://localhost:3000/admin/crm](http://localhost:3000/admin/crm) | Obrolan WhatsApp & penanda anti-ban          |
+| **API Base URL**        | [http://localhost:3002](http://localhost:3002)                     | NestJS REST API Gateway                      |
+| **API Health Check**    | [http://localhost:3002/health](http://localhost:3002/health)       | Ping status server & database                |
+| **API Swagger Docs**    | [http://localhost:3002/docs](http://localhost:3002/docs)           | OpenAPI Interactive Documentation            |
+| **Prisma Studio**       | `npx prisma studio` (via API)                                      | GUI Manajemen Data Database                  |
+| **Mailpit (dev)**       | [http://localhost:8025](http://localhost:8025)                     | Kotak masuk email uji; tidak ada yang keluar |
+
+### ✉️ Menguji Email di Development
+
+Email dikirim oleh worker lewat antrean `email`. Agar email benar-benar dikirim (bukan hanya dicatat di log) dan bisa dilihat tanpa mengirim ke inbox sungguhan:
+
+1. Di `.env`, set `OUTBOX_DELIVERY_MODE=live`, lalu `docker compose up -d --force-recreate api worker`.
+2. Server SMTP diatur lewat environment (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`), bukan lewat admin. Bawaan development sudah mengarah ke Mailpit (`mailpit:1025`). Di production, isi dengan server SMTP asli; `SMTP_HOST` dan `SMTP_FROM_EMAIL` wajib, dan `SMTP_USER` butuh `SMTP_PASSWORD`.
+3. Di admin, aktifkan pengiriman email dan atur template.
+4. Buka [http://localhost:8025](http://localhost:8025) untuk melihat email yang masuk. Email yang gagal dicoba ulang otomatis dan tercatat di tabel `email_logs`.
 
 ---
 

@@ -32,6 +32,7 @@ function redisConnection(url: string) {
       { name: QUEUE_NAMES.BOOKING_EXPIRATION },
       { name: QUEUE_NAMES.STORAGE_CLEANUP },
       { name: QUEUE_NAMES.OUTBOX },
+      { name: QUEUE_NAMES.EMAIL },
     ),
   ],
   controllers: [QueueOperationsController],

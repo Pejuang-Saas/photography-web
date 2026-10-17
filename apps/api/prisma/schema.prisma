@@ -103,6 +103,13 @@ enum OutboxStatus {
   FAILED
 }
 
+enum EmailLogStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
 enum GatewayWebhookStatus {
   RECEIVED
   PROCESSED
@@ -150,19 +157,54 @@ model PaymentSetting {
 model EmailSetting {
   id                     String   @id @default("default")
   enabled                Boolean  @default(false)
-  host                   String?
-  port                   Int      @default(587)
-  secure                 Boolean  @default(false)
-  username               String?
-  passwordEncrypted      String?  @map("password_encrypted")
-  fromEmail              String?  @map("from_email")
-  fromName               String?  @map("from_name")
-  adminNotificationEmail String?  @map("admin_notification_email")
   autoSendInvoice        Boolean  @default(true) @map("auto_send_invoice")
   createdAt              DateTime @default(now()) @map("created_at")
   updatedAt              DateTime @updatedAt @map("updated_at")
 
   @@map("email_settings")
+}
+
+model EmailTemplate {
+  id                  String   @id @default(uuid())
+  code                String   @unique
+  name                String
+  description         String?
+  subject             String
+  heading             String
+  bodyText            String   @map("body_text")
+  includeBookingTable Boolean  @default(false) @map("include_booking_table")
+  ctaText             String?  @map("cta_text")
+  ctaUrl              String?  @map("cta_url")
+  ctaColor            String   @default("#d9a521") @map("cta_color")
+  footerText          String?  @map("footer_text")
+  isActive            Boolean  @default(true) @map("is_active")
+  isSystem            Boolean  @default(false) @map("is_system")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id           String         @id @default(uuid())
+  dedupeKey    String         @unique @map("dedupe_key")
+  to           String
+  subject      String
+  text         String
+  html         String?
+  attachments  Json?
+  templateCode String?        @map("template_code")
+  bookingId    String?        @map("booking_id")
+  status       EmailLogStatus @default(QUEUED)
+  attempts     Int            @default(0)
+  error        String?
+  sentAt       DateTime?      @map("sent_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([bookingId])
+  @@map("email_logs")
 }
 
 model StudioSetting {

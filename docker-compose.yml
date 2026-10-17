@@ -25,6 +25,14 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
       - OUTBOX_DELIVERY_MODE=${OUTBOX_DELIVERY_MODE:-log}
+      # SMTP server (deploy-time only; the admin panel never sees these). Dev default is Mailpit.
+      - SMTP_HOST=${SMTP_HOST:-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-studio@kayastory.test}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Kayastory Photography}
       - CONFIG_ENCRYPTION_KEY=${CONFIG_ENCRYPTION_KEY:-}
       - WAHA_ENABLED=${WAHA_ENABLED:-false}
       - WAHA_BASE_URL=${WAHA_BASE_URL:-http://waha:3000}
@@ -61,6 +69,19 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
       - OUTBOX_DELIVERY_MODE=${OUTBOX_DELIVERY_MODE:-log}
+      # SMTP server (deploy-time only; the admin panel never sees these). Dev default is Mailpit.
+      - SMTP_HOST=${SMTP_HOST:-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-studio@kayastory.test}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Kayastory Photography}
+      - EMAIL_RATE_LIMIT_PER_MINUTE=${EMAIL_RATE_LIMIT_PER_MINUTE:-20}
+      # Emails are rendered here, and templates link back to the site via {site_url}.
+      - WEB_URL=${WEB_URL:-http://localhost:3000}
+      # Public base URL of the API, used for the invoice download link in emails.
+      - API_URL=${API_URL:-http://localhost:3002}
       - CONFIG_ENCRYPTION_KEY=${CONFIG_ENCRYPTION_KEY:-}
       - WAHA_ENABLED=${WAHA_ENABLED:-false}
       - WAHA_BASE_URL=${WAHA_BASE_URL:-http://waha:3000}
@@ -95,6 +116,21 @@ services:
       - '9002:9001'
     volumes:
       - minio-data:/data
+    networks:
+      - dev-network
+
+  # Development mail catcher: the API sends through it (SMTP host `mailpit`, port 1025, no auth)
+  # and every message shows up at http://localhost:8025 instead of reaching real inboxes.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: photography-mailpit
+    restart: unless-stopped
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    environment:
+      - MP_SMTP_AUTH_ACCEPT_ANY=1
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1
     networks:
       - dev-network
 
