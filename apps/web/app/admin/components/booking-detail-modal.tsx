@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/lib/admin-context';
 import {
   errorMessage,
@@ -9,6 +10,7 @@ import {
   useVerifyPayment,
 } from '@/lib/admin-queries';
 import type { AdminBooking } from '@/lib/admin-api';
+import { useOpenCrmChat } from '@/lib/crm-queries';
 import { bookingBadge, latestManualPayment } from '@/lib/booking-status';
 import { formatDateTime, formatDay, formatRupiah, whatsappLink } from '@/lib/format';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -22,6 +24,7 @@ import {
   Calendar,
   User,
   MessageCircle,
+  MessagesSquare,
   FileText,
   CreditCard,
   ZoomIn,
@@ -75,6 +78,8 @@ function BookingDetail({
   onClose: () => void;
   onOpenInvoice: () => void;
 }) {
+  const router = useRouter();
+  const openChat = useOpenCrmChat();
   const verify = useVerifyPayment();
   const reject = useRejectPayment();
   const proofPayment = latestManualPayment(booking);
@@ -125,7 +130,23 @@ function BookingDetail({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            disabled={openChat.isPending}
+            onClick={() =>
+              openChat.mutate(booking.id, {
+                onSuccess: ({ id }) => {
+                  onClose();
+                  router.push(`/admin/crm?chat=${id}`);
+                },
+              })
+            }
+            className="h-8 gap-1.5 bg-zinc-900 text-xs font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            <MessagesSquare className="size-3.5" />
+            {openChat.isPending ? 'Membuka…' : 'Buka Obrolan CRM'}
+          </Button>
           <a
             href={whatsappLink(booking.customerPhone, `Halo kak ${booking.customerName}`)}
             target="_blank"

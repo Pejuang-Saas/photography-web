@@ -94,18 +94,45 @@ function ContactItem({
       </span>
       <span className="min-w-0 flex-1 space-y-1">
         <span className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-sm font-semibold text-zinc-900 dark:text-white">
+          <span
+            className={cn(
+              'truncate text-sm text-zinc-900 dark:text-white',
+              chat.unreadCount > 0 ? 'font-bold' : 'font-semibold',
+            )}
+          >
             {chat.displayName}
           </span>
-          <span className="shrink-0 text-[11px] text-zinc-500">
+          <span
+            className={cn(
+              'shrink-0 text-[11px]',
+              chat.unreadCount > 0
+                ? 'font-semibold text-emerald-600 dark:text-emerald-400'
+                : 'text-zinc-500',
+            )}
+          >
             {formatListTime(chat.lastMessageAt)}
           </span>
         </span>
         <span className="flex items-center gap-2">
-          <span className="truncate text-xs text-zinc-500">
+          <span
+            className={cn(
+              'min-w-0 flex-1 truncate text-xs',
+              chat.unreadCount > 0
+                ? 'font-medium text-zinc-800 dark:text-zinc-200'
+                : 'text-zinc-500',
+            )}
+          >
             {chat.lastMessageFromMe && <span className="text-zinc-400">Anda: </span>}
             {chat.lastMessagePreview || 'Belum ada pesan'}
           </span>
+          {chat.unreadCount > 0 && (
+            <span
+              aria-label={`${chat.unreadCount} pesan belum dibaca`}
+              className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white"
+            >
+              {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+            </span>
+          )}
         </span>
         <span className="flex items-center gap-2">
           {chat.category ? (

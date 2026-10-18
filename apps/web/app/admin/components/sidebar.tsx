@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAdminBookings } from '@/lib/admin-queries';
+import { useCrmUnread } from '@/lib/crm-queries';
 import type { AdminUser } from '@/lib/admin-auth';
 import {
   LayoutDashboard,
@@ -151,6 +152,8 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const bookings = useAdminBookings();
 
+  const crmUnread = useCrmUnread().data?.total ?? 0;
+
   const pendingCount = (bookings.data ?? []).filter(
     (b) => b.status === 'PENDING_VERIFICATION',
   ).length;
@@ -166,7 +169,13 @@ export default function AdminSidebar({
     },
     { title: 'Kalender Jadwal', href: '/admin/calendar', icon: CalendarDays },
     { title: 'Invoice & Pembayaran', href: '/admin/invoices', icon: Receipt },
-    { title: 'Mini CRM', href: '/admin/crm', icon: MessagesSquare },
+    {
+      title: 'Mini CRM',
+      href: '/admin/crm',
+      icon: MessagesSquare,
+      badge: crmUnread > 0 ? crmUnread : null,
+      badgeColor: 'bg-emerald-500 text-white',
+    },
     { title: 'Paket & Layanan', href: '/admin/packages', icon: Layers },
     // Integration features from other specs (WAHA / template builder / SMTP) add their pages here.
     {

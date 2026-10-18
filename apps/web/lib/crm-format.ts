@@ -67,8 +67,11 @@ export function formatRemaining(totalSeconds: number) {
   return `${hours} jam ${minutes % 60} menit`;
 }
 
+/** Invisible marks (direction, zero-width) that WhatsApp names carry and that must not count. */
+const INVISIBLE = /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u00AD\u180E]/g;
+
 export function initialsOf(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const parts = name.replace(INVISIBLE, '').trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return '?';
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }

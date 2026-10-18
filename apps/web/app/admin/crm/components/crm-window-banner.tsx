@@ -3,7 +3,7 @@
 import { Lock, ShieldCheck } from 'lucide-react';
 import type { CrmWindow } from '@/lib/crm-api';
 import { formatRemaining } from '@/lib/crm-format';
-import { useDeadline } from '@/lib/use-deadline';
+import { useWindowOpen } from './use-window-open';
 
 /**
  * Shows whether the studio may still answer freely. The countdown starts from the server's
@@ -18,8 +18,7 @@ export default function CrmWindowBanner({
   /** When the data was fetched (react-query's dataUpdatedAt). */
   receivedAt: number;
 }) {
-  const msLeft = useDeadline(window.open ? receivedAt + window.remainingSeconds * 1000 : null);
-  const open = window.open && (msLeft ?? 0) > 0;
+  const { open, msLeft } = useWindowOpen(window, receivedAt);
 
   if (open) {
     return (
@@ -31,7 +30,7 @@ export default function CrmWindowBanner({
         <p>
           <span className="font-semibold">Jendela percakapan aktif.</span> Sisa waktu interaksi{' '}
           <span className="font-mono font-semibold">
-            {formatRemaining(Math.floor((msLeft ?? 0) / 1000))}
+            {formatRemaining(Math.floor(msLeft / 1000))}
           </span>
           . Anda bebas mengirim pesan teks biasa.
         </p>

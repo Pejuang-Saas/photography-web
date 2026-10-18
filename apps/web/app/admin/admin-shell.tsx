@@ -11,6 +11,7 @@ import { Toaster } from '@/components/ui/sonner';
 import AdminSidebar from './components/sidebar';
 import AdminTopbar from './components/topbar';
 import BookingDetailModal from './components/booking-detail-modal';
+import CrmNotifier from './components/crm-notifier';
 import InvoicePreviewModal from './components/invoice-preview-modal';
 
 export default function AdminShell({ children, user }: { children: ReactNode; user: AdminUser }) {
@@ -39,6 +40,7 @@ export default function AdminShell({ children, user }: { children: ReactNode; us
             </div>
             <BookingDetailModal />
             <InvoicePreviewModal />
+            <CrmNotifier />
             <Toaster
               position="top-right"
               richColors={false}

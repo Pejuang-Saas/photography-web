@@ -1,10 +1,16 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { MessageSquareText, RefreshCw, Tags } from 'lucide-react';
-import { useCrmCategories, useCrmChat, useCrmChats, useSyncCrm } from '@/lib/crm-queries';
+import {
+  useCrmCategories,
+  useCrmChat,
+  useCrmChats,
+  useMarkRead,
+  useSyncCrm,
+} from '@/lib/crm-queries';
 import { useDebounced } from '@/lib/use-debounced';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +48,14 @@ function CrmWorkspace() {
   // A placeholder comes from the list, whose "seconds remaining" were measured when the list loaded.
   const chatReceivedAt = chat.isPlaceholderData ? chats.dataUpdatedAt : chat.dataUpdatedAt;
   const sync = useSyncCrm();
+
+  // Opening a conversation reads it, and so does a message arriving while it is open. The effect
+  // runs when the unread number changes, so a failed request cannot make it loop.
+  const { mutate: markRead } = useMarkRead();
+  const unread = chat.data?.unreadCount ?? 0;
+  useEffect(() => {
+    if (selectedId && unread > 0) markRead(selectedId);
+  }, [selectedId, unread, markRead]);
 
   const select = (id: string | null) =>
     router.replace(id ? `${pathname}?chat=${id}` : pathname, { scroll: false });
