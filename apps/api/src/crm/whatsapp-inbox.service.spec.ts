@@ -29,12 +29,22 @@ function fakePrisma() {
     whatsappChat: {
       findUnique: jest.fn(async ({ where }: any) => chats.find((c) => matches(c, where)) ?? null),
       findUniqueOrThrow: jest.fn(async ({ where }: any) => chats.find((c) => matches(c, where))!),
+      findFirst: jest.fn(
+        async ({ where }: any) =>
+          chats.find(
+            (c) =>
+              c.phone === where.phone &&
+              c.chatId.endsWith('@c.us') &&
+              !messages.some((m) => m.chatId === c.id),
+          ) ?? null,
+      ),
       create: jest.fn(async ({ data }: any) => {
         if (chats.some((c) => c.chatId === data.chatId)) throw dup();
         const row = {
           id: `chat-${++seq}`,
           name: null,
           phone: null,
+          unreadCount: 0,
           lastMessageAt: null,
           lastInboundAt: null,
           lastMessagePreview: null,
@@ -44,12 +54,16 @@ function fakePrisma() {
         chats.push(row);
         return row;
       }),
-      update: jest.fn(async ({ where, data }: any) =>
-        Object.assign(
-          chats.find((c) => c.id === where.id)!,
-          data,
-        ),
-      ),
+      update: jest.fn(async ({ where, data }: any) => {
+        const row = chats.find((c) => c.id === where.id)!;
+        for (const [key, value] of Object.entries(data)) {
+          row[key] =
+            value && typeof value === 'object' && 'increment' in (value as object)
+              ? (row[key] ?? 0) + (value as { increment: number }).increment
+              : value;
+        }
+        return row;
+      }),
       updateMany: jest.fn(async ({ where, data }: any) => {
         const hits = chats.filter((c) => matches(c, where));
         hits.forEach((c) => Object.assign(c, data));
@@ -59,8 +73,9 @@ function fakePrisma() {
     whatsappMessage: {
       create: jest.fn(async ({ data }: any) => {
         if (messages.some((m) => m.wahaId === data.wahaId)) throw dup();
-        messages.push({ ...data });
-        return data;
+        const row = { id: `msg-${messages.length + 1}`, ...data };
+        messages.push(row);
+        return { id: row.id };
       }),
       updateMany: jest.fn(async ({ where, data }: any) => {
         const hits = messages.filter((m) => matches(m, where));
@@ -79,10 +94,12 @@ function setup(waha: Partial<Record<string, jest.Mock>> = {}) {
     lidToPhone: jest.fn().mockResolvedValue(null),
     ...waha,
   };
+  const media = { prefetch: jest.fn() };
   return {
     ...store,
     waha: client,
-    service: new WhatsappInboxService(store.prisma as never, client as never),
+    media,
+    service: new WhatsappInboxService(store.prisma as never, client as never, media as never),
   };
 }
 
@@ -270,5 +287,261 @@ describe('WhatsappInboxService.ingestAck', () => {
     await service.ingestAck('m1', undefined);
 
     expect(prisma.whatsappMessage.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('WhatsappInboxService placeholder conversations', () => {
+  it('moves an empty conversation opened for a booking onto the LID, instead of making a second one', async () => {
+    const { service, chats } = setup({
+      lidToPhone: jest.fn().mockResolvedValue('6281234567890@c.us'),
+    });
+    chats.push({
+      id: 'placeholder',
+      chatId: '6281234567890@c.us',
+      phone: '6281234567890',
+      name: 'Anisa Booking',
+      lastMessageAt: null,
+      lastInboundAt: null,
+    });
+
+    await service.ingestMessage({ ...incoming('m1', T0), from: '227183428292844@lid' });
+
+    expect(chats).toHaveLength(1);
+    expect(chats[0]).toMatchObject({
+      id: 'placeholder',
+      chatId: '227183428292844@lid',
+      name: 'Anisa Booking',
+    });
+  });
+
+  it('leaves a conversation that already has messages alone', async () => {
+    const { service, chats, messages } = setup({
+      lidToPhone: jest.fn().mockResolvedValue('6281234567890@c.us'),
+    });
+    chats.push({
+      id: 'old',
+      chatId: '6281234567890@c.us',
+      phone: '6281234567890',
+      name: null,
+      lastMessageAt: null,
+      lastInboundAt: null,
+    });
+    messages.push({ wahaId: 'earlier', chatId: 'old' });
+
+    await service.ingestMessage({ ...incoming('m1', T0), from: '227183428292844@lid' });
+
+    expect(chats).toHaveLength(2);
+    expect(chats.find((c) => c.id === 'old')?.chatId).toBe('6281234567890@c.us');
+  });
+});
+
+describe('WhatsappInboxService groups', () => {
+  const GROUP = '120363429116882627@g.us';
+  const ME_LID = '176330318553252@lid';
+
+  it('ignores a group message the studio sent, which the engine reports with its own id in "to"', async () => {
+    const { service, chats, messages } = setup();
+
+    const result = await service.ingestMessage({
+      id: `true_${GROUP}_3AE6B91D0EC238405AA2_${ME_LID}`,
+      timestamp: T0,
+      from: ME_LID,
+      to: ME_LID,
+      fromMe: true,
+      body: 'lebih di gas lagi ya gais',
+    });
+
+    expect(result).toBe('ignored');
+    expect(chats).toHaveLength(0);
+    expect(messages).toHaveLength(0);
+  });
+
+  it('ignores a group message someone else wrote', async () => {
+    const { service, chats } = setup();
+
+    const result = await service.ingestMessage({
+      id: `false_${GROUP}_3AA1_227183428292844@lid`,
+      timestamp: T0,
+      from: GROUP,
+      to: ME_LID,
+      fromMe: false,
+      body: 'halo semua',
+    });
+
+    expect(result).toBe('ignored');
+    expect(chats).toHaveLength(0);
+  });
+
+  it('ignores a message whose from or to is a group even when the id cannot be read', async () => {
+    const { service, chats } = setup();
+
+    expect(
+      await service.ingestMessage({
+        id: 'odd-id',
+        timestamp: T0,
+        from: GROUP,
+        to: ME_LID,
+        fromMe: false,
+      }),
+    ).toBe('ignored');
+    expect(
+      await service.ingestMessage({
+        id: 'odd-id-2',
+        timestamp: T0,
+        from: ME_LID,
+        to: GROUP,
+        fromMe: true,
+      }),
+    ).toBe('ignored');
+    expect(chats).toHaveLength(0);
+  });
+
+  it('still stores a private message that has a normal id', async () => {
+    const { service, chats } = setup();
+
+    expect(
+      await service.ingestMessage({ ...incoming('false_6281234567890@c.us_3EB0AA', T0) }),
+    ).toBe('stored');
+    expect(chats).toHaveLength(1);
+  });
+});
+
+describe('WhatsappInboxService unread messages', () => {
+  const LIVE = { live: true };
+
+  it('counts a customer message as unread when it arrives live', async () => {
+    const { service, chats } = setup();
+
+    await service.ingestMessage(incoming('m1', T0), undefined, LIVE);
+    await service.ingestMessage(incoming('m2', T0 + 5), undefined, LIVE);
+
+    expect(chats[0].unreadCount).toBe(2);
+  });
+
+  it('does not count history pulled in later, or the studio own messages, as unread', async () => {
+    const { service, chats } = setup();
+
+    await service.ingestMessage(incoming('old', T0)); // a sync: no options
+    await service.ingestMessage(outgoing('mine', T0 + 1), undefined, LIVE);
+
+    expect(chats[0].unreadCount).toBe(0);
+  });
+
+  it('counts a message once even when the webhook repeats it', async () => {
+    const { service, chats } = setup();
+
+    await service.ingestMessage(incoming('m1', T0), undefined, LIVE);
+    await service.ingestMessage(incoming('m1', T0), undefined, LIVE);
+
+    expect(chats[0].unreadCount).toBe(1);
+  });
+});
+
+describe('WhatsappInboxService attachments', () => {
+  const photo = (id: string, extra: Row = {}) =>
+    incoming(id, T0, 'lihat', {
+      hasMedia: true,
+      media: { mimetype: 'image/jpeg', filename: 'bukti.jpg', url: null },
+      ...extra,
+    });
+
+  it('remembers what kind of file it is, and its name', async () => {
+    const { service, messages } = setup();
+
+    await service.ingestMessage(photo('m1'));
+
+    expect(messages[0]).toMatchObject({
+      hasMedia: true,
+      mediaMime: 'image/jpeg',
+      mediaFilename: 'bukti.jpg',
+    });
+  });
+
+  it('records no file details for a plain text message', async () => {
+    const { service, messages } = setup();
+
+    await service.ingestMessage(incoming('m1', T0, 'halo', { media: { mimetype: 'image/png' } }));
+
+    expect(messages[0]).toMatchObject({ hasMedia: false, mediaMime: null, mediaFilename: null });
+  });
+
+  it('copies the file to storage right away when the message arrives live', async () => {
+    const { service, media, messages } = setup();
+
+    await service.ingestMessage(photo('m1'), undefined, { live: true });
+
+    expect(media.prefetch).toHaveBeenCalledWith(messages[0].id);
+  });
+
+  it('leaves history alone until someone opens it, instead of downloading everything', async () => {
+    const { service, media } = setup();
+
+    await service.ingestMessage(photo('m1'));
+
+    expect(media.prefetch).not.toHaveBeenCalled();
+  });
+
+  it('does not copy the same file again for a duplicate', async () => {
+    const { service, media } = setup();
+
+    await service.ingestMessage(photo('m1'), undefined, { live: true });
+    await service.ingestMessage(photo('m1'), undefined, { live: true });
+
+    expect(media.prefetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('WhatsappInboxService names', () => {
+  it('strips invisible direction marks from a WhatsApp name', async () => {
+    const { service, chats } = setup();
+
+    await service.ingestMessage(
+      incoming('m1', T0, 'a', {
+        _data: { Info: { PushName: '\u200EMuhammad Ilham\u200F Maulana' } },
+      }),
+    );
+
+    expect(chats[0].name).toBe('Muhammad Ilham Maulana');
+  });
+
+  it('cleans the name given by a sync as well, and drops one that is only invisible', async () => {
+    const a = setup();
+    await a.service.ingestMessage(incoming('m1', T0), '\u200B\uFEFFAnisa ');
+    expect(a.chats[0].name).toBe('Anisa');
+
+    const b = setup();
+    await b.service.ingestMessage(incoming('m1', T0), '\u200E\u200F');
+    expect(b.chats[0].name).toBeFalsy();
+  });
+});
+
+describe('WhatsappInboxService attachments seen again', () => {
+  it('fills in the file type of a message that was stored before attachments were tracked', async () => {
+    const { service, messages } = setup();
+    await service.ingestMessage(incoming('m1', T0, 'lihat', { hasMedia: true }));
+    expect(messages[0].mediaMime).toBeNull();
+
+    const result = await service.ingestMessage(
+      incoming('m1', T0, 'lihat', {
+        hasMedia: true,
+        media: { mimetype: 'image/png', filename: 'a.png' },
+      }),
+    );
+
+    expect(result).toBe('duplicate');
+    expect(messages[0]).toMatchObject({ mediaMime: 'image/png', mediaFilename: 'a.png' });
+  });
+
+  it('never overwrites a type that is already known', async () => {
+    const { service, messages } = setup();
+    await service.ingestMessage(
+      incoming('m1', T0, 'x', { hasMedia: true, media: { mimetype: 'image/jpeg' } }),
+    );
+
+    await service.ingestMessage(
+      incoming('m1', T0, 'x', { hasMedia: true, media: { mimetype: 'image/png' } }),
+    );
+
+    expect(messages[0].mediaMime).toBe('image/jpeg');
   });
 });

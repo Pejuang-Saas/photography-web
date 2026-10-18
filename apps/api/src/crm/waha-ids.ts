@@ -9,6 +9,14 @@ export type WahaMessage = {
   body?: string | null;
   hasMedia?: boolean;
   ack?: number;
+  /** Attachment details. `url` only appears once WAHA has downloaded the file. */
+  media?: {
+    url?: string | null;
+    mimetype?: string | null;
+    filename?: string | null;
+    /** Set when WhatsApp no longer has the file; WAHA gives this instead of a URL. */
+    error?: unknown;
+  } | null;
   _data?: Record<string, unknown> | null;
 };
 
@@ -17,9 +25,29 @@ export function isUserChat(chatId: string | undefined | null): chatId is string 
   return typeof chatId === 'string' && /^[^@\s]+@(c\.us|lid)$/.test(chatId);
 }
 
-/** The conversation a message belongs to: the other party, whichever way it went. */
-export function messageChatId(message: Pick<WahaMessage, 'from' | 'to' | 'fromMe'>) {
-  return message.fromMe ? message.to : message.from;
+/**
+ * The chat id WAHA embeds in a message id: "<fromMe>_<chatId>_<messageId>[_<participant>]". For a
+ * group message the chat is the group and the trailing part is who wrote in it, so this is the one
+ * place that tells a group message from a private one, whatever its from/to say.
+ */
+export function chatIdFromMessageId(id: string | undefined | null) {
+  return /^(?:true|false)_([^_@\s]+@[A-Za-z.]+)_/.exec(id ?? '')?.[1];
+}
+
+/**
+ * The conversation a message belongs to. The id is trusted first. In a group, the engine puts the
+ * sender's own id in from/to, which would otherwise make a group message look like a private chat
+ * with the studio's own number. Without a readable id, the other party is used.
+ */
+export function messageChatId(
+  message: Pick<WahaMessage, 'from' | 'to' | 'fromMe'> & { id?: string },
+) {
+  return chatIdFromMessageId(message.id) ?? (message.fromMe ? message.to : message.from);
+}
+
+/** Group addresses, wherever they show up on a message. */
+export function isGroupJid(jid: string | undefined | null) {
+  return typeof jid === 'string' && jid.endsWith('@g.us');
 }
 
 /**
@@ -61,11 +89,72 @@ export function previewOf(body: string | null | undefined, hasMedia: boolean) {
   return hasMedia ? '[Media]' : '';
 }
 
+/**
+ * A name as people see it. WhatsApp names often start with invisible direction marks or contain
+ * zero-width characters, which break initials, sorting and searching without being visible.
+ */
+export function cleanDisplayName(value: string | null | undefined) {
+  const cleaned = (value ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u00AD\u180E]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120);
+  return cleaned || undefined;
+}
+
 /** The sender's display name when the engine includes one, or undefined. */
 export function pushNameOf(message: WahaMessage) {
   const data = message._data ?? {};
   const info = (data.Info ?? data.info) as Record<string, unknown> | undefined;
   const candidates = [info?.PushName, info?.pushName, data.pushName, data.notifyName];
-  const name = candidates.find((value) => typeof value === 'string' && value.trim());
-  return typeof name === 'string' ? name.trim().slice(0, 120) : undefined;
+  const name = candidates.find((value) => typeof value === 'string' && cleanDisplayName(value));
+  return typeof name === 'string' ? cleanDisplayName(name) : undefined;
+}
+
+/** "audio/ogg; codecs=opus" -> "audio/ogg". */
+export function baseMime(mime: string | null | undefined) {
+  return (mime ?? '').split(';')[0].trim().toLowerCase();
+}
+
+const INLINE_MEDIA = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'audio/ogg',
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/aac',
+  'audio/webm',
+  'audio/wav',
+  'application/pdf',
+]);
+
+/**
+ * Whether the browser may show this file in the page. Anything else is served as a download, and
+ * never as HTML or SVG, so a file from a customer cannot run code in the admin panel.
+ */
+export function isInlineMedia(mime: string | null | undefined) {
+  return INLINE_MEDIA.has(baseMime(mime));
+}
+
+/** A file extension for a stored attachment, from its type (or its original name). */
+export function mediaExtension(mime: string | null | undefined, filename?: string | null) {
+  const fromName = /\.([A-Za-z0-9]{1,8})$/.exec(filename ?? '')?.[1]?.toLowerCase();
+  if (fromName) return fromName;
+  const map: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'video/mp4': 'mp4',
+    'audio/ogg': 'ogg',
+    'audio/mpeg': 'mp3',
+    'application/pdf': 'pdf',
+  };
+  return map[baseMime(mime)] ?? 'bin';
 }

@@ -12,6 +12,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
+import type { Readable } from 'stream';
 
 type UploadedImage = {
   buffer: Buffer;
@@ -113,6 +114,33 @@ export class StorageService {
   async deletePaymentProof(key: string) {
     await this.ensurePrivateBucket();
     await this.client.send(new DeleteObjectCommand({ Bucket: this.privateBucket, Key: key }));
+  }
+
+  /** Stores any file in the private bucket under a key the caller chooses. */
+  async putPrivateObject(key: string, body: Buffer, contentType: string) {
+    await this.ensurePrivateBucket();
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.privateBucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ContentLength: body.length,
+      }),
+    );
+  }
+
+  /** Streams a private file back; the caller decides who may see it. */
+  async getPrivateObject(key: string) {
+    await this.ensurePrivateBucket();
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: this.privateBucket, Key: key }),
+    );
+    return {
+      body: result.Body as Readable,
+      contentType: result.ContentType ?? 'application/octet-stream',
+      length: result.ContentLength,
+    };
   }
 
   async createPaymentProofUrl(key: string, expiresIn = 300) {

@@ -255,6 +255,10 @@ Menu **Otomasi WhatsApp** di admin menghubungkan nomor studio lewat WAHA (engine
 
 Aplikasi hanya mengelola sesi bernama `WAHA_SESSION`. Sesi lain di server WAHA yang sama tidak disentuh.
 
+Lampiran dari customer (foto, stiker, video, catatan suara, dokumen) disalin ke bucket privat MinIO (`S3_PRIVATE_BUCKET`, folder `crm-media/`) begitu pesannya masuk, atau saat pertama kali dibuka untuk riwayat lama, lalu disajikan hanya kepada admin yang login. Batasnya 25 MB per file, dan file yang berbahaya (HTML, SVG) selalu diunduh, tidak pernah ditampilkan. Lampiran yang sudah dihapus WhatsApp ditandai kedaluwarsa. Jumlah pesan belum dibaca muncul di sidebar, judul tab, dan toast.
+
+Mengirim dari Mini CRM punya pengaman yang ditegakkan di server: pesan bebas hanya boleh dalam 24 jam sejak customer terakhir menulis; di luar itu hanya template resmi (tabel `whatsapp_templates`, tiga template awal di-seed) yang bisa dikirim. Batas pengiriman per menit diatur `WHATSAPP_SEND_LIMIT_PER_MINUTE` (bawaan 20), dan setiap pesan didahului indikator "mengetik".
+
 Pesan masuk (untuk Mini CRM) dikirim WAHA ke API sebagai webhook bertanda tangan HMAC-SHA512 di `POST /webhooks/waha`. Isi `WAHA_WEBHOOK_SECRET` (`openssl rand -hex 32`); tanpa secret, endpoint menolak semua permintaan. `WAHA_WEBHOOK_URL` adalah alamat API yang dilihat container WAHA (bawaan `http://photography-api:3000/webhooks/waha`). Webhook dipasang ke sesi saat menekan **Hubungkan WhatsApp**.
 
 ---

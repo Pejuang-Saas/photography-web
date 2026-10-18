@@ -197,6 +197,24 @@ const CRM_CATEGORIES = [
   { name: 'Selesai', color: 'zinc' },
 ];
 
+const WHATSAPP_TEMPLATES = [
+  {
+    code: 'KONFIRMASI_BOOKING',
+    name: 'Konfirmasi Booking & Tagihan',
+    body: 'Halo {customer_name}! 👋\n\nTerima kasih sudah memesan sesi foto di {studio_name}.\n\nRincian booking:\n• Kode: {booking_code}\n• Paket: {package_name}\n• Jadwal: {session_date}, {session_time}\n• Total biaya: {total_price}\n• Skema: {payment_plan}\n\nAda yang ingin ditanyakan? Balas pesan ini ya.',
+  },
+  {
+    code: 'PENGINGAT_H1',
+    name: 'Pengingat Jadwal Sesi (H-1)',
+    body: 'Halo {customer_name}! 🔔\n\nPengingat jadwal sesi foto kamu:\n📅 {session_date}\n⏰ {session_time}\n📍 {studio_address}\n\nMohon hadir 15 menit lebih awal ya. Sampai bertemu! ✨',
+  },
+  {
+    code: 'SAPAAN_FOLLOW_UP',
+    name: 'Sapaan & Follow-up Ramah',
+    body: 'Halo {customer_name}! 😊\n\nIni {studio_name}. Kami ingin menanyakan apakah kamu masih tertarik dengan sesi foto wisuda. Kalau ada pertanyaan soal paket atau jadwal, kabari kami di sini ya.',
+  },
+];
+
 async function main() {
   const prisma = new PrismaClient();
   const storage = new StorageService(new ConfigService());
@@ -310,6 +328,16 @@ async function main() {
       });
     }
     console.log(`✅ crm categories: ${CRM_CATEGORIES.length}`);
+
+    // Approved messages for when the 24-hour window is closed. update: {} keeps any later edits.
+    for (const [sortOrder, template] of WHATSAPP_TEMPLATES.entries()) {
+      await prisma.whatsappTemplate.upsert({
+        where: { code: template.code },
+        create: { ...template, sortOrder },
+        update: {},
+      });
+    }
+    console.log(`✅ whatsapp templates: ${WHATSAPP_TEMPLATES.length}`);
   } finally {
     await prisma.$disconnect();
   }

@@ -29,7 +29,11 @@ export class WahaWebhookService {
     switch (envelope.event) {
       case 'message':
       case 'message.any': {
-        const outcome = await this.inbox.ingestMessage(envelope.payload as unknown as WahaMessage);
+        const outcome = await this.inbox.ingestMessage(
+          envelope.payload as unknown as WahaMessage,
+          undefined,
+          { live: true },
+        );
         return `message:${outcome}`;
       }
       case 'message.ack': {

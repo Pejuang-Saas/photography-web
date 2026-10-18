@@ -5,8 +5,12 @@ jest.mock('@thallesp/nestjs-better-auth', () => ({
   AllowAnonymous: () => () => undefined,
 }));
 
+jest.mock('../storage/storage.module', () => ({ StorageModule: class StorageModule {} }));
+
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
+import { StudioService } from '../studio/studio.service';
 import { WahaClient } from '../waha/waha.client';
 import { CrmModule } from './crm.module';
 
@@ -18,7 +22,14 @@ import { CrmModule } from './crm.module';
 describe('CrmModule wiring', () => {
   const providers: unknown[] = Reflect.getMetadata('providers', CrmModule);
   const controllers: unknown[] = Reflect.getMetadata('controllers', CrmModule);
-  const available = new Set<unknown>([...providers, ConfigService, PrismaService, WahaClient]);
+  const available = new Set<unknown>([
+    ...providers,
+    ConfigService,
+    PrismaService,
+    StorageService,
+    StudioService,
+    WahaClient,
+  ]);
 
   it.each(
     [...controllers, ...providers].map((target) => [(target as { name: string }).name, target]),

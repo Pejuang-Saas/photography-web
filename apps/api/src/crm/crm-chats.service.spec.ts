@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { CrmChatsService } from './crm-chats.service';
 
 const NOW = new Date();
@@ -12,6 +13,7 @@ const chat = (overrides: Record<string, unknown> = {}) => ({
   lastInboundAt: minutesAgo(5),
   lastMessagePreview: 'halo',
   lastMessageFromMe: false,
+  unreadCount: 0,
   category: null,
   ...overrides,
 });
@@ -35,6 +37,9 @@ function setup(options: { chats?: any[]; total?: number; bookings?: any[]; named
       findMany: jest.fn().mockResolvedValue(options.chats ?? [chat()]),
       count: jest.fn().mockResolvedValue(options.total ?? (options.chats ?? [chat()]).length),
       findUnique: jest.fn().mockResolvedValue(chat()),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      aggregate: jest.fn().mockResolvedValue({ _sum: { unreadCount: 0 } }),
+      findFirst: jest.fn().mockResolvedValue(null),
     },
     whatsappMessage: { findMany: jest.fn().mockResolvedValue([]) },
     booking: {
@@ -83,6 +88,36 @@ describe('CrmChatsService.list', () => {
     });
 
     expect((await service.list({})).items[0].booking?.bookingCode).toBe('NEW');
+  });
+
+  it('names the customer from a live booking, but prefers the WhatsApp name over a lapsed one', async () => {
+    const live = setup({
+      bookings: [booking({ status: 'CONFIRMED', customerName: 'Anisa Rahmawati' })],
+    });
+    const lapsed = setup({ bookings: [booking({ status: 'EXPIRED', customerName: 'test' })] });
+
+    expect((await live.service.list({})).items[0].displayName).toBe('Anisa Rahmawati');
+    expect((await lapsed.service.list({})).items[0].displayName).toBe('Anisa WA');
+  });
+
+  it('falls back to the lapsed booking name only when there is no WhatsApp name', async () => {
+    const { service } = setup({
+      chats: [chat({ name: null })],
+      bookings: [booking({ status: 'EXPIRED', customerName: 'Nama Lama' })],
+    });
+
+    expect((await service.list({})).items[0].displayName).toBe('Nama Lama');
+  });
+
+  it('shows a live booking rather than a newer one that has expired', async () => {
+    const { service } = setup({
+      bookings: [
+        booking({ id: 'expired', bookingCode: 'EXPIRED-NEW', status: 'EXPIRED' }),
+        booking({ id: 'live', bookingCode: 'LIVE', status: 'CONFIRMED' }),
+      ],
+    });
+
+    expect((await service.list({})).items[0].booking?.bookingCode).toBe('LIVE');
   });
 
   it('falls back to the WhatsApp name, then the number, when there is no booking', async () => {
@@ -184,6 +219,8 @@ describe('CrmChatsService.messages', () => {
     hasMedia: false,
     ack: 0,
     timestamp: NOW,
+    mediaMime: null,
+    mediaFilename: null,
   });
 
   it('returns a page oldest first, and says when there is more', async () => {
@@ -194,7 +231,7 @@ describe('CrmChatsService.messages', () => {
 
     expect(prisma.whatsappMessage.findMany.mock.calls[0][0]).toMatchObject({
       take: 3,
-      orderBy: { timestamp: 'desc' },
+      orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
     });
     expect(result.items.map((m) => m.id)).toEqual(['b', 'c']);
     expect(result.hasMore).toBe(true);
@@ -213,10 +250,10 @@ describe('CrmChatsService.messages', () => {
     await service.messages('chat-1', { before: '2026-10-17T10:00:00.000Z' });
     await service.messages('chat-1', { before: 'garbage' });
 
-    expect(prisma.whatsappMessage.findMany.mock.calls[0][0].where.timestamp).toEqual({
-      lt: new Date('2026-10-17T10:00:00.000Z'),
-    });
-    expect(prisma.whatsappMessage.findMany.mock.calls[1][0].where.timestamp).toBeUndefined();
+    expect(prisma.whatsappMessage.findMany.mock.calls[0][0].where.OR).toEqual([
+      { timestamp: { lt: new Date('2026-10-17T10:00:00.000Z') } },
+    ]);
+    expect(prisma.whatsappMessage.findMany.mock.calls[1][0].where.OR).toBeUndefined();
   });
 
   it('answers 404 for an unknown conversation', async () => {
@@ -224,5 +261,196 @@ describe('CrmChatsService.messages', () => {
     prisma.whatsappChat.findUnique.mockResolvedValue(null);
 
     await expect(service.messages('nope', {})).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('CrmChatsService.openForBooking', () => {
+  function openSetup(options: { booking?: unknown; existing?: { id: string } | null } = {}) {
+    const prisma = {
+      booking: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(
+            options.booking === undefined
+              ? { customerName: 'Anisa', customerPhone: '081234567890' }
+              : options.booking,
+          ),
+      },
+      whatsappChat: {
+        findFirst: jest.fn().mockResolvedValue(options.existing ?? null),
+        create: jest.fn().mockResolvedValue({ id: 'new-chat' }),
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'raced-chat' }),
+      },
+    };
+    return { prisma, service: new CrmChatsService(prisma as never) };
+  }
+
+  it('reuses the conversation that already exists for the number', async () => {
+    const { service, prisma } = openSetup({ existing: { id: 'chat-9' } });
+
+    expect(await service.openForBooking('b1')).toEqual({ id: 'chat-9' });
+    expect(prisma.whatsappChat.findFirst.mock.calls[0][0].where).toEqual({
+      phone: '6281234567890',
+    });
+    expect(prisma.whatsappChat.create).not.toHaveBeenCalled();
+  });
+
+  it('creates an empty conversation under the plain number when the customer has not written yet', async () => {
+    const { service, prisma } = openSetup();
+
+    expect(await service.openForBooking('b1')).toEqual({ id: 'new-chat' });
+    expect(prisma.whatsappChat.create.mock.calls[0][0].data).toEqual({
+      chatId: '6281234567890@c.us',
+      phone: '6281234567890',
+      name: 'Anisa',
+    });
+  });
+
+  it('survives two clicks at once', async () => {
+    const { service, prisma } = openSetup();
+    prisma.whatsappChat.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' }),
+    );
+
+    expect(await service.openForBooking('b1')).toEqual({ id: 'raced-chat' });
+  });
+
+  it('answers 404 for an unknown booking and 422 for an unusable number', async () => {
+    await expect(openSetup({ booking: null }).service.openForBooking('x')).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(
+      openSetup({ booking: { customerName: 'A', customerPhone: '12' } }).service.openForBooking(
+        'x',
+      ),
+    ).rejects.toMatchObject({ status: 422 });
+  });
+});
+
+describe('CrmChatsService messages: cursor and attachments', () => {
+  const T = new Date('2026-10-18T10:00:00.000Z');
+  const mrow = (id: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    fromMe: false,
+    body: id,
+    hasMedia: false,
+    ack: 0,
+    timestamp: T,
+    mediaMime: null,
+    mediaFilename: null,
+    ...extra,
+  });
+
+  it('pages back by time and id, so messages sharing a second with the cursor are not skipped', async () => {
+    const { service, prisma } = setup();
+
+    await service.messages('chat-1', { before: T.toISOString(), beforeId: 'id-5' });
+
+    const args = prisma.whatsappMessage.findMany.mock.calls[0][0];
+    expect(args.where.OR).toEqual([{ timestamp: { lt: T } }, { timestamp: T, id: { lt: 'id-5' } }]);
+    expect(args.orderBy).toEqual([{ timestamp: 'desc' }, { id: 'desc' }]);
+  });
+
+  it('falls back to time alone when no id is given', async () => {
+    const { service, prisma } = setup();
+
+    await service.messages('chat-1', { before: T.toISOString() });
+
+    expect(prisma.whatsappMessage.findMany.mock.calls[0][0].where.OR).toEqual([
+      { timestamp: { lt: T } },
+    ]);
+  });
+
+  it('describes an attachment, and leaves media empty for plain messages', async () => {
+    const { service, prisma } = setup();
+    prisma.whatsappMessage.findMany.mockResolvedValue([
+      mrow('b', { hasMedia: true, mediaMime: 'image/jpeg', mediaFilename: 'bukti.jpg' }),
+      mrow('a'),
+    ]);
+
+    const { items } = await service.messages('chat-1', {});
+
+    expect(items.map((item) => item.media)).toEqual([
+      null,
+      { mime: 'image/jpeg', filename: 'bukti.jpg' },
+    ]);
+    expect(items[0]).not.toHaveProperty('mediaMime');
+  });
+});
+
+describe('CrmChatsService unread', () => {
+  it('shows how many unread messages each conversation has', async () => {
+    const { service } = setup({ chats: [chat({ unreadCount: 3 })] });
+
+    expect((await service.list({})).items[0].unreadCount).toBe(3);
+  });
+
+  it('marks a conversation read, and answers 404 for one that does not exist', async () => {
+    const { service, prisma } = setup();
+
+    await service.markRead('chat-1');
+    expect(prisma.whatsappChat.updateMany).toHaveBeenCalledWith({
+      where: { id: 'chat-1' },
+      data: { unreadCount: 0 },
+    });
+
+    prisma.whatsappChat.updateMany.mockResolvedValue({ count: 0 });
+    await expect(service.markRead('nope')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('adds up the unread messages and names who wrote last', async () => {
+    const { service, prisma } = setup();
+    prisma.whatsappChat.aggregate.mockResolvedValue({ _sum: { unreadCount: 5 } });
+    prisma.whatsappChat.findFirst.mockResolvedValue({
+      id: 'chat-7',
+      name: 'Anisa',
+      phone: '6281234567890',
+      chatId: '1@lid',
+      lastMessagePreview: 'sudah transfer ya',
+      lastMessageAt: new Date('2026-10-18T10:00:00.000Z'),
+    });
+
+    expect(await service.unreadSummary()).toEqual({
+      total: 5,
+      latest: {
+        chatId: 'chat-7',
+        displayName: 'Anisa',
+        preview: 'sudah transfer ya',
+        at: new Date('2026-10-18T10:00:00.000Z'),
+      },
+    });
+    expect(prisma.whatsappChat.findFirst.mock.calls[0][0].where).toEqual({
+      unreadCount: { gt: 0 },
+    });
+  });
+
+  it('reports zero and nobody when everything has been read', async () => {
+    const { service } = setup();
+
+    expect(await service.unreadSummary()).toEqual({ total: 0, latest: null });
+  });
+
+  it('falls back to the number, then the id, for a latest sender without a name', async () => {
+    const { service, prisma } = setup();
+    prisma.whatsappChat.findFirst.mockResolvedValue({
+      id: 'c',
+      name: null,
+      phone: null,
+      chatId: '123@lid',
+      lastMessagePreview: null,
+      lastMessageAt: null,
+    });
+
+    expect((await service.unreadSummary()).latest?.displayName).toBe('123');
+  });
+
+  it('ignores invisible characters when searching', async () => {
+    const { service, prisma } = setup();
+
+    await service.list({ search: '\u200E anisa ' });
+
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where.OR[0]).toEqual({
+      name: { contains: 'anisa', mode: 'insensitive' },
+    });
   });
 });

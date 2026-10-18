@@ -179,4 +179,128 @@ describe('WahaClient', () => {
       expect(await client().lidToPhone('1@lid')).toBeNull();
     });
   });
+
+  describe('sending from the CRM', () => {
+    it('sends to a conversation without needing WAHA_ENABLED, and returns the created message', async () => {
+      fetchMock.mockReturnValue(json({ id: 'true_1@c.us_X' }));
+
+      const sent = await client().sendTextToChat('6281215941614@c.us', 'Halo');
+
+      expect(sent).toEqual({ id: 'true_1@c.us_X' });
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+        session: 'default',
+        chatId: '6281215941614@c.us',
+        text: 'Halo',
+      });
+    });
+
+    it('shows and clears the typing indicator for the right conversation', async () => {
+      fetchMock.mockReturnValue(json({}));
+
+      await client().startTyping('1@c.us');
+      await client().stopTyping('1@c.us');
+
+      expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+        'http://waha.test:3000/api/startTyping',
+        'http://waha.test:3000/api/stopTyping',
+      ]);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+        session: 'default',
+        chatId: '1@c.us',
+      });
+    });
+  });
+
+  describe('downloading a message attachment', () => {
+    const file = (bytes: number | Buffer, init: ResponseInit = {}) =>
+      Promise.resolve(
+        new Response(
+          (typeof bytes === 'number' ? Buffer.alloc(bytes, 1) : bytes) as unknown as BodyInit,
+          {
+            status: 200,
+            headers: { 'content-type': 'image/jpeg' },
+            ...init,
+          },
+        ),
+      );
+
+    const prepared = (url: string | null = 'http://localhost:3000/api/files/default/3A51.jpeg') =>
+      json({ id: 'm', hasMedia: true, media: url ? { url, mimetype: 'image/jpeg' } : null });
+
+    it('asks WAHA to prepare the file, then fetches it from our own WAHA address, not the one it reports', async () => {
+      fetchMock.mockReturnValueOnce(prepared()).mockReturnValueOnce(file(Buffer.from('JPEGDATA')));
+
+      const result = await client().downloadMessageMedia(
+        '186316436332790@lid',
+        'false_186316436332790@lid_3A51',
+        1000,
+      );
+
+      const [prepareUrl] = fetchMock.mock.calls[0];
+      expect(prepareUrl).toBe(
+        'http://waha.test:3000/api/default/chats/186316436332790%40lid/messages/false_186316436332790%40lid_3A51?downloadMedia=true',
+      );
+      const [fileUrl, init] = fetchMock.mock.calls[1];
+      expect(fileUrl).toBe('http://waha.test:3000/api/files/default/3A51.jpeg');
+      expect(init.headers['X-Api-Key']).toBe('secret-key');
+      expect(result.buffer.toString()).toBe('JPEGDATA');
+      expect(result.mimetype).toBe('image/jpeg');
+    });
+
+    it('answers 404 when WAHA has no file for the message', async () => {
+      fetchMock.mockReturnValueOnce(prepared(null));
+
+      await expect(client().downloadMessageMedia('c', 'm', 1000)).rejects.toMatchObject({
+        status: 404,
+      });
+    });
+
+    it('reports a file WhatsApp no longer holds as gone (410), not as missing', async () => {
+      fetchMock.mockReturnValueOnce(
+        json({
+          id: 'm',
+          hasMedia: true,
+          media: {
+            url: null,
+            mimetype: 'image/webp',
+            error: { code: 5, details: 'download failed' },
+          },
+        }),
+      );
+
+      await expect(client().downloadMessageMedia('c', 'm', 1000)).rejects.toMatchObject({
+        status: 410,
+      });
+    });
+
+    it('refuses a file that declares itself too large without reading it', async () => {
+      fetchMock
+        .mockReturnValueOnce(prepared())
+        .mockReturnValueOnce(
+          file(10, { headers: { 'content-length': '5000', 'content-type': 'image/jpeg' } }),
+        );
+
+      await expect(client().downloadMessageMedia('c', 'm', 1000)).rejects.toMatchObject({
+        status: 413,
+      });
+    });
+
+    it('refuses a file that turns out larger than it said', async () => {
+      fetchMock.mockReturnValueOnce(prepared()).mockReturnValueOnce(file(2000));
+
+      await expect(client().downloadMessageMedia('c', 'm', 1000)).rejects.toMatchObject({
+        status: 413,
+      });
+    });
+
+    it('reports a failed file fetch with its status', async () => {
+      fetchMock
+        .mockReturnValueOnce(prepared())
+        .mockReturnValueOnce(Promise.resolve(new Response('', { status: 404 })));
+
+      await expect(client().downloadMessageMedia('c', 'm', 1000)).rejects.toMatchObject({
+        status: 404,
+      });
+    });
+  });
 });

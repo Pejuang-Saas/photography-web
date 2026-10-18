@@ -16,7 +16,7 @@ describe('WahaWebhookService', () => {
     const outcome = await service.handle({ event, session: 'default', payload: { id: 'm1' } });
 
     expect(outcome).toBe('message:stored');
-    expect(inbox.ingestMessage).toHaveBeenCalledWith({ id: 'm1' });
+    expect(inbox.ingestMessage).toHaveBeenCalledWith({ id: 'm1' }, undefined, { live: true });
   });
 
   it('reports a duplicate without treating it as a failure', async () => {
