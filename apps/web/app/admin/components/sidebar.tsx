@@ -24,6 +24,7 @@ import {
   MessageSquare,
   Store,
   Mail,
+  MessagesSquare,
   LayoutTemplate,
   ChevronDown,
   type LucideIcon,
@@ -165,6 +166,7 @@ export default function AdminSidebar({
     },
     { title: 'Kalender Jadwal', href: '/admin/calendar', icon: CalendarDays },
     { title: 'Invoice & Pembayaran', href: '/admin/invoices', icon: Receipt },
+    { title: 'Mini CRM', href: '/admin/crm', icon: MessagesSquare },
     { title: 'Paket & Layanan', href: '/admin/packages', icon: Layers },
     // Integration features from other specs (WAHA / template builder / SMTP) add their pages here.
     {
@@ -177,10 +179,9 @@ export default function AdminSidebar({
           icon: Store,
         },
         {
-          title: 'WhatsApp & Rekening',
-          href: '/admin/settings',
+          title: 'Otomasi WhatsApp',
+          href: '/admin/settings/whatsapp',
           icon: MessageSquare,
-          exact: true,
         },
         {
           title: 'Notifikasi Email',

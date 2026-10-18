@@ -40,10 +40,12 @@ export default function AdminTopbar({ onSignOut, user }: AdminTopbarProps) {
     if (pathname.startsWith('/admin/calendar')) return 'Kalender Jadwal Studio';
     if (pathname.startsWith('/admin/invoices')) return 'Invoice & Pembayaran';
     if (pathname.startsWith('/admin/packages')) return 'Paket Layanan';
+    if (pathname.startsWith('/admin/crm')) return 'Mini CRM';
     if (pathname.startsWith('/admin/cms/landing')) return 'Konten Halaman';
     if (pathname.startsWith('/admin/settings/profil-studio')) return 'Profil Studio';
     if (pathname.startsWith('/admin/settings/metode-pembayaran')) return 'Metode Pembayaran';
     if (pathname.startsWith('/admin/settings/email')) return 'Notifikasi Email';
+    if (pathname.startsWith('/admin/settings/whatsapp')) return 'Otomasi WhatsApp';
     if (pathname.startsWith('/admin/settings')) return 'Pengaturan & Integrasi Sistem';
     if (pathname.startsWith('/admin/cms/categories')) return 'Kategori Gallery';
     if (pathname.startsWith('/admin/cms/marquee')) return 'Marquee';

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight, RefreshCw, Search } from 'lucide-react';
 import { errorMessage } from '@/lib/admin-queries';
 import type { EmailLogItem, EmailLogStatus } from '@/lib/email-api';
 import { useEmailLog, useEmailLogs, useResendEmail } from '@/lib/email-queries';
 import { formatDateTime } from '@/lib/format';
+import { useDebounced } from '@/lib/use-debounced';
 import { cn } from '@/lib/utils';
 import { QueryError, QueryLoading } from '../../../components/query-state';
 import EmailPreview from './email-preview';
@@ -65,15 +66,6 @@ function StatusBadge({ status }: { status: EmailLogStatus }) {
       {label}
     </Badge>
   );
-}
-
-function useDebounced<T>(value: T, delay = 350) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
 }
 
 function LogDetail({ id, onClose }: { id: string | null; onClose: () => void }) {
