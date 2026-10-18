@@ -245,6 +245,18 @@ Email dikirim oleh worker lewat antrean `email`. Agar email benar-benar dikirim 
 3. Di admin, aktifkan pengiriman email dan atur template.
 4. Buka [http://localhost:8025](http://localhost:8025) untuk melihat email yang masuk. Email yang gagal dicoba ulang otomatis dan tercatat di tabel `email_logs`.
 
+### 💬 Menghubungkan WhatsApp (WAHA)
+
+Menu **Otomasi WhatsApp** di admin menghubungkan nomor studio lewat WAHA (engine GOWS). Alamat dan kunci WAHA hanya ada di environment server:
+
+1. Isi `WAHA_BASE_URL` (alamat dari host), `WAHA_API_KEY`, dan `WAHA_SESSION` di `.env`. Di dalam Docker, compose memakai `WAHA_DOCKER_URL` (bawaan `http://dev-waha:3000`).
+2. Buka `/admin/settings/whatsapp`, klik **Hubungkan WhatsApp**, lalu pindai QR dengan ponsel studio.
+3. `WAHA_ENABLED=true` hanya menyalakan notifikasi otomatis ke customer; menghubungkan nomor tidak membutuhkannya.
+
+Aplikasi hanya mengelola sesi bernama `WAHA_SESSION`. Sesi lain di server WAHA yang sama tidak disentuh.
+
+Pesan masuk (untuk Mini CRM) dikirim WAHA ke API sebagai webhook bertanda tangan HMAC-SHA512 di `POST /webhooks/waha`. Isi `WAHA_WEBHOOK_SECRET` (`openssl rand -hex 32`); tanpa secret, endpoint menolak semua permintaan. `WAHA_WEBHOOK_URL` adalah alamat API yang dilihat container WAHA (bawaan `http://photography-api:3000/webhooks/waha`). Webhook dipasang ke sesi saat menekan **Hubungkan WhatsApp**.
+
 ---
 
 ## 🔄 Development Workflow

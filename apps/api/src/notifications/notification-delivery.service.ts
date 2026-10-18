@@ -6,7 +6,7 @@ import { EmailSettingsService } from './email-settings.service';
 import { readSmtpConfig } from './smtp-config';
 import { TEMPLATE_BY_EVENT } from './email-template-defaults';
 import { EmailTemplatesService } from './email-templates.service';
-import { WahaClient } from './waha.client';
+import { WahaClient } from '../waha/waha.client';
 
 type DeliveryEvent = {
   eventKey: string;

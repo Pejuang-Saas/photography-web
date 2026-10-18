@@ -14,10 +14,10 @@ import { EmailService } from './email.service';
 import { EmailSettingsService } from './email-settings.service';
 import { NotificationDeliveryService } from './notification-delivery.service';
 import { NotificationsController } from './notifications.controller';
-import { WahaClient } from './waha.client';
+import { WahaModule } from '../waha/waha.module';
 
 @Module({
-  imports: [InvoicesModule, QueuesModule, StudioModule],
+  imports: [InvoicesModule, QueuesModule, StudioModule, WahaModule],
   controllers: [
     NotificationsController,
     AdminNotificationsController,
@@ -33,7 +33,6 @@ import { WahaClient } from './waha.client';
     EmailTemplatesService,
     EmailSettingsService,
     NotificationDeliveryService,
-    WahaClient,
   ],
   exports: [NotificationDeliveryService, EmailSenderService],
 })

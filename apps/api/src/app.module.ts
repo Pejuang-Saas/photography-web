@@ -20,6 +20,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { LandingModule } from './landing/landing.module';
 import { StudioModule } from './studio/studio.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { CrmModule } from './crm/crm.module';
 
 function positiveInteger(configService: ConfigService, key: string, fallback: number): number {
   const value = Number(configService.get<string>(key));
@@ -63,7 +65,8 @@ function positiveInteger(configService: ConfigService, key: string, fallback: nu
       },
     }),
     PrismaModule,
-    AuthModule.forRoot({ auth }),
+    // rawBody: the WAHA webhook is verified against the exact bytes WAHA signed.
+    AuthModule.forRoot({ auth, bodyParser: { rawBody: true } }),
     CmsModule,
     PackagesModule,
     PaymentsModule,
@@ -71,6 +74,8 @@ function positiveInteger(configService: ConfigService, key: string, fallback: nu
     QueuesModule,
     NotificationsModule,
     StudioModule,
+    WhatsappModule,
+    CrmModule,
     LandingModule,
     InvoicesModule,
   ],

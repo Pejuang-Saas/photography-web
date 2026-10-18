@@ -189,6 +189,14 @@ const PACKAGES = [
   },
 ];
 
+const CRM_CATEGORIES = [
+  { name: 'Prospek Baru', color: 'blue' },
+  { name: 'Tanya Paket', color: 'amber' },
+  { name: 'Booking DP', color: 'purple' },
+  { name: 'Lunas', color: 'green' },
+  { name: 'Selesai', color: 'zinc' },
+];
+
 async function main() {
   const prisma = new PrismaClient();
   const storage = new StorageService(new ConfigService());
@@ -291,6 +299,17 @@ async function main() {
       });
     }
     console.log(`✅ testimonials: ${TESTIMONIALS.length}`);
+
+    // Starting categories for the WhatsApp CRM. Admins can rename, recolour or delete them, and
+    // update: {} keeps it that way on later runs.
+    for (const [sortOrder, category] of CRM_CATEGORIES.entries()) {
+      await prisma.crmCategory.upsert({
+        where: { name: category.name },
+        create: { ...category, sortOrder },
+        update: {},
+      });
+    }
+    console.log(`✅ crm categories: ${CRM_CATEGORIES.length}`);
   } finally {
     await prisma.$disconnect();
   }

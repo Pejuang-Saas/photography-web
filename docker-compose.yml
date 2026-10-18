@@ -35,10 +35,14 @@ services:
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Kayastory Photography}
       - CONFIG_ENCRYPTION_KEY=${CONFIG_ENCRYPTION_KEY:-}
       - WAHA_ENABLED=${WAHA_ENABLED:-false}
-      - WAHA_BASE_URL=${WAHA_BASE_URL:-http://waha:3000}
+      # Containers reach the shared WAHA by its container name; WAHA_BASE_URL in .env is for the host.
+      - WAHA_BASE_URL=${WAHA_DOCKER_URL:-http://dev-waha:3000}
       - WAHA_API_KEY=${WAHA_API_KEY:-}
       - WAHA_SESSION=${WAHA_SESSION:-default}
       - WAHA_ADMIN_CHAT_ID=${WAHA_ADMIN_CHAT_ID:-}
+      # Where WAHA delivers incoming messages (as WAHA sees the API) and the key that signs them.
+      - WAHA_WEBHOOK_URL=${WAHA_WEBHOOK_URL:-http://photography-api:3000/webhooks/waha}
+      - WAHA_WEBHOOK_SECRET=${WAHA_WEBHOOK_SECRET:-}
       - DATABASE_URL=${DATABASE_URL:-postgresql://root:root@dev-postgres:5432/photography_db?schema=public}
       - REDIS_URL=${REDIS_URL:-redis://dev-redis:6379}
       - S3_ENDPOINT=http://minio:9000
@@ -84,7 +88,8 @@ services:
       - API_URL=${API_URL:-http://localhost:3002}
       - CONFIG_ENCRYPTION_KEY=${CONFIG_ENCRYPTION_KEY:-}
       - WAHA_ENABLED=${WAHA_ENABLED:-false}
-      - WAHA_BASE_URL=${WAHA_BASE_URL:-http://waha:3000}
+      # Containers reach the shared WAHA by its container name; WAHA_BASE_URL in .env is for the host.
+      - WAHA_BASE_URL=${WAHA_DOCKER_URL:-http://dev-waha:3000}
       - WAHA_API_KEY=${WAHA_API_KEY:-}
       - WAHA_SESSION=${WAHA_SESSION:-default}
       - WAHA_ADMIN_CHAT_ID=${WAHA_ADMIN_CHAT_ID:-}

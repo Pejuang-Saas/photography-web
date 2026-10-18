@@ -155,11 +155,11 @@ model PaymentSetting {
 }
 
 model EmailSetting {
-  id                     String   @id @default("default")
-  enabled                Boolean  @default(false)
-  autoSendInvoice        Boolean  @default(true) @map("auto_send_invoice")
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
+  id              String   @id @default("default")
+  enabled         Boolean  @default(false)
+  autoSendInvoice Boolean  @default(true) @map("auto_send_invoice")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("email_settings")
 }
@@ -205,6 +205,64 @@ model EmailLog {
   @@index([status, createdAt])
   @@index([bookingId])
   @@map("email_logs")
+}
+
+/// A label an admin puts on a WhatsApp conversation (for example "Booking DP"), with a badge colour.
+model CrmCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  color     String   @default("zinc")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  chats WhatsappChat[]
+
+  @@map("crm_categories")
+}
+
+/// One conversation with a customer, as WAHA sees it. Groups and broadcasts are never stored.
+model WhatsappChat {
+  id                 String    @id @default(uuid())
+  /// WAHA's id for the conversation: 6281...@c.us, or a ...@lid for contacts hidden behind a LID.
+  chatId             String    @unique @map("chat_id")
+  /// The customer's number as digits starting with 62, once known. Used to find their booking.
+  phone              String?
+  name               String?
+  categoryId         String?   @map("category_id")
+  lastMessageAt      DateTime? @map("last_message_at")
+  /// When the customer last wrote to us. The 24-hour messaging window counts from here.
+  lastInboundAt      DateTime? @map("last_inbound_at")
+  lastMessagePreview String?   @map("last_message_preview")
+  lastMessageFromMe  Boolean   @default(false) @map("last_message_from_me")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  category CrmCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  messages WhatsappMessage[]
+
+  @@index([lastMessageAt])
+  @@index([phone])
+  @@index([categoryId])
+  @@map("whatsapp_chats")
+}
+
+model WhatsappMessage {
+  id        String   @id @default(uuid())
+  /// WAHA's message id, unique so the same message arriving by webhook and by sync is stored once.
+  wahaId    String   @unique @map("waha_id")
+  chatId    String   @map("chat_id")
+  fromMe    Boolean  @map("from_me")
+  body      String   @default("")
+  hasMedia  Boolean  @default(false) @map("has_media")
+  /// WAHA delivery state: -1 error, 0 pending, 1 sent, 2 delivered, 3 read, 4 played.
+  ack       Int      @default(0)
+  timestamp DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  chat WhatsappChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, timestamp])
+  @@map("whatsapp_messages")
 }
 
 model StudioSetting {
