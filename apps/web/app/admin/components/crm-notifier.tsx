@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useCrmUnread } from '@/lib/crm-queries';
+import { useCrmLive, useCrmUnread } from '@/lib/crm-queries';
 
 const COUNT_PREFIX = /^\(\d+\)\s/;
 
@@ -14,6 +14,7 @@ const COUNT_PREFIX = /^\(\d+\)\s/;
  */
 export default function CrmNotifier() {
   const router = useRouter();
+  useCrmLive();
   const unread = useCrmUnread();
   const total = unread.data?.total ?? 0;
   const latest = unread.data?.latest ?? null;

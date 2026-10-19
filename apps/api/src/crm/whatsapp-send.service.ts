@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { WahaClient, WahaError } from '../waha/waha.client';
 import { messagingWindow } from './messaging-window';
+import { CrmEventsService } from './crm-events.service';
 import { typingDelayMs, WINDOW_CLOSED_MESSAGE } from './whatsapp-message';
 import { WhatsappInboxService } from './whatsapp-inbox.service';
 import { WhatsappTemplatesService } from './whatsapp-templates.service';
@@ -32,6 +33,7 @@ export class WhatsappSendService {
     private readonly inbox: WhatsappInboxService,
     private readonly templates: WhatsappTemplatesService,
     private readonly config: ConfigService,
+    private readonly events: CrmEventsService,
   ) {}
 
   /** Free text: allowed only while the customer's last message is under 24 hours old. */
@@ -87,6 +89,7 @@ export class WhatsappSendService {
       where: { id: chat.id },
       data: { unreadCount: 0 },
     });
+    this.events.publish({ type: 'message', chatId: chat.id });
     return { sent: true, messageId: sent?.id ?? null };
   }
 

@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import { Prisma } from '@prisma/client';
 import { CrmChatsService, decodeCursor, encodeCursor } from './crm-chats.service';
 
@@ -49,7 +50,8 @@ function setup(options: { chats?: any[]; total?: number; bookings?: any[]; named
       ),
     },
   };
-  return { prisma, service: new CrmChatsService(prisma as never) };
+  const events = { publish: jest.fn() };
+  return { prisma, events, service: new CrmChatsService(prisma as never, events as never) };
 }
 
 describe('CrmChatsService.list', () => {
@@ -295,7 +297,8 @@ describe('CrmChatsService.openForBooking', () => {
         findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'raced-chat' }),
       },
     };
-    return { prisma, service: new CrmChatsService(prisma as never) };
+    const events = { publish: jest.fn() };
+    return { prisma, events, service: new CrmChatsService(prisma as never, events as never) };
   }
 
   it('reuses the conversation that already exists for the number', async () => {
@@ -634,5 +637,18 @@ describe('CrmChatsService read status filter', () => {
     const where = prisma.whatsappChat.findMany.mock.calls[0][0].where;
     expect(where.unreadCount).toEqual({ gt: 0 });
     expect(where.OR).toBeDefined();
+  });
+});
+
+describe('CrmChatsService events', () => {
+  it('announces that a conversation was read, but not when it does not exist', async () => {
+    const { service, prisma, events } = setup();
+    prisma.whatsappChat.updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(service.markRead('nope')).rejects.toMatchObject({ status: 404 });
+    expect(events.publish).not.toHaveBeenCalled();
+
+    await service.markRead('chat-1');
+
+    expect(events.publish).toHaveBeenCalledWith({ type: 'chat', chatId: 'chat-1' });
   });
 });

@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import { WhatsappSyncService } from './whatsapp-sync.service';
 
 function setup(options: { status?: string; chats?: any[]; messages?: Record<string, any[]> } = {}) {

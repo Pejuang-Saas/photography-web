@@ -1,9 +1,10 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 import { errorMessage } from './admin-queries';
+import { apiUrl } from './api-client';
 import {
   crmApi,
   type CrmCategory,
@@ -27,6 +28,97 @@ export const crmKeys = {
 };
 
 const fail = (error: unknown) => toast.error(errorMessage(error));
+
+// ---- Live updates (server-sent events)
+
+/** While the stream is connected polling is only a safety net, so it slows right down. */
+const SAFETY_POLL_MS = 60_000;
+
+let liveConnected = false;
+const liveListeners = new Set<() => void>();
+function setLiveConnected(value: boolean) {
+  if (liveConnected === value) return;
+  liveConnected = value;
+  liveListeners.forEach((listener) => listener());
+}
+
+/** Polling interval for a query that live events also keep fresh. */
+const pollEvery = (fallbackMs: number) => () => (liveConnected ? SAFETY_POLL_MS : fallbackMs);
+
+type LiveEvent = { type: 'message' | 'chat'; chatId: string } | { type: 'categories' };
+
+/**
+ * Keeps the CRM current without waiting for the next poll: the API says what changed and this
+ * refetches just that. Mount it once, where it lives as long as the admin panel. If the stream
+ * drops, the browser reconnects by itself and everything is refreshed to catch up on what was
+ * missed; meanwhile the normal polling takes over again.
+ */
+export function useCrmLive() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (typeof EventSource === 'undefined') return;
+    const source = new EventSource(`${apiUrl}/admin/crm/events`, { withCredentials: true });
+    // A burst (an import, a busy minute) becomes one round of refetches.
+    const chats = new Set<string>();
+    let categories = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const flush = () => {
+      timer = undefined;
+      const touched = [...chats];
+      chats.clear();
+      const changedCategories = categories;
+      categories = false;
+      void queryClient.invalidateQueries({ queryKey: crmKeys.inbox });
+      void queryClient.invalidateQueries({ queryKey: crmKeys.unread });
+      for (const id of touched) {
+        void queryClient.invalidateQueries({ queryKey: crmKeys.chat(id) });
+        void queryClient.invalidateQueries({ queryKey: crmKeys.messages(id) });
+      }
+      if (changedCategories) void queryClient.invalidateQueries({ queryKey: crmKeys.categories });
+    };
+    const schedule = () => {
+      timer ??= setTimeout(flush, 200);
+    };
+
+    const onEvent = (raw: Event) => {
+      try {
+        const event = JSON.parse((raw as MessageEvent<string>).data) as LiveEvent;
+        if (event.type === 'categories') categories = true;
+        else chats.add(event.chatId);
+        schedule();
+      } catch {
+        // A malformed event is not worth reacting to.
+      }
+    };
+
+    let opened = false;
+    source.onopen = () => {
+      setLiveConnected(true);
+      // Reconnecting after a drop: whatever happened meanwhile was not announced.
+      if (opened) void queryClient.invalidateQueries({ queryKey: crmKeys.all });
+      opened = true;
+    };
+    source.onerror = () => setLiveConnected(false);
+    for (const type of ['message', 'chat', 'categories']) source.addEventListener(type, onEvent);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      source.close();
+      setLiveConnected(false);
+    };
+  }, [queryClient]);
+
+  return useSyncExternalStore(
+    (listener) => {
+      liveListeners.add(listener);
+      return () => liveListeners.delete(listener);
+    },
+    () => liveConnected,
+    () => false,
+  );
+}
 
 /** Everything loaded so far for one search and filter, newest activity first. */
 type Inbox = {
@@ -117,7 +209,7 @@ export function useCrmInbox(filter: CrmChatFilter, pinnedId?: string | null) {
       };
     },
     placeholderData: keepPreviousData,
-    refetchInterval: 10_000,
+    refetchInterval: pollEvery(10_000),
   });
 
   const loading = useRef(false);
@@ -188,7 +280,7 @@ export function useCrmChat(id: string | null, placeholder?: CrmChat) {
     queryFn: () => crmApi.getChat(id!),
     enabled: Boolean(id),
     placeholderData: placeholder,
-    refetchInterval: 10_000,
+    refetchInterval: pollEvery(10_000),
   });
 }
 
@@ -212,7 +304,7 @@ export function useCrmMessages(id: string | null) {
     queryKey: crmKeys.messages(id ?? ''),
     queryFn: () => crmApi.messages(id!),
     enabled: Boolean(id),
-    refetchInterval: 5_000,
+    refetchInterval: pollEvery(5_000),
   });
 
   const [older, setOlder] = useState<OlderPages>({ chatId: null, items: [], hasMore: null });
@@ -265,7 +357,7 @@ export function useCrmUnread() {
   return useQuery({
     queryKey: crmKeys.unread,
     queryFn: crmApi.unread,
-    refetchInterval: 8_000,
+    refetchInterval: pollEvery(8_000),
   });
 }
 

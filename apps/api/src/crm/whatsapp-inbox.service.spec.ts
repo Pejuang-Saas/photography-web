@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import { Prisma } from '@prisma/client';
 import { WhatsappInboxService } from './whatsapp-inbox.service';
 
@@ -78,6 +79,9 @@ function fakePrisma() {
         messages.push(row);
         return { id: row.id };
       }),
+      findUnique: jest.fn(
+        async ({ where }: any) => messages.find((m) => matches(m, where)) ?? null,
+      ),
       updateMany: jest.fn(async ({ where, data }: any) => {
         const hits = messages.filter((m) => matches(m, where));
         hits.forEach((m) => Object.assign(m, data));
@@ -96,11 +100,18 @@ function setup(waha: Partial<Record<string, jest.Mock>> = {}) {
     ...waha,
   };
   const media = { prefetch: jest.fn() };
+  const events = { publish: jest.fn() };
   return {
     ...store,
     waha: client,
     media,
-    service: new WhatsappInboxService(store.prisma as never, client as never, media as never),
+    events,
+    service: new WhatsappInboxService(
+      store.prisma as never,
+      client as never,
+      media as never,
+      events as never,
+    ),
   };
 }
 
@@ -597,5 +608,36 @@ describe('WhatsappInboxService replying counts as reading', () => {
       ([args]: any) => args.data.unreadCount === 0,
     );
     expect(clears.every(([args]: any) => args.where.unreadCount?.gt === 0)).toBe(true);
+  });
+});
+
+describe('WhatsappInboxService live events', () => {
+  it('announces a live message for its conversation', async () => {
+    const { service, chats, events } = setup();
+
+    await service.ingestMessage(incoming('m1', T0), undefined, { live: true });
+
+    expect(events.publish).toHaveBeenCalledWith({ type: 'message', chatId: chats[0].id });
+  });
+
+  it('stays quiet while old history is synced, or for a duplicate', async () => {
+    const { service, events } = setup();
+
+    await service.ingestMessage(incoming('m1', T0));
+    await service.ingestMessage(incoming('m1', T0), undefined, { live: true });
+
+    expect(events.publish).not.toHaveBeenCalled();
+  });
+
+  it('announces a delivery receipt that changed something, and only then', async () => {
+    const { service, chats, events } = setup();
+    await service.ingestMessage(incoming('m1', T0));
+
+    await service.ingestAck('m1', 3);
+    await service.ingestAck('m1', 2);
+    await service.ingestAck('unknown', 3);
+
+    expect(events.publish).toHaveBeenCalledTimes(1);
+    expect(events.publish).toHaveBeenCalledWith({ type: 'message', chatId: chats[0].id });
   });
 });

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CrmEventsService } from './crm-events.service';
 import { isLiveBooking, pickRelevantBooking } from './booking-relevance';
 import { messagingWindow } from './messaging-window';
 import { canonicalPhone, cleanDisplayName, phoneVariants } from './waha-ids';
@@ -65,7 +66,10 @@ type ChatWithCategory = Prisma.WhatsappChatGetPayload<{ include: { category: tru
 
 @Injectable()
 export class CrmChatsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: CrmEventsService,
+  ) {}
 
   async list(query: ChatQuery) {
     const limit = Math.min(
@@ -211,6 +215,8 @@ export class CrmChatsService {
       data: { unreadCount: 0 },
     });
     if (result.count !== 1) throw new NotFoundException('Percakapan tidak ditemukan');
+    // Another admin's tab, or the same admin's second one, should drop its badge too.
+    this.events.publish({ type: 'chat', chatId: id });
   }
 
   /** What the sidebar badge and the "new message" toast need: how many, and who wrote last. */

@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import { WahaWebhookService } from './waha-webhook.service';
 
 function setup() {

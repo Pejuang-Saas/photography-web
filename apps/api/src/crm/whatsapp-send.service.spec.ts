@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import { Prisma } from '@prisma/client';
 import { WahaError } from '../waha/waha.client';
 import { WhatsappSendService } from './whatsapp-send.service';
@@ -48,15 +49,17 @@ function setup(
       key === 'WHATSAPP_SEND_LIMIT_PER_MINUTE' ? options.limitEnv : undefined,
     ),
   };
+  const events = { publish: jest.fn() };
   const service = new WhatsappSendService(
     prisma as never,
     waha as never,
     inbox as never,
     templates as never,
     config as never,
+    events as never,
   );
   (service as unknown as { pause: jest.Mock }).pause = jest.fn().mockResolvedValue(undefined);
-  return { service, prisma, waha, inbox, templates };
+  return { service, prisma, waha, inbox, templates, events };
 }
 
 describe('WhatsappSendService.sendText', () => {

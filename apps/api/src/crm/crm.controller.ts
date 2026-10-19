@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -10,12 +11,15 @@ import {
   Post,
   Query,
   Res,
+  Sse,
   StreamableFile,
 } from '@nestjs/common';
+import { interval, map, merge, type Observable } from 'rxjs';
 import type { Response } from 'express';
 import { Roles } from '@thallesp/nestjs-better-auth';
 import { CrmCategoriesService } from './crm-categories.service';
 import { CrmChatsService } from './crm-chats.service';
+import { CrmEventsService } from './crm-events.service';
 import { OpenChatDto, SendMessageDto, SendTemplateDto } from './dto/whatsapp-send.dto';
 import {
   AssignCrmCategoryDto,
@@ -37,7 +41,21 @@ export class CrmController {
     private readonly media: WhatsappMediaService,
     private readonly templates: WhatsappTemplatesService,
     private readonly sync: WhatsappSyncService,
+    private readonly events: CrmEventsService,
   ) {}
+
+  /**
+   * Server-sent events: the browser holds this open and refetches what an event names. The
+   * heartbeat keeps proxies from closing a quiet connection.
+   */
+  @Sse('events')
+  @Header('X-Accel-Buffering', 'no')
+  stream(): Observable<MessageEvent> {
+    return merge(
+      this.events.stream().pipe(map((event) => ({ type: event.type, data: event }))),
+      interval(25_000).pipe(map(() => ({ type: 'ping', data: {} }))),
+    ) as Observable<MessageEvent>;
+  }
 
   @Get('chats')
   list(

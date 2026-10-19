@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import { createHmac } from 'crypto';
 
 jest.mock('../common/public.decorator', () => ({ Public: () => () => undefined }));

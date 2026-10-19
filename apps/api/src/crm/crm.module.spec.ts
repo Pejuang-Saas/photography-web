@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import 'reflect-metadata';
 
 jest.mock('@thallesp/nestjs-better-auth', () => ({
@@ -37,7 +38,15 @@ describe('CrmModule wiring', () => {
     const dependencies: unknown[] =
       Reflect.getMetadata('design:paramtypes', target as object) ?? [];
 
-    for (const dependency of dependencies) {
+    // Parameters injected by an explicit token (the Redis client) come from a global module.
+    const byToken = new Set(
+      (Reflect.getMetadata('self:paramtypes', target as object) ?? []).map(
+        (entry: { index: number }) => entry.index,
+      ),
+    );
+
+    for (const [index, dependency] of dependencies.entries()) {
+      if (byToken.has(index)) continue;
       expect({
         name: (dependency as { name?: string })?.name,
         ok: available.has(dependency),

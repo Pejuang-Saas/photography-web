@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 import { Prisma } from '@prisma/client';
 import { CrmCategoriesService } from './crm-categories.service';
 
@@ -25,7 +26,8 @@ function setup(
       update: jest.fn().mockResolvedValue({}),
     },
   };
-  return { prisma, service: new CrmCategoriesService(prisma as never) };
+  const events = { publish: jest.fn() };
+  return { prisma, events, service: new CrmCategoriesService(prisma as never, events as never) };
 }
 
 describe('CrmCategoriesService', () => {
@@ -150,5 +152,16 @@ describe('CrmCategoriesService', () => {
     await expect(setup({ existing: false }).service.assign('chat-1', 'x')).rejects.toMatchObject({
       status: 404,
     });
+  });
+});
+
+describe('CrmCategoriesService events', () => {
+  it('announces a recategorised conversation', async () => {
+    const { service, prisma, events } = setup();
+    prisma.whatsappChat.findUnique.mockResolvedValue({ id: 'chat-1' });
+
+    await service.assign('chat-1', null);
+
+    expect(events.publish).toHaveBeenCalledWith({ type: 'chat', chatId: 'chat-1' });
   });
 });

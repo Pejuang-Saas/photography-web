@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { WahaClient } from '../waha/waha.client';
+import { CrmEventsService } from './crm-events.service';
 import { WhatsappMediaService } from './whatsapp-media.service';
 import {
   cleanDisplayName,
@@ -27,6 +28,7 @@ export class WhatsappInboxService {
     private readonly prisma: PrismaService,
     private readonly waha: WahaClient,
     private readonly media: WhatsappMediaService,
+    private readonly events: CrmEventsService,
   ) {}
 
   /** Safe to call any number of times with the same message: it is stored once. */
@@ -126,16 +128,24 @@ export class WhatsappInboxService {
       });
     }
     if (options.live && hasMedia) this.media.prefetch(stored.id);
+    // Old messages filled in by a sync are not news.
+    if (options.live) this.events.publish({ type: 'message', chatId: chat.id });
     return 'stored';
   }
 
   /** Delivery receipts only move forward (sent, delivered, read), except that an error can be set. */
   async ingestAck(wahaId: string | undefined, ack: number | undefined) {
     if (!wahaId || typeof ack !== 'number') return;
-    await this.prisma.whatsappMessage.updateMany({
+    const { count } = await this.prisma.whatsappMessage.updateMany({
       where: { wahaId, ack: ack < 0 ? { lte: 1 } : { lt: ack } },
       data: { ack },
     });
+    if (count === 0) return;
+    const message = await this.prisma.whatsappMessage.findUnique({
+      where: { wahaId },
+      select: { chatId: true },
+    });
+    if (message) this.events.publish({ type: 'message', chatId: message.chatId });
   }
 
   private async findOrCreateChat(chatId: string, name?: string) {

@@ -1,3 +1,4 @@
+jest.mock('@nestjs-redis/client', () => ({ RedisToken: () => 'REDIS' }));
 jest.mock('@thallesp/nestjs-better-auth', () => ({
   Roles: () => () => undefined,
   AllowAnonymous: () => () => undefined,
@@ -18,6 +19,7 @@ function setup(file: Record<string, unknown>) {
     media as never,
     {} as never, // templates
     {} as never, // sync
+    {} as never, // events
   );
   const headers: Record<string, string> = {};
   const response = { setHeader: (name: string, value: string) => (headers[name] = value) };
