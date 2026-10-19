@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { FileText, Loader2, Send } from 'lucide-react';
 import { errorMessage } from '@/lib/admin-queries';
 import type { CrmChat } from '@/lib/crm-api';
@@ -109,6 +110,12 @@ function TemplateComposer({ chat }: { chat: CrmChat }) {
             </button>
           ))}
         </div>
+        <Link
+          href="/admin/settings/whatsapp?tab=templates"
+          className="mt-2 inline-block text-xs font-semibold text-amber-700 underline-offset-2 hover:underline dark:text-amber-400"
+        >
+          Kelola / Tambah Template Baru
+        </Link>
       </div>
 
       {selected && (

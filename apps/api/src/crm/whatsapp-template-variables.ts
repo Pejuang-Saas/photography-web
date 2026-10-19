@@ -15,3 +15,9 @@ export const BOOKING_BOUND_VARIABLES: ReadonlySet<string> = new Set([
   'invoice_number',
   'invoice_url',
 ]);
+
+/**
+ * Placeholders only an automatic event can fill (why a payment was rejected). Sent by hand from
+ * the CRM they would come out blank, so templates using them are not offered there.
+ */
+export const EVENT_ONLY_VARIABLES: ReadonlySet<string> = new Set(['rejection_reason']);

@@ -14,6 +14,7 @@ import { EmailService } from './email.service';
 import { EmailSettingsService } from './email-settings.service';
 import { NotificationDeliveryService } from './notification-delivery.service';
 import { NotificationsController } from './notifications.controller';
+import { WhatsappEventMessagesService } from './whatsapp-event-messages.service';
 import { WahaModule } from '../waha/waha.module';
 
 @Module({
@@ -33,6 +34,7 @@ import { WahaModule } from '../waha/waha.module';
     EmailTemplatesService,
     EmailSettingsService,
     NotificationDeliveryService,
+    WhatsappEventMessagesService,
   ],
   exports: [NotificationDeliveryService, EmailSenderService],
 })

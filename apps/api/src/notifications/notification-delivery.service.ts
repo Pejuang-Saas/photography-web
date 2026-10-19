@@ -7,6 +7,7 @@ import { readSmtpConfig } from './smtp-config';
 import { TEMPLATE_BY_EVENT } from './email-template-defaults';
 import { EmailTemplatesService } from './email-templates.service';
 import { WahaClient } from '../waha/waha.client';
+import { WhatsappEventMessagesService } from './whatsapp-event-messages.service';
 
 type DeliveryEvent = {
   eventKey: string;
@@ -26,6 +27,7 @@ export class NotificationDeliveryService {
     private readonly emailSettings: EmailSettingsService,
     private readonly templates: EmailTemplatesService,
     private readonly waha: WahaClient,
+    private readonly whatsappMessages: WhatsappEventMessagesService,
   ) {}
 
   async dispatch(event: DeliveryEvent) {
@@ -103,7 +105,21 @@ export class NotificationDeliveryService {
     }
 
     if (recipients.phone && this.waha.isEnabled()) {
-      await this.waha.sendText(recipients.phone, message);
+      // A customer gets the message the studio designed for this event; the plain summary is for
+      // the studio itself, and for an event that has no template.
+      const designed =
+        customerEvent && booking
+          ? await this.whatsappMessages.compose(event.eventType, {
+              booking,
+              rejectionReason: this.stringValue(payload.reason),
+            })
+          : ({ status: 'none' } as const);
+      if (designed.status === 'ok') {
+        await this.waha.sendText(recipients.phone, designed.text);
+      } else if (designed.status === 'none') {
+        await this.waha.sendText(recipients.phone, message);
+      }
+      // Switched off on purpose: counted as handled so the event is not retried forever.
       handled += 1;
     }
 

@@ -12,11 +12,12 @@ import { WhatsappInboxService } from './whatsapp-inbox.service';
 import { WhatsappMediaService } from './whatsapp-media.service';
 import { WhatsappSendService } from './whatsapp-send.service';
 import { WhatsappSyncService } from './whatsapp-sync.service';
+import { WhatsappTemplatesController } from './whatsapp-templates.controller';
 import { WhatsappTemplatesService } from './whatsapp-templates.service';
 
 @Module({
   imports: [StorageModule, StudioModule, WahaModule],
-  controllers: [CrmController, WahaWebhookController],
+  controllers: [CrmController, WahaWebhookController, WhatsappTemplatesController],
   providers: [
     CrmCategoriesService,
     CrmChatsService,

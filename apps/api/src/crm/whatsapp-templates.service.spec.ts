@@ -36,6 +36,7 @@ function setup(
       : options.template;
   const prisma = {
     whatsappTemplate: {
+      upsert: jest.fn().mockResolvedValue({}),
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(template),
     },
@@ -56,7 +57,12 @@ function setup(
   };
   return {
     prisma,
-    service: new WhatsappTemplatesService(prisma as never, studioService as never, config as never),
+    service: new WhatsappTemplatesService(
+      prisma as never,
+      studioService as never,
+      config as never,
+      {} as never,
+    ),
   };
 }
 
@@ -67,6 +73,30 @@ describe('WhatsappTemplatesService', () => {
     await service.list();
 
     expect(prisma.whatsappTemplate.findMany.mock.calls[0][0].where).toEqual({ isActive: true });
+  });
+
+  it('does not offer a template that only an automatic event can fill', async () => {
+    const { service, prisma } = setup();
+    prisma.whatsappTemplate.findMany.mockResolvedValue([
+      {
+        id: 'a',
+        code: 'PAYMENT_REJECTED',
+        name: 'Ditolak',
+        category: 'TRANSACTIONAL',
+        body: 'Alasan: {rejection_reason}',
+      },
+      {
+        id: 'b',
+        code: 'PENGINGAT_H1',
+        name: 'Pengingat',
+        category: 'REMINDER',
+        body: 'Halo {customer_name}',
+      },
+    ]);
+
+    expect(await service.list()).toEqual([
+      { id: 'b', code: 'PENGINGAT_H1', name: 'Pengingat', category: 'REMINDER' },
+    ]);
   });
 
   it('fills the placeholders from the booking behind the number', async () => {

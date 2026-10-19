@@ -259,6 +259,10 @@ model WhatsappTemplate {
   code      String   @unique
   name      String
   body      String
+  /// TRANSACTIONAL, REMINDER, DELIVERY or FOLLOW_UP; only a label to find the right template.
+  category  String   @default("TRANSACTIONAL")
+  /// Built-in templates cannot be deleted, and the automatic ones are found by their code.
+  isSystem  Boolean  @default(false) @map("is_system")
   isActive  Boolean  @default(true) @map("is_active")
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")

@@ -35,14 +35,16 @@ function setup(settings: Partial<typeof baseSettings> = {}, wahaEnabled = false)
       attachments: [{ type: 'logo' }],
     }),
   };
+  const whatsappMessages = { compose: jest.fn().mockResolvedValue({ status: 'none' }) };
   const service = new NotificationDeliveryService(
     prisma as never,
     emailQueue as never,
     { getCurrent: jest.fn().mockResolvedValue({ ...baseSettings, ...settings }) } as never,
     templates as never,
     waha as never,
+    whatsappMessages as never,
   );
-  return { service, emailQueue, waha, templates, prisma };
+  return { service, emailQueue, waha, templates, prisma, whatsappMessages };
 }
 
 const event = (eventType: string) => ({
@@ -233,5 +235,75 @@ describe('NotificationDeliveryService', () => {
     await expect(service.dispatch(event('PAYMENT_VERIFIED'))).rejects.toThrow('waha down');
 
     expect(emailQueue.enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  describe('WhatsApp to the customer', () => {
+    it('sends the message the studio designed for the event', async () => {
+      const { service, waha, whatsappMessages } = setup({}, true);
+      whatsappMessages.compose.mockResolvedValue({
+        status: 'ok',
+        templateCode: 'PAYMENT_VERIFIED',
+        text: 'Halo Kak Customer! Pembayaranmu sudah kami terima.',
+      });
+
+      await service.dispatch(event('PAYMENT_VERIFIED'));
+
+      expect(whatsappMessages.compose).toHaveBeenCalledWith('PAYMENT_VERIFIED', {
+        booking,
+        rejectionReason: undefined,
+      });
+      expect(waha.sendText).toHaveBeenCalledWith(
+        '081234567890',
+        'Halo Kak Customer! Pembayaranmu sudah kami terima.',
+      );
+    });
+
+    it('passes the rejection reason on to the template', async () => {
+      const { service, whatsappMessages } = setup({}, true);
+
+      await service.dispatch({
+        ...event('PAYMENT_REJECTED'),
+        payload: { bookingId: 'booking-1', reason: 'Nominal kurang' },
+      });
+
+      expect(whatsappMessages.compose).toHaveBeenCalledWith('PAYMENT_REJECTED', {
+        booking,
+        rejectionReason: 'Nominal kurang',
+      });
+    });
+
+    it('falls back to the plain summary when no template is tied to the event', async () => {
+      const { service, waha } = setup({}, true);
+
+      await service.dispatch(event('PAYMENT_VERIFIED'));
+
+      expect(waha.sendText).toHaveBeenCalledWith(
+        '081234567890',
+        expect.stringContaining('Booking'),
+      );
+    });
+
+    it('sends nothing, without failing or retrying, when the template is switched off', async () => {
+      const { service, waha, prisma, whatsappMessages } = setup({}, true);
+      prisma.booking.findUnique.mockResolvedValue({ ...booking, customerEmail: '' });
+      whatsappMessages.compose.mockResolvedValue({
+        status: 'inactive',
+        reason: 'Template "X" dinonaktifkan',
+      });
+
+      await expect(service.dispatch(event('PAYMENT_VERIFIED'))).resolves.toBeUndefined();
+
+      expect(waha.sendText).not.toHaveBeenCalled();
+    });
+
+    it('never uses a template for the studio-side WhatsApp', async () => {
+      process.env.WAHA_ADMIN_CHAT_ID = '6281234567890@c.us';
+      const { service, whatsappMessages } = setup({}, true);
+
+      await service.dispatch(event('BOOKING_CREATED'));
+      delete process.env.WAHA_ADMIN_CHAT_ID;
+
+      expect(whatsappMessages.compose).not.toHaveBeenCalled();
+    });
   });
 });

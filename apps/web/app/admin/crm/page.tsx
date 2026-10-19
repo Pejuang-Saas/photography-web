@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { MessageSquareText, RefreshCw, Tags } from 'lucide-react';
+import { LayoutTemplate, MessageSquareText, RefreshCw, Tags } from 'lucide-react';
 import {
   useCrmCategories,
   useCrmChat,
@@ -88,6 +88,16 @@ function CrmWorkspace() {
           >
             <Tags className="size-3.5" />
             Kelola Kategori
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            nativeButton={false}
+            render={<Link href="/admin/settings/whatsapp?tab=templates" />}
+          >
+            <LayoutTemplate className="size-3.5" />
+            Kelola Template
           </Button>
           <Button
             variant="outline"
