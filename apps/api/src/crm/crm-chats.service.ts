@@ -14,6 +14,8 @@ export type ChatQuery = {
   search?: string;
   /** A category id, or "none" for conversations that have no category yet. */
   categoryId?: string;
+  /** "unread" for conversations with something nobody has opened, "read" for the rest. */
+  status?: string;
   /** Where the previous page ended; leave out for the first page. */
   cursor?: string;
   limit?: number;
@@ -214,10 +216,12 @@ export class CrmChatsService {
   /** What the sidebar badge and the "new message" toast need: how many, and who wrote last. */
   async unreadSummary() {
     const [total, latest] = await Promise.all([
-      // Only conversations with something unread are summed, which the unread index serves.
+      // Only conversations with something unread are summed and counted, which the unread index
+      // serves, and one query gives both numbers.
       this.prisma.whatsappChat.aggregate({
         where: { unreadCount: { gt: 0 } },
         _sum: { unreadCount: true },
+        _count: { _all: true },
       }),
       this.prisma.whatsappChat.findFirst({
         where: { unreadCount: { gt: 0 } },
@@ -233,7 +237,10 @@ export class CrmChatsService {
       }),
     ]);
     return {
+      /** Messages waiting. */
       total: total._sum.unreadCount ?? 0,
+      /** Conversations with at least one message waiting. */
+      chats: total._count._all,
       latest: latest
         ? {
             chatId: latest.id,
@@ -249,6 +256,10 @@ export class CrmChatsService {
     const where: Prisma.WhatsappChatWhereInput = {};
     if (query.categoryId === 'none') where.categoryId = null;
     else if (query.categoryId) where.categoryId = query.categoryId;
+
+    // Anything else is ignored, so a typo shows everything instead of nothing.
+    if (query.status === 'unread') where.unreadCount = { gt: 0 };
+    else if (query.status === 'read') where.unreadCount = 0;
 
     const search = cleanDisplayName(query.search);
     if (search) {

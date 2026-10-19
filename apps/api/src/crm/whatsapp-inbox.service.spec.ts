@@ -14,6 +14,7 @@ function fakePrisma() {
   const test = (value: any, cond: any): boolean => {
     if (cond === null) return value === null || value === undefined;
     if (cond && typeof cond === 'object' && !(cond instanceof Date)) {
+      if ('gt' in cond) return value != null && value > cond.gt;
       if ('lt' in cond) return value != null && value < cond.lt;
       if ('lte' in cond) return value != null && value <= cond.lte;
       return false;
@@ -552,5 +553,49 @@ describe('WhatsappInboxService attachments seen again', () => {
     );
 
     expect(messages[0].mediaMime).toBe('image/jpeg');
+  });
+});
+
+describe('WhatsappInboxService replying counts as reading', () => {
+  const LIVE = { live: true };
+
+  it('clears the unread count when the studio answers from the phone', async () => {
+    const { service, chats } = setup();
+    await service.ingestMessage(incoming('m1', T0), undefined, LIVE);
+    await service.ingestMessage(incoming('m2', T0 + 5), undefined, LIVE);
+    expect(chats[0].unreadCount).toBe(2);
+
+    await service.ingestMessage(outgoing('reply', T0 + 60), undefined, LIVE);
+
+    expect(chats[0].unreadCount).toBe(0);
+  });
+
+  it('counts a customer message that arrives after the reply as unread again', async () => {
+    const { service, chats } = setup();
+    await service.ingestMessage(incoming('m1', T0), undefined, LIVE);
+    await service.ingestMessage(outgoing('reply', T0 + 60), undefined, LIVE);
+
+    await service.ingestMessage(incoming('m2', T0 + 120), undefined, LIVE);
+
+    expect(chats[0].unreadCount).toBe(1);
+  });
+
+  it('does not clear anything when old history is filled in later', async () => {
+    const { service, chats } = setup();
+    await service.ingestMessage(incoming('m1', T0), undefined, LIVE);
+
+    await service.ingestMessage(outgoing('old-reply', T0 + 30)); // a sync, not live
+
+    expect(chats[0].unreadCount).toBe(1);
+  });
+
+  it('never writes when there was nothing unread', async () => {
+    const { service, prisma } = setup();
+    await service.ingestMessage(outgoing('first', T0), undefined, LIVE);
+
+    const clears = prisma.whatsappChat.updateMany.mock.calls.filter(
+      ([args]: any) => args.data.unreadCount === 0,
+    );
+    expect(clears.every(([args]: any) => args.where.unreadCount?.gt === 0)).toBe(true);
   });
 });

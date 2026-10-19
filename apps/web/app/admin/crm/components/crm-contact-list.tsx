@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Check, ChevronDown, Loader2, Search } from 'lucide-react';
 import { errorMessage } from '@/lib/admin-queries';
-import type { CrmCategory, CrmChat } from '@/lib/crm-api';
+import type { CrmCategory, CrmChat, CrmReadStatus } from '@/lib/crm-api';
 import { crmColor } from '@/lib/crm-colors';
 import { formatListTime, initialsOf } from '@/lib/crm-format';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,61 @@ import { Input } from '@/components/ui/input';
 import CategoryBadge from './category-badge';
 
 export type CategoryFilter = string | undefined;
+export type StatusFilter = CrmReadStatus | undefined;
+
+const MENU_TRIGGER =
+  'flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 outline-none transition-colors hover:border-zinc-400 focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100';
+
+/** Everything, only what has not been opened yet, or only what has. */
+function StatusFilterMenu({
+  value,
+  unreadChats,
+  onChange,
+}: {
+  value: StatusFilter;
+  unreadChats: number;
+  onChange: (value: StatusFilter) => void;
+}) {
+  const label =
+    value === 'unread' ? 'Belum dibaca' : value === 'read' ? 'Sudah dibaca' : 'Semua status';
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger aria-label="Filter status baca" className={MENU_TRIGGER}>
+        <span className="flex min-w-0 items-center gap-2">
+          {value === 'unread' && <span className="size-2.5 shrink-0 rounded-full bg-emerald-500" />}
+          <span className="truncate">{label}</span>
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-zinc-500" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-52">
+        <DropdownMenuItem onClick={() => onChange(undefined)}>
+          Semua status
+          {value === undefined && <Check className="ml-auto size-3.5" />}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onChange('unread')}>
+          <span className="size-2.5 rounded-full bg-emerald-500" />
+          Belum dibaca
+          <span className="ml-auto flex items-center gap-2">
+            {unreadChats > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white">
+                {unreadChats > 99 ? '99+' : unreadChats}
+              </span>
+            )}
+            {value === 'unread' && <Check className="size-3.5" />}
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onChange('read')}>
+          <span className="size-2.5 rounded-full bg-zinc-400" />
+          Sudah dibaca
+          {value === 'read' && <Check className="ml-auto size-3.5" />}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function CategoryFilterMenu({
   categories,
   value,
@@ -32,10 +87,7 @@ function CategoryFilterMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Filter kategori"
-        className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 outline-none transition-colors hover:border-zinc-400 focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-      >
+      <DropdownMenuTrigger aria-label="Filter kategori" className={MENU_TRIGGER}>
         <span className="flex min-w-0 items-center gap-2">
           {current && (
             <span className={cn('size-2.5 shrink-0 rounded-full', crmColor(current.color).dot)} />
@@ -176,6 +228,9 @@ export default function CrmContactList({
   onSearch,
   categoryId,
   onCategory,
+  status,
+  onStatus,
+  unreadChats,
   onRetry,
 }: {
   chats: CrmChat[] | undefined;
@@ -192,9 +247,15 @@ export default function CrmContactList({
   onSearch: (value: string) => void;
   categoryId: CategoryFilter;
   onCategory: (value: CategoryFilter) => void;
+  status: StatusFilter;
+  onStatus: (value: StatusFilter) => void;
+  /** How many conversations have something unread, for the menu. */
+  unreadChats: number;
   onRetry: () => void;
 }) {
-  const filtered = Boolean(search.trim() || categoryId);
+  const filtered = Boolean(search.trim() || categoryId || status);
+  // Unread view with nothing else narrowing it: empty means the inbox is clear, not "no match".
+  const allRead = status === 'unread' && !search.trim() && !categoryId;
   const categoryById = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
     [categories],
@@ -233,7 +294,10 @@ export default function CrmContactList({
             onChange={(event) => onSearch(event.target.value)}
           />
         </div>
-        <CategoryFilterMenu categories={categories} value={categoryId} onChange={onCategory} />
+        <div className="grid grid-cols-2 gap-2">
+          <StatusFilterMenu value={status} unreadChats={unreadChats} onChange={onStatus} />
+          <CategoryFilterMenu categories={categories} value={categoryId} onChange={onCategory} />
+        </div>
       </div>
 
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
@@ -258,12 +322,18 @@ export default function CrmContactList({
         {chats && chats.length === 0 && (
           <div className="px-6 py-14 text-center">
             <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-              {filtered ? 'Tidak ada percakapan yang cocok' : 'Belum ada percakapan'}
+              {allRead
+                ? 'Semua pesan sudah dibaca'
+                : filtered
+                  ? 'Tidak ada percakapan yang cocok'
+                  : 'Belum ada percakapan'}
             </p>
             <p className="mt-1 text-xs text-zinc-500">
-              {filtered
-                ? 'Coba kata kunci atau kategori lain.'
-                : 'Hubungkan WhatsApp lalu klik Sinkronkan. Pesan baru muncul otomatis.'}
+              {allRead
+                ? 'Tidak ada percakapan yang menunggu dibuka.'
+                : filtered
+                  ? 'Coba kata kunci, kategori, atau status lain.'
+                  : 'Hubungkan WhatsApp lalu klik Sinkronkan. Pesan baru muncul otomatis.'}
             </p>
           </div>
         )}

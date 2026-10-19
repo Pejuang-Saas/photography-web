@@ -39,7 +39,7 @@ function setup(options: { chats?: any[]; total?: number; bookings?: any[]; named
       count: jest.fn().mockResolvedValue(options.total ?? (options.chats ?? [chat()]).length),
       findUnique: jest.fn().mockResolvedValue(chat()),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-      aggregate: jest.fn().mockResolvedValue({ _sum: { unreadCount: 0 } }),
+      aggregate: jest.fn().mockResolvedValue({ _sum: { unreadCount: 0 }, _count: { _all: 0 } }),
       findFirst: jest.fn().mockResolvedValue(null),
     },
     whatsappMessage: { findMany: jest.fn().mockResolvedValue([]) },
@@ -413,7 +413,10 @@ describe('CrmChatsService unread', () => {
 
   it('adds up the unread messages and names who wrote last', async () => {
     const { service, prisma } = setup();
-    prisma.whatsappChat.aggregate.mockResolvedValue({ _sum: { unreadCount: 5 } });
+    prisma.whatsappChat.aggregate.mockResolvedValue({
+      _sum: { unreadCount: 5 },
+      _count: { _all: 3 },
+    });
     prisma.whatsappChat.findFirst.mockResolvedValue({
       id: 'chat-7',
       name: 'Anisa',
@@ -425,6 +428,7 @@ describe('CrmChatsService unread', () => {
 
     expect(await service.unreadSummary()).toEqual({
       total: 5,
+      chats: 3,
       latest: {
         chatId: 'chat-7',
         displayName: 'Anisa',
@@ -440,7 +444,7 @@ describe('CrmChatsService unread', () => {
   it('reports zero and nobody when everything has been read', async () => {
     const { service } = setup();
 
-    expect(await service.unreadSummary()).toEqual({ total: 0, latest: null });
+    expect(await service.unreadSummary()).toEqual({ total: 0, chats: 0, latest: null });
   });
 
   it('falls back to the number, then the id, for a latest sender without a name', async () => {
@@ -579,5 +583,56 @@ describe('CrmChatsService inbox paging', () => {
     expect(prisma.whatsappChat.aggregate.mock.calls[0][0].where).toEqual({
       unreadCount: { gt: 0 },
     });
+  });
+});
+
+describe('CrmChatsService read status filter', () => {
+  it('shows only conversations with something unread', async () => {
+    const { service, prisma } = setup();
+
+    await service.list({ status: 'unread' });
+
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where).toEqual({ unreadCount: { gt: 0 } });
+  });
+
+  it('shows only conversations that have been read', async () => {
+    const { service, prisma } = setup();
+
+    await service.list({ status: 'read' });
+
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where).toEqual({ unreadCount: 0 });
+  });
+
+  it('shows everything for no status, or for one it does not know', async () => {
+    const { service, prisma } = setup();
+
+    await service.list({});
+    await service.list({ status: 'archived' });
+
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where).toEqual({});
+    expect(prisma.whatsappChat.findMany.mock.calls[1][0].where).toEqual({});
+  });
+
+  it('combines with a category and with paging', async () => {
+    const { service, prisma } = setup();
+    const cursor = encodeCursor({ lastActivityAt: minutesAgo(3), id: 'chat-3' });
+
+    await service.list({ status: 'unread', categoryId: 'cat-1', cursor });
+
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where.AND[0]).toEqual({
+      categoryId: 'cat-1',
+      unreadCount: { gt: 0 },
+    });
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where.AND[1].OR).toHaveLength(2);
+  });
+
+  it('combines with a search', async () => {
+    const { service, prisma } = setup();
+
+    await service.list({ status: 'unread', search: 'anisa' });
+
+    const where = prisma.whatsappChat.findMany.mock.calls[0][0].where;
+    expect(where.unreadCount).toEqual({ gt: 0 });
+    expect(where.OR).toBeDefined();
   });
 });

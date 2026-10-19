@@ -8,6 +8,7 @@ import {
   useCrmCategories,
   useCrmChat,
   useCrmInbox,
+  useCrmUnread,
   useMarkRead,
   useSyncCrm,
 } from '@/lib/crm-queries';
@@ -23,7 +24,10 @@ import {
 import { cn } from '@/lib/utils';
 import CategoryManagerDialog from './components/category-manager-dialog';
 import CrmChatBox from './components/crm-chat-box';
-import CrmContactList, { type CategoryFilter } from './components/crm-contact-list';
+import CrmContactList, {
+  type CategoryFilter,
+  type StatusFilter,
+} from './components/crm-contact-list';
 import CrmCustomerDetail from './components/crm-customer-detail';
 
 const PANEL =
@@ -41,7 +45,10 @@ function CrmWorkspace() {
   const [infoOpen, setInfoOpen] = useState(false);
   const search = useDebounced(searchInput.trim());
 
-  const chats = useCrmInbox({ search: search || undefined, categoryId });
+  const [status, setStatus] = useState<StatusFilter>(undefined);
+  // The open conversation stays in the list even if opening it (reading it) stops it matching.
+  const chats = useCrmInbox({ search: search || undefined, categoryId, status }, selectedId);
+  const unreadChats = useCrmUnread().data?.chats ?? 0;
   const categories = useCrmCategories();
   const listed = chats.items?.find((item) => item.id === selectedId);
   const chat = useCrmChat(selectedId, listed);
@@ -112,6 +119,9 @@ function CrmWorkspace() {
             onSearch={setSearchInput}
             categoryId={categoryId}
             onCategory={setCategoryId}
+            status={status}
+            onStatus={setStatus}
+            unreadChats={unreadChats}
             onRetry={() => chats.refetch()}
           />
         </section>

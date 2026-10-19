@@ -9,6 +9,7 @@ import {
   type CrmCategory,
   type CrmChat,
   type CrmChatFilter,
+  type CrmChatPage,
   type CrmMessage,
 } from './crm-api';
 
@@ -46,6 +47,26 @@ function mergeChats(...lists: CrmChat[][]) {
   return [...byId.values()].sort(byActivity);
 }
 
+/**
+ * Folds a freshly fetched first page into what is already loaded. Conversations the page holds are
+ * updated and those further down are kept as they were. A loaded conversation that ranks inside
+ * the page's span but is not in it no longer belongs in this view (it was read from the phone, or
+ * recategorised elsewhere), so it is dropped; otherwise it would sit there with an out-of-date badge.
+ * The one the admin has open is kept regardless, so it does not vanish from under them.
+ */
+function applyFirstPage(loaded: CrmChat[], page: CrmChatPage, pinnedId: string | null | undefined) {
+  const fresh = new Set(page.items.map((chat) => chat.id));
+  const edge = page.hasMore ? page.items[page.items.length - 1] : undefined;
+  const kept = loaded.filter(
+    (chat) =>
+      fresh.has(chat.id) ||
+      chat.id === pinnedId ||
+      // Ranks after the page's last conversation: the page says nothing about it, so keep it.
+      (edge !== undefined && byActivity(chat, edge) > 0),
+  );
+  return mergeChats(kept, page.items);
+}
+
 /** Changes one conversation in every loaded inbox at once, without waiting for a refetch. */
 function patchInbox(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -67,7 +88,7 @@ function patchInbox(
  * what is already loaded, so a conversation that moves to the top as a message arrives never
  * leaves a gap or shows twice further down. More pages are fetched by cursor as the admin scrolls.
  */
-export function useCrmInbox(filter: CrmChatFilter) {
+export function useCrmInbox(filter: CrmChatFilter, pinnedId?: string | null) {
   const queryClient = useQueryClient();
   const filterKey = JSON.stringify(filter);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the key only changes with the filter's content
@@ -89,7 +110,7 @@ export function useCrmInbox(filter: CrmChatFilter) {
       // What was loaded stays; the fresh first page updates the conversations it contains. Until
       // the admin scrolls past the first page, that page's own cursor is the right one.
       return {
-        items: mergeChats(previous.items, page.items),
+        items: applyFirstPage(previous.items, page, pinnedId),
         hasMore: previous.loadedMore ? previous.hasMore : page.hasMore,
         nextCursor: previous.loadedMore ? previous.nextCursor : page.nextCursor,
         loadedMore: previous.loadedMore,
@@ -130,15 +151,22 @@ export function useCrmInbox(filter: CrmChatFilter) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `filter` is represented by queryKey
   }, [queryClient, queryKey]);
 
-  // A conversation recoloured into another category must leave a filtered view at once, even
-  // though the merge keeps everything that was loaded.
+  // What the filters say right now, applied to everything loaded: a conversation recoloured into
+  // another category, or just read, must leave a filtered view at once. The one that is open stays
+  // while it is open, even if opening it is what stopped it matching (reading an unread one).
+  const { categoryId, status } = filter;
   const items = useMemo(() => {
     const all = query.data?.items;
-    if (!all || !filter.categoryId) return all;
-    return all.filter((chat) =>
-      filter.categoryId === 'none' ? !chat.category : chat.category?.id === filter.categoryId,
-    );
-  }, [query.data?.items, filter.categoryId]);
+    if (!all || (!categoryId && !status)) return all;
+    return all.filter((chat) => {
+      if (chat.id === pinnedId) return true;
+      if (categoryId === 'none' && chat.category) return false;
+      if (categoryId && categoryId !== 'none' && chat.category?.id !== categoryId) return false;
+      if (status === 'unread' && chat.unreadCount === 0) return false;
+      if (status === 'read' && chat.unreadCount > 0) return false;
+      return true;
+    });
+  }, [query.data?.items, categoryId, status, pinnedId]);
 
   return {
     items,

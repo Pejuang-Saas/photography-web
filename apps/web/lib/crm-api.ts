@@ -65,7 +65,10 @@ export type CrmMessagePage = { items: CrmMessage[]; hasMore: boolean };
 export type CrmMessageCursor = { before: string; beforeId: string };
 
 export type CrmUnread = {
+  /** Messages waiting. */
   total: number;
+  /** Conversations with at least one message waiting. */
+  chats: number;
   latest: {
     chatId: string;
     displayName: string;
@@ -87,7 +90,10 @@ export type CrmTemplatePreview = { template: { id: string; name: string }; text:
 
 export type CrmSendResult = { sent: boolean; messageId: string | null };
 
-export type CrmChatFilter = { search?: string; categoryId?: string };
+/** Whether to show only conversations with unread messages, or only those already read. */
+export type CrmReadStatus = 'unread' | 'read';
+
+export type CrmChatFilter = { search?: string; categoryId?: string; status?: CrmReadStatus };
 
 const json = (body: unknown) => JSON.stringify(body);
 
@@ -96,6 +102,7 @@ export const crmApi = {
     const params = new URLSearchParams({ limit: String(limit) });
     if (filter.search) params.set('search', filter.search);
     if (filter.categoryId) params.set('categoryId', filter.categoryId);
+    if (filter.status) params.set('status', filter.status);
     if (cursor) params.set('cursor', cursor);
     return apiRequest<CrmChatPage>(`/admin/crm/chats?${params}`);
   },

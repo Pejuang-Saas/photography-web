@@ -118,6 +118,13 @@ export class WhatsappInboxService {
         });
       }
     }
+    // Answering a conversation, from the CRM or from the phone, means it has been read.
+    if (fromMe && options.live) {
+      await this.prisma.whatsappChat.updateMany({
+        where: { id: chat.id, unreadCount: { gt: 0 } },
+        data: { unreadCount: 0 },
+      });
+    }
     if (options.live && hasMedia) this.media.prefetch(stored.id);
     return 'stored';
   }
