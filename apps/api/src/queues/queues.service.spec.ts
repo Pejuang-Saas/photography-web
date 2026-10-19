@@ -16,6 +16,7 @@ describe('queue job ids', () => {
       queue as never,
       queue as never,
       queue as never,
+      queue as never,
     );
 
     await service.scheduleBookingExpiration('booking-1', new Date(Date.now() + 1000));

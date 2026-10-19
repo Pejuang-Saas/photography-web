@@ -3,6 +3,7 @@ export const QUEUE_NAMES = {
   STORAGE_CLEANUP: 'storage-cleanup',
   OUTBOX: 'outbox',
   EMAIL: 'email',
+  GALLERY_SYNC: 'gallery-sync',
 } as const;
 
 export type BookingExpirationJob = { bookingId: string } | { sweep: true };
@@ -12,3 +13,4 @@ export type StorageCleanupJob =
 
 export type OutboxJob = { eventId: string } | { sweep: true };
 export type EmailJob = { logId: string };
+export type GallerySyncJob = { syncJobId: string };

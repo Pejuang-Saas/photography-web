@@ -371,6 +371,7 @@ model Booking {
   payments      Payment[]
   invoice       Invoice?
   notifications Notification[]
+  galleries     Gallery[]
 
   @@index([status, createdAt])
   @@index([sessionDate, timeSlot])
@@ -684,4 +685,129 @@ model FaqItem {
 
   @@index([isPublished, sortOrder])
   @@map("faq_items")
+}
+
+enum GalleryStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum SyncStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum SelectionStatus {
+  DRAFT
+  SUBMITTED
+}
+
+/// A set of photos in a public Google Drive folder that a customer picks favourites from.
+model Gallery {
+  id              String        @id @default(uuid())
+  name            String
+  slug            String        @unique
+  /// The secret in the customer's link, never the internal id.
+  publicToken     String        @unique @default(cuid()) @map("public_token")
+  driveFolderId   String        @map("drive_folder_id")
+  driveSourceType String        @default("google_drive_public") @map("drive_source_type")
+  status          GalleryStatus @default(DRAFT)
+  description     String?
+  /// Null means no limit.
+  maxSelections   Int?          @map("max_selections")
+  bookingId       String?       @map("booking_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  booking    Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  photos     GalleryPhoto[]
+  syncJobs   SyncJob[]
+  selections Selection[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([bookingId])
+  @@map("galleries")
+}
+
+/// Metadata only: the image itself stays on Google Drive.
+model GalleryPhoto {
+  id           String   @id @default(uuid())
+  galleryId    String   @map("gallery_id")
+  driveFileId  String   @map("drive_file_id")
+  filename     String
+  mimeType     String?  @map("mime_type")
+  thumbnailUrl String?  @map("thumbnail_url")
+  viewUrl      String?  @map("view_url")
+  sortOrder    Int      @default(0) @map("sort_order")
+  /// False once the file is no longer in the Drive folder.
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  gallery        Gallery         @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  selectionItems SelectionItem[]
+
+  @@unique([galleryId, driveFileId])
+  @@index([galleryId, isActive, sortOrder])
+  @@map("gallery_photos")
+}
+
+model Selection {
+  id            String          @id @default(uuid())
+  galleryId     String          @map("gallery_id")
+  /// What the customer's browser keeps to resume; unguessable.
+  sessionToken  String          @unique @default(cuid()) @map("session_token")
+  customerName  String          @map("customer_name")
+  customerEmail String?         @map("customer_email")
+  customerPhone String?         @map("customer_phone")
+  status        SelectionStatus @default(DRAFT)
+  submittedAt   DateTime?       @map("submitted_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  gallery Gallery         @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  items   SelectionItem[]
+
+  @@index([galleryId, status])
+  @@map("selections")
+}
+
+model SelectionItem {
+  id          String   @id @default(uuid())
+  selectionId String   @map("selection_id")
+  photoId     String   @map("photo_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  selection Selection    @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+  photo     GalleryPhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([selectionId, photoId])
+  @@index([photoId])
+  @@map("selection_items")
+}
+
+model SyncJob {
+  id             String     @id @default(uuid())
+  galleryId      String     @map("gallery_id")
+  status         SyncStatus @default(PENDING)
+  totalFiles     Int?       @map("total_files")
+  syncedFiles    Int        @default(0) @map("synced_files")
+  newFiles       Int        @default(0) @map("new_files")
+  removedFiles   Int        @default(0) @map("removed_files")
+  errorMessage   String?    @map("error_message")
+  /// The sync worked, but the admin should know something (a partial listing).
+  warningMessage String?    @map("warning_message")
+  startedAt      DateTime?  @map("started_at")
+  completedAt    DateTime?  @map("completed_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  gallery Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@index([galleryId, status])
+  @@index([galleryId, createdAt(sort: Desc)])
+  @@map("sync_jobs")
 }

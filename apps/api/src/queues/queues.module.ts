@@ -33,6 +33,7 @@ function redisConnection(url: string) {
       { name: QUEUE_NAMES.STORAGE_CLEANUP },
       { name: QUEUE_NAMES.OUTBOX },
       { name: QUEUE_NAMES.EMAIL },
+      { name: QUEUE_NAMES.GALLERY_SYNC },
     ),
   ],
   controllers: [QueueOperationsController],

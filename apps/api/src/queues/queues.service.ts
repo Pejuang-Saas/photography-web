@@ -23,6 +23,8 @@ export class QueuesService {
     private readonly outboxQueue: Queue,
     @InjectQueue(QUEUE_NAMES.EMAIL)
     private readonly emailQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.GALLERY_SYNC)
+    private readonly gallerySyncQueue: Queue,
   ) {}
 
   scheduleBookingExpiration(bookingId: string, expiresAt: Date) {
@@ -70,6 +72,23 @@ export class QueuesService {
         ...(options.immediate ? { delay: 1_000 } : {}),
         attempts: 10,
         backoff: { type: 'exponential', delay: 5_000 },
+        removeOnComplete: 100,
+        removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
+      },
+    );
+  }
+
+  /**
+   * One job per sync run. It is not retried by the queue: a failed read of Drive is recorded on
+   * the run itself, and the admin starts another with the button.
+   */
+  scheduleGallerySync(syncJobId: string) {
+    return this.gallerySyncQueue.add(
+      'sync-gallery',
+      { syncJobId },
+      {
+        jobId: jobId('gallery-sync', syncJobId),
+        attempts: 1,
         removeOnComplete: 100,
         removeOnFail: { age: 7 * 24 * 60 * 60, count: 1_000 },
       },
