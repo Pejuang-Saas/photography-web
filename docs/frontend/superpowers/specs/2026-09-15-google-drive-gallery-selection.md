@@ -1,7 +1,7 @@
 # Frontend Specification: Google Drive Gallery & Customer Photo Selection
 
 - **Version**: 1.0.0
-- **Status**: Ready for Implementation
+- **Status**: Implemented (lihat Bagian 11: Catatan Implementasi)
 - **Date**: 2026-09-15
 - **Related Backend Docs**:
   - [01-PRD.md](../../backend/01-PRD.md) — Bagian 2: Gallery Feature PRD
@@ -336,6 +336,45 @@ Kaya Story — Wedding Andi & Sinta
 - **Admin Sidebar**: Tambahkan menu baru `Galleries` di bawah _navigation sidebar_ dashboard `/admin`.
 - **Booking Integration**: Pada halaman detail _Booking_, jika status _booking_ adalah `COMPLETED`, tambahkan tombol/tautan cepat "Buat Gallery" yang otomatis mengarahkan ke form `/admin/galleries/new` dengan `bookingId` terisi.
 - **CRM / WAHA Integration**: Tautan (_link_) `publicUrl` dari _gallery_ akan disalin oleh Admin dan dibagikan kepada klien melalui WhatsApp, berpotensi diintegrasikan dengan fitur CRM WhatsApp yang sudah ada untuk pengiriman otomatis.
+
+---
+
+## 11. Catatan Implementasi
+
+Fitur ini sudah diimplementasikan penuh (backend NestJS + frontend Next.js) dan diuji end-to-end terhadap folder Google Drive publik sungguhan. Bagian di bawah mencatat apa yang berbeda dari dokumen di atas dan kenapa.
+
+### 11.1 Penyesuaian terhadap konvensi aplikasi
+
+| Dokumen                                                | Implementasi                                                      | Alasan                                                                                                                                                           |
+| ------------------------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model `Photo`, tabel `photos`                          | `GalleryPhoto`, tabel `gallery_photos`                            | Model `Photo` lama (tabel `photos`) sudah ada di skema dan bentrok.                                                                                              |
+| Admin memakai Bearer JWT                               | Cookie sesi Better Auth, `@Roles(['admin'])`                      | Sama dengan seluruh endpoint admin lain.                                                                                                                         |
+| Envelope `{ success, data }`, prefix `/api/v1`         | Respons JSON langsung, tanpa prefix                               | Sama dengan endpoint lain. Daftar memakai `{ items, page, limit, total, totalPages }`. Galat membawa `errorCode` (mis. `GALLERY_INACTIVE`) di samping `message`. |
+| `GalleryInfo.token`                                    | `publicToken`                                                     | Mengikuti nama kolom.                                                                                                                                            |
+| `PhotoSource.discoverFiles()` sebagai `AsyncGenerator` | `discover()` mengembalikan `{ photos, warning? }`                 | Sinkronisasi butuh total di depan untuk progress bar, dan sumber perlu bisa mengirim peringatan.                                                                 |
+| State dengan Zustand                                   | `useReducer`                                                      | Disebut sebagai alternatif di Bagian 6; tanpa dependensi baru.                                                                                                   |
+| Komponen di `app/(public)/gallery/_components/`        | `app/gallery/_components/` dan `app/admin/galleries/_components/` | Aplikasi tidak memakai route group `(public)`.                                                                                                                   |
+| Menu "Galleries"                                       | "Galeri Klien"                                                    | Membedakannya dari menu CMS > Gallery (foto landing page).                                                                                                       |
+| Env `NEXT_PUBLIC_GALLERY_BASE_URL` wajib               | Opsional                                                          | `publicUrl` sudah dibuat API dari `WEB_URL`; env ini hanya menimpa.                                                                                              |
+
+Tambahan di luar dokumen: kolom `sync_jobs.warning_message`, galat `SELECTION_EMPTY` (tidak bisa submit tanpa foto), `BOOKING_NOT_FOUND`, `SELECTION_NOT_FOUND`, env `DRIVE_BASE_URL` (opsional, untuk pengujian), halaman `/gallery/*` ditandai `noindex` dan di-disallow di `robots.txt`, dan run sinkronisasi yang macet lebih dari 10 menit dianggap gagal agar admin bisa mencoba lagi.
+
+### 11.2 Batasan yang perlu diketahui
+
+> [!WARNING]
+> **Folder publik Google Drive hanya menampilkan 50 entri pertama.** Ini diverifikasi pada halaman Drive asli: data yang tertanam di halaman tidak memuat token halaman berikutnya, dan tidak ada cara resmi tanpa kredensial untuk meminta sisanya. Contoh di Bagian 9 (247 foto) karenanya tidak akan lengkap lewat sumber ini.
+>
+> Sinkronisasi mendeteksi hal ini (daftar penuh tepat 50 entri, termasuk subfolder) dan menampilkan peringatan kuning di kartu Sinkronisasi Drive. Solusi yang disarankan: bagi foto ke beberapa folder berisi maksimal 50 file, atau tambahkan sumber foto kedua berbasis Google Drive API v3 dengan API key. Antarmuka `PhotoSource` memang disiapkan agar pergantian ini hanya menyentuh satu provider.
+
+- Subfolder tidak dibaca; hanya gambar di folder itu sendiri (JPG, PNG, WEBP, GIF, HEIC; berkas yang diberi label biner umum oleh Drive dikenali lewat ekstensi).
+- Seluruh parsing HTML Drive ada di satu file (`google-drive-public.parser.ts`). Jika Google mengubah format halamannya, sinkronisasi gagal dengan pesan "Format halaman mungkin berubah" dan hanya file itu yang perlu diperbaiki.
+- Foto di Drive tetap harus diset "Anyone with the link" agar thumbnail tampil bagi customer.
+
+### 11.3 Perilaku yang ditambahkan saat pengujian
+
+- Saat batas `maxSelections` tercapai, foto yang belum dipilih tampil redup tetapi tetap bisa diklik, supaya customer mendapat peringatan "Maksimal N foto" (bukan klik yang diam).
+- Submit selalu menyimpan draf terakhir lebih dulu, dan menutup tab dalam jendela debounce 1,5 detik tetap menyimpan klik terakhir.
+- Metadata seluruh foto dimuat bertahap di latar belakang (100 per permintaan), sedangkan grid digambar 50 per kali, sehingga tab Dipilih/Belum dipilih tetap benar tanpa memanggil API baru.
 
 ---
 

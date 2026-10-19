@@ -9,11 +9,14 @@ export type ApiErrorBody = {
   message?: string | string[];
   error?: string;
   code?: string;
+  /** Set by the gallery API so a screen can tell, say, an inactive gallery from a missing one. */
+  errorCode?: string;
 };
 
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
+  readonly errorCode?: string;
   readonly body?: ApiErrorBody;
 
   constructor(status: number, body?: ApiErrorBody) {
@@ -25,6 +28,7 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.status = status;
     this.code = body?.code;
+    this.errorCode = body?.errorCode;
     this.body = body;
   }
 }

@@ -25,6 +25,7 @@ import {
   User,
   MessageCircle,
   MessagesSquare,
+  FolderOpen,
   FileText,
   CreditCard,
   ZoomIn,
@@ -156,6 +157,21 @@ function BookingDetail({
             <MessageCircle className="size-3.5" />
             Chat WA
           </a>
+
+          {booking.status === 'COMPLETED' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onClose();
+                router.push(`/admin/galleries/new?bookingId=${booking.id}`);
+              }}
+              className="h-8 gap-1.5 border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <FolderOpen className="size-3.5" />
+              Buat Gallery
+            </Button>
+          )}
 
           {booking.invoice && (
             <Button

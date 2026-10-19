@@ -27,6 +27,7 @@ import {
   Mail,
   MessagesSquare,
   LayoutTemplate,
+  FolderOpen,
   ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
@@ -176,6 +177,7 @@ export default function AdminSidebar({
       badge: crmUnread > 0 ? crmUnread : null,
       badgeColor: 'bg-emerald-500 text-white',
     },
+    { title: 'Galeri Klien', href: '/admin/galleries', icon: FolderOpen },
     { title: 'Paket & Layanan', href: '/admin/packages', icon: Layers },
     // Integration features from other specs (WAHA / template builder / SMTP) add their pages here.
     {
