@@ -7,7 +7,7 @@ import { MessageSquareText, RefreshCw, Tags } from 'lucide-react';
 import {
   useCrmCategories,
   useCrmChat,
-  useCrmChats,
+  useCrmInbox,
   useMarkRead,
   useSyncCrm,
 } from '@/lib/crm-queries';
@@ -41,9 +41,9 @@ function CrmWorkspace() {
   const [infoOpen, setInfoOpen] = useState(false);
   const search = useDebounced(searchInput.trim());
 
-  const chats = useCrmChats({ search: search || undefined, categoryId });
+  const chats = useCrmInbox({ search: search || undefined, categoryId });
   const categories = useCrmCategories();
-  const listed = chats.data?.items.find((item) => item.id === selectedId);
+  const listed = chats.items?.find((item) => item.id === selectedId);
   const chat = useCrmChat(selectedId, listed);
   // A placeholder comes from the list, whose "seconds remaining" were measured when the list loaded.
   const chatReceivedAt = chat.isPlaceholderData ? chats.dataUpdatedAt : chat.dataUpdatedAt;
@@ -98,10 +98,13 @@ function CrmWorkspace() {
       <div className="grid h-[calc(100dvh-14rem)] min-h-[520px] gap-4 lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_320px]">
         <section className={cn(PANEL, selectedId && 'hidden lg:flex')}>
           <CrmContactList
-            chats={chats.data?.items}
-            total={chats.data?.total ?? 0}
+            chats={chats.items}
             loading={chats.isLoading}
             error={chats.error}
+            hasMore={chats.hasMore}
+            loadingMore={chats.loadingMore}
+            loadMoreError={chats.loadMoreError}
+            onLoadMore={chats.loadMore}
             categories={categories.data ?? []}
             selectedId={selectedId}
             onSelect={select}

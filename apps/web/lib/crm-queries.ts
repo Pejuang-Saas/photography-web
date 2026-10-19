@@ -1,14 +1,21 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { errorMessage } from './admin-queries';
-import { crmApi, type CrmChat, type CrmChatFilter, type CrmMessage } from './crm-api';
+import {
+  crmApi,
+  type CrmCategory,
+  type CrmChat,
+  type CrmChatFilter,
+  type CrmMessage,
+} from './crm-api';
 
 export const crmKeys = {
   all: ['admin', 'crm'] as const,
   chats: ['admin', 'crm', 'chats'] as const,
+  inbox: ['admin', 'crm', 'inbox'] as const,
   chat: (id: string) => ['admin', 'crm', 'chat', id] as const,
   messages: (id: string) => ['admin', 'crm', 'messages', id] as const,
   categories: ['admin', 'crm', 'categories'] as const,
@@ -20,13 +27,130 @@ export const crmKeys = {
 
 const fail = (error: unknown) => toast.error(errorMessage(error));
 
-export function useCrmChats(filter: CrmChatFilter) {
-  return useQuery({
-    queryKey: [...crmKeys.chats, filter],
-    queryFn: () => crmApi.listChats(filter),
+/** Everything loaded so far for one search and filter, newest activity first. */
+type Inbox = {
+  items: CrmChat[];
+  hasMore: boolean;
+  nextCursor: string | null;
+  /** True once the admin has scrolled past the first page. */
+  loadedMore: boolean;
+};
+
+const byActivity = (a: CrmChat, b: CrmChat) =>
+  b.lastActivityAt.localeCompare(a.lastActivityAt) || b.id.localeCompare(a.id);
+
+/** Each conversation once, the later list winning, in inbox order. */
+function mergeChats(...lists: CrmChat[][]) {
+  const byId = new Map<string, CrmChat>();
+  for (const list of lists) for (const chat of list) byId.set(chat.id, chat);
+  return [...byId.values()].sort(byActivity);
+}
+
+/** Changes one conversation in every loaded inbox at once, without waiting for a refetch. */
+function patchInbox(
+  queryClient: ReturnType<typeof useQueryClient>,
+  chatId: string,
+  patch: (chat: CrmChat) => CrmChat,
+) {
+  queryClient.setQueriesData<Inbox>(
+    { queryKey: crmKeys.inbox },
+    (inbox) =>
+      inbox && {
+        ...inbox,
+        items: inbox.items.map((chat) => (chat.id === chatId ? patch(chat) : chat)),
+      },
+  );
+}
+
+/**
+ * The inbox with infinite scroll. The first page refreshes every few seconds and is merged into
+ * what is already loaded, so a conversation that moves to the top as a message arrives never
+ * leaves a gap or shows twice further down. More pages are fetched by cursor as the admin scrolls.
+ */
+export function useCrmInbox(filter: CrmChatFilter) {
+  const queryClient = useQueryClient();
+  const filterKey = JSON.stringify(filter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key only changes with the filter's content
+  const queryKey = useMemo(() => [...crmKeys.inbox, filter] as const, [filterKey]);
+
+  const query = useQuery({
+    queryKey,
+    queryFn: async (): Promise<Inbox> => {
+      const page = await crmApi.listChats(filter);
+      const previous = queryClient.getQueryData<Inbox>(queryKey);
+      if (!previous) {
+        return {
+          items: page.items,
+          hasMore: page.hasMore,
+          nextCursor: page.nextCursor,
+          loadedMore: false,
+        };
+      }
+      // What was loaded stays; the fresh first page updates the conversations it contains. Until
+      // the admin scrolls past the first page, that page's own cursor is the right one.
+      return {
+        items: mergeChats(previous.items, page.items),
+        hasMore: previous.loadedMore ? previous.hasMore : page.hasMore,
+        nextCursor: previous.loadedMore ? previous.nextCursor : page.nextCursor,
+        loadedMore: previous.loadedMore,
+      };
+    },
     placeholderData: keepPreviousData,
     refetchInterval: 10_000,
   });
+
+  const loading = useRef(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+
+  const loadMore = useCallback(async () => {
+    const inbox = queryClient.getQueryData<Inbox>(queryKey);
+    if (loading.current || !inbox?.hasMore || !inbox.nextCursor) return;
+    loading.current = true;
+    setLoadingMore(true);
+    setLoadMoreError(null);
+    try {
+      const page = await crmApi.listChats(filter, inbox.nextCursor);
+      queryClient.setQueryData<Inbox>(
+        queryKey,
+        (current) =>
+          current && {
+            items: mergeChats(current.items, page.items),
+            hasMore: page.hasMore,
+            nextCursor: page.nextCursor,
+            loadedMore: true,
+          },
+      );
+    } catch (error) {
+      setLoadMoreError(errorMessage(error));
+    } finally {
+      loading.current = false;
+      setLoadingMore(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `filter` is represented by queryKey
+  }, [queryClient, queryKey]);
+
+  // A conversation recoloured into another category must leave a filtered view at once, even
+  // though the merge keeps everything that was loaded.
+  const items = useMemo(() => {
+    const all = query.data?.items;
+    if (!all || !filter.categoryId) return all;
+    return all.filter((chat) =>
+      filter.categoryId === 'none' ? !chat.category : chat.category?.id === filter.categoryId,
+    );
+  }, [query.data?.items, filter.categoryId]);
+
+  return {
+    items,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    dataUpdatedAt: query.dataUpdatedAt,
+    hasMore: query.data?.hasMore ?? false,
+    loadMore,
+    loadingMore,
+    loadMoreError,
+  };
 }
 
 /** `placeholder` (the same conversation from the list) is shown while the full record loads. */
@@ -122,12 +246,14 @@ export function useMarkRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (chatId: string) => crmApi.markRead(chatId),
-    onSuccess: (_result, chatId) =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: crmKeys.chats }),
+    onSuccess: (_result, chatId) => {
+      patchInbox(queryClient, chatId, (chat) => ({ ...chat, unreadCount: 0 }));
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: crmKeys.inbox }),
         queryClient.invalidateQueries({ queryKey: crmKeys.chat(chatId) }),
         queryClient.invalidateQueries({ queryKey: crmKeys.unread }),
-      ]),
+      ]);
+    },
   });
 }
 
@@ -141,7 +267,21 @@ export function useAssignCategory() {
     mutationFn: ({ chatId, categoryId }: { chatId: string; categoryId: string | null }) =>
       crmApi.assignCategory(chatId, categoryId),
     onError: fail,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: crmKeys.all }),
+    onSuccess: (_result, { chatId, categoryId }) => {
+      // Show the new category in every loaded page now; the refetch below confirms it.
+      const category = queryClient
+        .getQueryData<CrmCategory[]>(crmKeys.categories)
+        ?.find((candidate) => candidate.id === categoryId);
+      patchInbox(queryClient, chatId, (chat) => ({
+        ...chat,
+        category: category ? { id: category.id, name: category.name, color: category.color } : null,
+      }));
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: crmKeys.inbox }),
+        queryClient.invalidateQueries({ queryKey: crmKeys.chat(chatId) }),
+        queryClient.invalidateQueries({ queryKey: crmKeys.categories }),
+      ]);
+    },
   });
 }
 

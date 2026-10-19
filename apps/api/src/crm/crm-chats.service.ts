@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { isLiveBooking, pickRelevantBooking } from './booking-relevance';
@@ -9,11 +14,37 @@ export type ChatQuery = {
   search?: string;
   /** A category id, or "none" for conversations that have no category yet. */
   categoryId?: string;
-  page?: number;
-  pageSize?: number;
+  /** Where the previous page ended; leave out for the first page. */
+  cursor?: string;
+  limit?: number;
 };
 
-const MAX_PAGE_SIZE = 100;
+const DEFAULT_LIMIT = 30;
+const MAX_LIMIT = 100;
+
+/**
+ * Where a page ended: the activity time and id of its last conversation. The inbox is ordered by
+ * exactly that pair, so the next page starts right after it. Unlike an offset, this stays correct
+ * while conversations move to the top as messages arrive, and costs the same however deep it is.
+ */
+export function encodeCursor(chat: { lastActivityAt: Date; id: string }) {
+  return Buffer.from(JSON.stringify([chat.lastActivityAt.toISOString(), chat.id])).toString(
+    'base64url',
+  );
+}
+
+export function decodeCursor(cursor: string): { at: Date; id: string } {
+  try {
+    const [at, id] = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown[];
+    const date = new Date(at as string);
+    if (typeof at === 'string' && typeof id === 'string' && id && !Number.isNaN(date.getTime())) {
+      return { at: date, id };
+    }
+  } catch {
+    // falls through to the error below
+  }
+  throw new BadRequestException('Cursor tidak valid');
+}
 
 const BOOKING_FIELDS = {
   id: true,
@@ -35,30 +66,40 @@ export class CrmChatsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: ChatQuery) {
-    const pageSize = Math.min(
-      Math.max(Math.trunc(query.pageSize as number) || 30, 1),
-      MAX_PAGE_SIZE,
+    const limit = Math.min(
+      Math.max(Math.trunc(query.limit as number) || DEFAULT_LIMIT, 1),
+      MAX_LIMIT,
     );
-    const page = Math.max(Math.trunc(query.page as number) || 1, 1);
-    const where = await this.where(query);
+    const filters = await this.where(query);
+    const after = query.cursor ? decodeCursor(query.cursor) : undefined;
 
-    const [chats, total] = await Promise.all([
-      this.prisma.whatsappChat.findMany({
-        where,
-        include: { category: true },
-        orderBy: [{ lastMessageAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.whatsappChat.count({ where }),
-    ]);
+    // One extra row tells whether there is another page, so no count over the whole inbox is needed.
+    const rows = await this.prisma.whatsappChat.findMany({
+      where: after
+        ? {
+            AND: [
+              filters,
+              {
+                OR: [
+                  { lastActivityAt: { lt: after.at } },
+                  { lastActivityAt: after.at, id: { lt: after.id } },
+                ],
+              },
+            ],
+          }
+        : filters,
+      include: { category: true },
+      orderBy: [{ lastActivityAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+    const hasMore = rows.length > limit;
+    const chats = rows.slice(0, limit);
 
     const bookings = await this.bookingsByPhone(chats.map((chat) => chat.phone));
     return {
       items: chats.map((chat) => this.present(chat, bookings.get(chat.phone ?? ''))),
-      total,
-      page,
-      pageSize,
+      hasMore,
+      nextCursor: hasMore ? encodeCursor(chats[chats.length - 1]) : null,
     };
   }
 
@@ -87,7 +128,7 @@ export class CrmChatsService {
 
     const existing = await this.prisma.whatsappChat.findFirst({
       where: { phone },
-      orderBy: { lastMessageAt: { sort: 'desc', nulls: 'last' } },
+      orderBy: [{ lastActivityAt: 'desc' }, { id: 'desc' }],
       select: { id: true },
     });
     if (existing) return { id: existing.id };
@@ -173,10 +214,14 @@ export class CrmChatsService {
   /** What the sidebar badge and the "new message" toast need: how many, and who wrote last. */
   async unreadSummary() {
     const [total, latest] = await Promise.all([
-      this.prisma.whatsappChat.aggregate({ _sum: { unreadCount: true } }),
+      // Only conversations with something unread are summed, which the unread index serves.
+      this.prisma.whatsappChat.aggregate({
+        where: { unreadCount: { gt: 0 } },
+        _sum: { unreadCount: true },
+      }),
       this.prisma.whatsappChat.findFirst({
         where: { unreadCount: { gt: 0 } },
-        orderBy: { lastMessageAt: { sort: 'desc', nulls: 'last' } },
+        orderBy: [{ lastActivityAt: 'desc' }, { id: 'desc' }],
         select: {
           id: true,
           name: true,
@@ -264,6 +309,8 @@ export class CrmChatsService {
       lastMessagePreview: chat.lastMessagePreview,
       lastMessageAt: chat.lastMessageAt,
       lastMessageFromMe: chat.lastMessageFromMe,
+      /** What the inbox is ordered by; the client uses it to keep merged pages in order. */
+      lastActivityAt: chat.lastActivityAt,
       unreadCount: chat.unreadCount,
       window: messagingWindow(chat.lastInboundAt),
       category: chat.category

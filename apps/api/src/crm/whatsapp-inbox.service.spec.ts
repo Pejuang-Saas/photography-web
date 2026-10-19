@@ -175,6 +175,15 @@ describe('WhatsappInboxService.ingestMessage', () => {
     expect(chats[0].lastMessageFromMe).toBe(false);
   });
 
+  it('moves the conversation in the inbox only as far as its newest message', async () => {
+    const { service, chats } = setup();
+
+    await service.ingestMessage(incoming('new', T0 + 1000));
+    await service.ingestMessage(incoming('old', T0));
+
+    expect(chats[0].lastActivityAt).toEqual(new Date((T0 + 1000) * 1000));
+  });
+
   it('does not rewind the conversation when older history arrives later', async () => {
     const { service, chats, messages } = setup();
 

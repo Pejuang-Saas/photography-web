@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { CrmChatsService } from './crm-chats.service';
+import { CrmChatsService, decodeCursor, encodeCursor } from './crm-chats.service';
 
 const NOW = new Date();
 const minutesAgo = (minutes: number) => new Date(NOW.getTime() - minutes * 60_000);
@@ -10,6 +10,7 @@ const chat = (overrides: Record<string, unknown> = {}) => ({
   phone: '6281234567890',
   name: 'Anisa WA',
   lastMessageAt: minutesAgo(5),
+  lastActivityAt: minutesAgo(5),
   lastInboundAt: minutesAgo(5),
   lastMessagePreview: 'halo',
   lastMessageFromMe: false,
@@ -52,15 +53,24 @@ function setup(options: { chats?: any[]; total?: number; bookings?: any[]; named
 }
 
 describe('CrmChatsService.list', () => {
-  it('shows newest conversations first, those without messages last', async () => {
+  it('shows the most recently active conversations first, ties broken by id', async () => {
     const { service, prisma } = setup();
 
     await service.list({});
 
     expect(prisma.whatsappChat.findMany.mock.calls[0][0].orderBy).toEqual([
-      { lastMessageAt: { sort: 'desc', nulls: 'last' } },
-      { createdAt: 'desc' },
+      { lastActivityAt: 'desc' },
+      { id: 'desc' },
     ]);
+  });
+
+  it('never counts the whole inbox, which a cursor makes unnecessary', async () => {
+    const { service, prisma } = setup();
+
+    const page = await service.list({});
+
+    expect(prisma.whatsappChat.count).not.toHaveBeenCalled();
+    expect(page).not.toHaveProperty('total');
   });
 
   it('matches a booking whichever way the number was written, and names the customer from it', async () => {
@@ -191,14 +201,17 @@ describe('CrmChatsService.list', () => {
     });
   });
 
-  it('keeps paging within bounds', async () => {
+  it('keeps the page size within bounds, asking for one extra row to see if there is more', async () => {
     const { service, prisma } = setup();
 
-    await service.list({ page: -2, pageSize: 99999 });
-    await service.list({ page: 3, pageSize: NaN });
+    await service.list({ limit: 99999 });
+    await service.list({ limit: NaN });
+    await service.list({ limit: -3 });
 
-    expect(prisma.whatsappChat.findMany.mock.calls[0][0]).toMatchObject({ skip: 0, take: 100 });
-    expect(prisma.whatsappChat.findMany.mock.calls[1][0]).toMatchObject({ skip: 60, take: 30 });
+    expect(prisma.whatsappChat.findMany.mock.calls.map((call) => call[0].take)).toEqual([
+      101, 31, 2,
+    ]);
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0]).not.toHaveProperty('skip');
   });
 });
 
@@ -451,6 +464,120 @@ describe('CrmChatsService unread', () => {
 
     expect(prisma.whatsappChat.findMany.mock.calls[0][0].where.OR[0]).toEqual({
       name: { contains: 'anisa', mode: 'insensitive' },
+    });
+  });
+});
+
+describe('CrmChatsService inbox paging', () => {
+  const rows = (count: number) =>
+    Array.from({ length: count }, (_, index) =>
+      chat({ id: `chat-${index}`, phone: null, lastActivityAt: minutesAgo(index) }),
+    );
+
+  it('has no next page when everything fit', async () => {
+    const { service } = setup({ chats: rows(3) });
+
+    const page = await service.list({ limit: 5 });
+
+    expect(page.items).toHaveLength(3);
+    expect(page.hasMore).toBe(false);
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it('shows only the page, and points the cursor at its last conversation, not at the extra row', async () => {
+    const { service } = setup({ chats: rows(6) });
+
+    const page = await service.list({ limit: 5 });
+
+    expect(page.items.map((item) => item.id)).toEqual([
+      'chat-0',
+      'chat-1',
+      'chat-2',
+      'chat-3',
+      'chat-4',
+    ]);
+    expect(page.hasMore).toBe(true);
+    expect(decodeCursor(page.nextCursor!)).toEqual({ at: minutesAgo(4), id: 'chat-4' });
+  });
+
+  it('continues right after the cursor, on top of the filters', async () => {
+    const { service, prisma } = setup();
+    const cursor = encodeCursor({ lastActivityAt: minutesAgo(10), id: 'chat-9' });
+
+    await service.list({ cursor, categoryId: 'cat-1' });
+
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where).toEqual({
+      AND: [
+        { categoryId: 'cat-1' },
+        {
+          OR: [
+            { lastActivityAt: { lt: minutesAgo(10) } },
+            { lastActivityAt: minutesAgo(10), id: { lt: 'chat-9' } },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('does not wrap the filters when there is no cursor', async () => {
+    const { service, prisma } = setup();
+
+    await service.list({ categoryId: 'cat-1' });
+
+    expect(prisma.whatsappChat.findMany.mock.calls[0][0].where).toEqual({ categoryId: 'cat-1' });
+  });
+
+  it('refuses a cursor that was not made by this API, with 400', async () => {
+    const { service, prisma } = setup();
+    const notAnArray = Buffer.from(JSON.stringify({ at: 1 })).toString('base64url');
+    const badDate = Buffer.from(JSON.stringify(['not-a-date', 'x'])).toString('base64url');
+    const noId = Buffer.from(JSON.stringify([minutesAgo(1).toISOString(), ''])).toString(
+      'base64url',
+    );
+
+    for (const cursor of ['garbage!!', '', notAnArray, badDate, noId]) {
+      if (cursor === '') continue; // an empty cursor simply means "first page"
+      await expect(service.list({ cursor })).rejects.toMatchObject({ status: 400 });
+    }
+    expect(prisma.whatsappChat.findMany).not.toHaveBeenCalled();
+  });
+
+  it('round-trips a cursor exactly, including the milliseconds', () => {
+    const at = new Date('2026-10-19T08:09:10.123Z');
+
+    expect(decodeCursor(encodeCursor({ lastActivityAt: at, id: 'abc-123' }))).toEqual({
+      at,
+      id: 'abc-123',
+    });
+  });
+
+  it('finds the booking for each conversation on the page in one query', async () => {
+    const { service, prisma } = setup({
+      chats: [chat({ id: 'a', phone: '6281111111111' }), chat({ id: 'b', phone: '6282222222222' })],
+    });
+
+    await service.list({ limit: 5 });
+
+    expect(prisma.booking.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.booking.findMany.mock.calls[0][0].where.customerPhone.in).toEqual([
+      '6281111111111',
+      '081111111111',
+      '6282222222222',
+      '082222222222',
+    ]);
+  });
+
+  it('orders the unread summary by activity as well', async () => {
+    const { service, prisma } = setup();
+
+    await service.unreadSummary();
+
+    expect(prisma.whatsappChat.findFirst.mock.calls[0][0].orderBy).toEqual([
+      { lastActivityAt: 'desc' },
+      { id: 'desc' },
+    ]);
+    expect(prisma.whatsappChat.aggregate.mock.calls[0][0].where).toEqual({
+      unreadCount: { gt: 0 },
     });
   });
 });

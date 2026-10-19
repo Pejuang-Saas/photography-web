@@ -236,15 +236,19 @@ model WhatsappChat {
   lastMessageFromMe  Boolean   @default(false) @map("last_message_from_me")
   /// Messages from the customer that no admin has opened yet.
   unreadCount        Int       @default(0) @map("unread_count")
+  /// What the inbox is ordered by: the time of the last message, or when the conversation was
+  /// created if there is none. Never null, so a single index can serve the whole list.
+  lastActivityAt     DateTime  @default(now()) @map("last_activity_at")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
   category CrmCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   messages WhatsappMessage[]
 
-  @@index([lastMessageAt])
+  @@index([lastActivityAt(sort: Desc), id(sort: Desc)])
+  @@index([categoryId, lastActivityAt(sort: Desc), id(sort: Desc)])
   @@index([phone])
-  @@index([categoryId])
+  @@index([unreadCount])
   @@map("whatsapp_chats")
 }
 
@@ -366,6 +370,7 @@ model Booking {
 
   @@index([status, createdAt])
   @@index([sessionDate, timeSlot])
+  @@index([customerPhone])
   @@map("bookings")
 }
 

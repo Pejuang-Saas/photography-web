@@ -100,6 +100,8 @@ export class WhatsappInboxService {
       where: { id: chat.id, OR: [{ lastMessageAt: null }, { lastMessageAt: { lt: timestamp } }] },
       data: {
         lastMessageAt: timestamp,
+        // The inbox is ordered by this, which for a conversation with messages is the same instant.
+        lastActivityAt: timestamp,
         lastMessagePreview: previewOf(body, hasMedia),
         lastMessageFromMe: fromMe,
       },

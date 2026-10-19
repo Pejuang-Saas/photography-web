@@ -43,10 +43,10 @@ export class CrmController {
   list(
     @Query('search') search?: string,
     @Query('categoryId') categoryId?: string,
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.chats.list({ search, categoryId, page: Number(page), pageSize: Number(pageSize) });
+    return this.chats.list({ search, categoryId, cursor, limit: Number(limit) });
   }
 
   /** The conversation for a booking's number, created empty if the customer has not written yet. */

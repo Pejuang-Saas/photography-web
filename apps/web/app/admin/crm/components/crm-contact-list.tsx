@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
+import { Check, ChevronDown, Loader2, Search } from 'lucide-react';
 import { errorMessage } from '@/lib/admin-queries';
 import type { CrmCategory, CrmChat } from '@/lib/crm-api';
 import { crmColor } from '@/lib/crm-colors';
@@ -17,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import CategoryBadge from './category-badge';
 
 export type CategoryFilter = string | undefined;
-
 function CategoryFilterMenu({
   categories,
   value,
@@ -72,10 +72,13 @@ function CategoryFilterMenu({
 
 function ContactItem({
   chat,
+  category,
   selected,
   onSelect,
 }: {
   chat: CrmChat;
+  /** The conversation's category as it is now; a pasted-in copy could be out of date. */
+  category: CrmCategory | undefined;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -135,8 +138,8 @@ function ContactItem({
           )}
         </span>
         <span className="flex items-center gap-2">
-          {chat.category ? (
-            <CategoryBadge name={chat.category.name} color={chat.category.color} />
+          {category ? (
+            <CategoryBadge name={category.name} color={category.color} />
           ) : (
             <span className="text-[10px] text-zinc-400">Tanpa kategori</span>
           )}
@@ -160,9 +163,12 @@ function ContactItem({
 
 export default function CrmContactList({
   chats,
-  total,
   loading,
   error,
+  hasMore,
+  loadingMore,
+  loadMoreError,
+  onLoadMore,
   categories,
   selectedId,
   onSelect,
@@ -173,9 +179,12 @@ export default function CrmContactList({
   onRetry,
 }: {
   chats: CrmChat[] | undefined;
-  total: number;
   loading: boolean;
   error: unknown;
+  hasMore: boolean;
+  loadingMore: boolean;
+  loadMoreError: string | null;
+  onLoadMore: () => void;
   categories: CrmCategory[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -186,6 +195,30 @@ export default function CrmContactList({
   onRetry: () => void;
 }) {
   const filtered = Boolean(search.trim() || categoryId);
+  const categoryById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories],
+  );
+
+  // Infinite scroll: when the marker at the bottom of the list comes into view, fetch the next
+  // page. It is watched again after every page, so a short page that still leaves the marker
+  // visible keeps loading until the list fills the panel.
+  const scroller = useRef<HTMLDivElement>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const shown = chats?.length ?? 0;
+  useEffect(() => {
+    const root = scroller.current;
+    const marker = sentinel.current;
+    if (!root || !marker || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) onLoadMore();
+      },
+      { root, rootMargin: '240px' },
+    );
+    observer.observe(marker);
+    return () => observer.disconnect();
+  }, [hasMore, onLoadMore, shown]);
 
   return (
     <>
@@ -203,7 +236,7 @@ export default function CrmContactList({
         <CategoryFilterMenu categories={categories} value={categoryId} onChange={onCategory} />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
         {loading && (
           <div className="space-y-px p-1">
             {Array.from({ length: 6 }, (_, index) => (
@@ -238,14 +271,31 @@ export default function CrmContactList({
           <ContactItem
             key={chat.id}
             chat={chat}
+            category={chat.category ? categoryById.get(chat.category.id) : undefined}
             selected={chat.id === selectedId}
             onSelect={() => onSelect(chat.id)}
           />
         ))}
-        {chats && total > chats.length && (
-          <p className="px-4 py-3 text-center text-[11px] text-zinc-500">
-            Menampilkan {chats.length} dari {total} percakapan. Gunakan pencarian untuk
-            mempersempit.
+        {hasMore && (
+          <div ref={sentinel} className="flex min-h-12 items-center justify-center px-4 py-3">
+            {loadMoreError ? (
+              <p role="alert" className="text-center text-[11px] text-rose-600">
+                {loadMoreError}{' '}
+                <button type="button" onClick={onLoadMore} className="font-semibold underline">
+                  Coba lagi
+                </button>
+              </p>
+            ) : (
+              <span className="flex items-center gap-2 text-[11px] text-zinc-500">
+                <Loader2 className={cn('size-3.5', loadingMore && 'animate-spin')} />
+                Memuat percakapan lainnya…
+              </span>
+            )}
+          </div>
+        )}
+        {!hasMore && shown > 30 && (
+          <p className="px-4 py-4 text-center text-[11px] text-zinc-400">
+            Semua percakapan sudah ditampilkan
           </p>
         )}
       </div>

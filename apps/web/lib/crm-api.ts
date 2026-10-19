@@ -37,12 +37,15 @@ export type CrmChat = {
   lastMessageFromMe: boolean;
   /** Messages from the customer that no admin has opened yet. */
   unreadCount: number;
+  /** What the inbox is ordered by (last message, or creation if none); newest first. */
+  lastActivityAt: string;
   window: CrmWindow;
   category: { id: string; name: string; color: string } | null;
   booking: CrmBooking | null;
 };
 
-export type CrmChatPage = { items: CrmChat[]; total: number; page: number; pageSize: number };
+/** One page of the inbox. `nextCursor` continues right after this page's last conversation. */
+export type CrmChatPage = { items: CrmChat[]; hasMore: boolean; nextCursor: string | null };
 
 export type CrmMessage = {
   id: string;
@@ -89,10 +92,11 @@ export type CrmChatFilter = { search?: string; categoryId?: string };
 const json = (body: unknown) => JSON.stringify(body);
 
 export const crmApi = {
-  listChats: (filter: CrmChatFilter) => {
-    const params = new URLSearchParams({ pageSize: '100' });
+  listChats: (filter: CrmChatFilter, cursor?: string | null, limit = 30) => {
+    const params = new URLSearchParams({ limit: String(limit) });
     if (filter.search) params.set('search', filter.search);
     if (filter.categoryId) params.set('categoryId', filter.categoryId);
+    if (cursor) params.set('cursor', cursor);
     return apiRequest<CrmChatPage>(`/admin/crm/chats?${params}`);
   },
   getChat: (id: string) => apiRequest<CrmChat>(`/admin/crm/chats/${id}`),
