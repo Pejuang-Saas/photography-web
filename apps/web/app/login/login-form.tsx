@@ -33,7 +33,16 @@ export default function AdminLoginForm() {
       });
 
       if (signInError) {
-        setError('Email atau password tidak valid.');
+        const status = signInError.status;
+        if (status === 400 || status === 401 || status === 403) {
+          setError('Email atau password tidak valid.');
+        } else if (status === 429) {
+          setError('Terlalu banyak percobaan. Tunggu sebentar, lalu coba lagi.');
+        } else {
+          setError(
+            `Server login tidak merespons dengan benar (kode ${status || 'tanpa respons'}). Alamat API atau pengaturan CORS kemungkinan salah.`,
+          );
+        }
         setIsSubmitting(false);
         return;
       }
@@ -43,8 +52,12 @@ export default function AdminLoginForm() {
       });
 
       if (!access.ok) {
-        await authClient.signOut();
-        setError('Akun ini tidak memiliki akses admin.');
+        await authClient.signOut().catch(() => undefined);
+        setError(
+          access.status === 401
+            ? 'Login berhasil, tetapi sesi tidak terbaca oleh server. Periksa pengaturan cookie (AUTH_COOKIE_DOMAIN) dan alamat situs.'
+            : 'Akun ini tidak memiliki akses admin.',
+        );
         setIsSubmitting(false);
         return;
       }
@@ -52,7 +65,9 @@ export default function AdminLoginForm() {
       router.replace(next);
       router.refresh();
     } catch {
-      setError('Tidak dapat terhubung ke server. Periksa koneksi, lalu coba lagi.');
+      setError(
+        'Tidak dapat terhubung ke API. Kemungkinan alamat situs belum diizinkan (WEB_URL / CORS) atau API sedang tidak dapat dijangkau.',
+      );
       setIsSubmitting(false);
     }
   };
