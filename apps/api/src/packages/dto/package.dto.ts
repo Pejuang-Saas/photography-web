@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsInt,
   IsOptional,
@@ -11,7 +13,73 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateServicePackageDto {
+/** What a package promises, as numbers. Null clears one when updating. */
+class PackageSpecsDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10_000)
+  editedPhotos?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(3650)
+  driveActiveDays?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(720)
+  uploadAllHours?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  uploadEditDays?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  maxSpots?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10_000)
+  bonusPriorityEdits?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(240)
+  lateToleranceMinutes?: number | null;
+
+  /** This package's own conditions, one sentence each. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  @MaxLength(400, { each: true })
+  terms?: string[];
+}
+
+export class CreateServicePackageDto extends PackageSpecsDto {
   @IsString()
   @MinLength(2)
   @MaxLength(120)
@@ -58,7 +126,7 @@ export class CreateServicePackageDto {
   isActive?: boolean;
 }
 
-export class UpdateServicePackageDto {
+export class UpdateServicePackageDto extends PackageSpecsDto {
   @IsOptional()
   @IsString()
   @MinLength(2)

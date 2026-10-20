@@ -62,6 +62,8 @@ export class StudioService {
         ? `https://instagram.com/${settings.instagramHandle}`
         : null,
       guarantees: guaranteeList(settings.guarantees),
+      // The general conditions every package is booked under, shown at checkout.
+      reservationTerms: guaranteeList(settings.reservationTerms),
     };
   }
 
@@ -93,6 +95,9 @@ export class StudioService {
       data.studioName = dto.studioName.trim();
     }
     if (dto.guarantees !== undefined) data.guarantees = cleanGuarantees(dto.guarantees);
+    if (dto.reservationTerms !== undefined) {
+      data.reservationTerms = cleanGuarantees(dto.reservationTerms);
+    }
 
     await this.prisma.studioSetting.update({ where: { id: 'default' }, data });
     void revalidateWeb();

@@ -21,6 +21,22 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '');
 }
 
+const SPECS = [
+  { key: 'editedPhotos', label: 'Foto edit', hint: 'jumlah foto' },
+  { key: 'driveActiveDays', label: 'Link Drive aktif', hint: 'hari' },
+  { key: 'uploadAllHours', label: 'Upload semua file', hint: 'maks. jam setelah sesi' },
+  { key: 'uploadEditDays', label: 'Upload foto edit', hint: 'maks. hari kerja' },
+  { key: 'maxSpots', label: 'Spot foto', hint: 'maksimal titik' },
+  { key: 'bonusPriorityEdits', label: 'Bonus edit prioritas', hint: 'foto, hari wisuda' },
+  { key: 'lateToleranceMinutes', label: 'Toleransi telat', hint: 'menit' },
+] as const;
+
+const lines = (text: string) =>
+  text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
 function featureList(features: unknown) {
   return Array.isArray(features)
     ? features.filter((item): item is string => typeof item === 'string')
@@ -46,6 +62,12 @@ export default function PackageDialog({
   const [duration, setDuration] = useState(String(item?.durationMinutes ?? 60));
   const [maxPeople, setMaxPeople] = useState(String(item?.maxPeople ?? 1));
   const [features, setFeatures] = useState(featureList(item?.features).join('\n'));
+  const [sortOrder, setSortOrder] = useState(String(item?.sortOrder ?? 0));
+  const [terms, setTerms] = useState(featureList(item?.terms).join('\n'));
+  // The package's promises; empty means the package makes no such promise.
+  const [specs, setSpecs] = useState(() =>
+    Object.fromEntries(SPECS.map(({ key }) => [key, item?.[key] != null ? String(item[key]) : ''])),
+  );
   const [isActive, setIsActive] = useState(item?.isActive ?? true);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -61,10 +83,13 @@ export default function PackageDialog({
           price: Number(price),
           durationMinutes: Number(duration),
           maxPeople: Number(maxPeople),
-          features: features
-            .split('\n')
-            .map((line) => line.trim())
-            .filter(Boolean),
+          features: lines(features),
+          terms: lines(terms),
+          sortOrder: Number(sortOrder) || 0,
+          // A cleared field is sent as null so an edit can take a promise back.
+          ...Object.fromEntries(
+            SPECS.map(({ key }) => [key, specs[key] === '' ? null : Number(specs[key])]),
+          ),
           isActive,
         },
       },
@@ -117,7 +142,7 @@ export default function PackageDialog({
               <span className="font-medium text-zinc-600 dark:text-zinc-400">Kategori</span>
               <Input
                 maxLength={80}
-                placeholder="Solo, Squad, Family..."
+                placeholder="Lite, Premium, Group..."
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
               />
@@ -161,16 +186,74 @@ export default function PackageDialog({
             />
           </label>
 
+          <fieldset className="space-y-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+            <legend className="px-1 font-semibold text-zinc-700 dark:text-zinc-300">
+              Rincian paket
+            </legend>
+            <p className="text-[11px] text-zinc-500">
+              Tampil di katalog dan checkout. Kosongkan yang tidak dijanjikan paket ini.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {SPECS.map(({ key, label, hint }) => (
+                <label key={key} className="space-y-1">
+                  <span className="font-medium text-zinc-600 dark:text-zinc-400">
+                    {label} <span className="font-normal text-zinc-400">({hint})</span>
+                  </span>
+                  <Input
+                    inputMode="numeric"
+                    value={specs[key]}
+                    onChange={(event) =>
+                      setSpecs((current) => ({
+                        ...current,
+                        [key]: event.target.value.replace(/\D/g, ''),
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+              <label className="space-y-1">
+                <span className="font-medium text-zinc-600 dark:text-zinc-400">
+                  Urutan <span className="font-normal text-zinc-400">(kecil tampil dulu)</span>
+                </span>
+                <Input
+                  inputMode="numeric"
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value.replace(/\D/g, ''))}
+                />
+              </label>
+            </div>
+          </fieldset>
+
           <label className="block space-y-1">
             <span className="font-medium text-zinc-600 dark:text-zinc-400">
-              Fasilitas (satu per baris)
+              Fasilitas tambahan (satu per baris)
             </span>
             <Textarea
-              rows={5}
+              rows={4}
               value={features}
               onChange={(event) => setFeatures(event.target.value)}
-              placeholder={'1 Orang Wisudawan\n30 foto edited color grade'}
+              placeholder={
+                '1 Wisudawan | Keluarga & Teman\nSemua file terbaik hasil seleksi fotografer'
+              }
             />
+            <span className="block text-[11px] text-zinc-500">
+              Baris pertama dipakai sebagai keterangan untuk siapa sesi ini, tampil di atas rincian.
+            </span>
+          </label>
+
+          <label className="block space-y-1">
+            <span className="font-medium text-zinc-600 dark:text-zinc-400">
+              Ketentuan paket (satu per baris)
+            </span>
+            <Textarea
+              rows={4}
+              value={terms}
+              onChange={(event) => setTerms(event.target.value)}
+              placeholder="Toleransi keterlambatan maksimal 10 menit."
+            />
+            <span className="block text-[11px] text-zinc-500">
+              Ketentuan khusus paket ini; ketentuan umum diatur di Pengaturan, Profil Studio.
+            </span>
           </label>
 
           <label className="flex items-center gap-2">

@@ -18,6 +18,8 @@ const invoice = (overrides: Record<string, unknown> = {}, payments = [{ amount: 
     paymentPlan: 'DP_50',
     sessionDate: new Date('2026-11-05T00:00:00.000Z'),
     timeSlot: '09:30 - 10:30',
+    extraMinutes: 0,
+    addOns: [] as Array<Record<string, unknown>>,
     payments,
   },
   ...overrides,
@@ -105,6 +107,30 @@ describe('InvoicePdfService', () => {
     expect(text).toContain('LUNAS');
     expect(text).not.toContain('Sisa pelunasan');
     expect(text).not.toContain('DP TERVERIFIKASI');
+  });
+
+  it('lists each add-on with its quantity and price, and the extra session time', async () => {
+    const row = invoice();
+    row.booking.totalAmount = 600000;
+    row.booking.extraMinutes = 60;
+    row.booking.addOns = [
+      {
+        name: 'Tambahan waktu',
+        unitLabel: '30 menit',
+        unitPrice: 100000,
+        quantity: 2,
+        subtotal: 200000,
+      },
+      { name: 'Extra edit', unitLabel: '5 foto', unitPrice: 50000, quantity: 1, subtotal: 50000 },
+    ];
+    const { service } = setup(row);
+
+    const text = textOf((await service.render('invoice-1')).buffer);
+
+    expect(text).toContain('Tambahan waktu');
+    expect(text).toContain('2 x 30 menit @');
+    expect(text).toContain('Extra edit');
+    expect(text).toContain('+60 menit');
   });
 
   it('never prints the customer contact details', async () => {

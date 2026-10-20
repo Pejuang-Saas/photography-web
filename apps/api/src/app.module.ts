@@ -13,6 +13,7 @@ import { auth } from './auth/auth';
 import { AdminAuthController } from './auth/admin-auth.controller';
 import { CmsModule } from './cms/cms.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { AddOnsModule } from './add-ons/add-ons.module';
 import { PackagesModule } from './packages/packages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { QueuesModule } from './queues/queues.module';
@@ -70,6 +71,7 @@ function positiveInteger(configService: ConfigService, key: string, fallback: nu
     AuthModule.forRoot({ auth, bodyParser: { rawBody: true } }),
     CmsModule,
     PackagesModule,
+    AddOnsModule,
     PaymentsModule,
     BookingsModule,
     QueuesModule,

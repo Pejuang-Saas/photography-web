@@ -1,5 +1,5 @@
 import { apiRequest } from './api-client';
-import type { ServicePackage } from './booking-api';
+import type { AddOn, BookingAddOnLine, ServicePackage } from './booking-api';
 import type {
   BookingStatus,
   GatewayEnvironment,
@@ -59,6 +59,9 @@ export type AdminBooking = {
   paymentPlan: PaymentPlan;
   sessionDate: string;
   timeSlot: string;
+  /** Session time the add-ons lengthen it by. */
+  extraMinutes: number;
+  addOns: BookingAddOnLine[];
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   expiresAt: string | null;
@@ -130,6 +133,29 @@ export type ServicePackageInput = {
   durationMinutes?: number;
   maxPeople?: number;
   features?: string[];
+  sortOrder?: number;
+  /** A number clears the promise when null. */
+  editedPhotos?: number | null;
+  driveActiveDays?: number | null;
+  uploadAllHours?: number | null;
+  uploadEditDays?: number | null;
+  maxSpots?: number | null;
+  bonusPriorityEdits?: number | null;
+  lateToleranceMinutes?: number | null;
+  terms?: string[];
+  isActive?: boolean;
+};
+
+export type AddOnInput = {
+  name: string;
+  slug: string;
+  description?: string;
+  unitLabel?: string;
+  price: number;
+  extraMinutes?: number;
+  maxQuantity?: number;
+  categories?: string[];
+  sortOrder?: number;
   isActive?: boolean;
 };
 
@@ -154,6 +180,13 @@ export const adminApi = {
     apiRequest<ServicePackage>('/admin/packages', { method: 'POST', body: json(body) }),
   updatePackage: (id: string, body: Partial<ServicePackageInput>) =>
     apiRequest<ServicePackage>(`/admin/packages/${id}`, { method: 'PATCH', body: json(body) }),
+
+  listAddOns: () => apiRequest<AddOn[]>('/admin/add-ons'),
+  createAddOn: (body: AddOnInput) =>
+    apiRequest<AddOn>('/admin/add-ons', { method: 'POST', body: json(body) }),
+  updateAddOn: (id: string, body: Partial<AddOnInput>) =>
+    apiRequest<AddOn>(`/admin/add-ons/${id}`, { method: 'PATCH', body: json(body) }),
+  deleteAddOn: (id: string) => apiRequest<void>(`/admin/add-ons/${id}`, { method: 'DELETE' }),
 
   listNotifications: () =>
     apiRequest<{ items: AdminNotification[]; unreadCount: number }>('/admin/notifications'),

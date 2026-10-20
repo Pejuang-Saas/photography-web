@@ -19,6 +19,7 @@ import {
   type CustomerForm,
 } from '@/lib/booking-form';
 import { formatDateTime, formatRupiah } from '@/lib/format';
+import { addOnsFor, summarizeOrder } from '@/lib/package-details';
 import { brandMark, type StudioInfo } from '@/lib/studio-api';
 import { useStudioInfo } from '@/lib/studio-queries';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
@@ -90,6 +91,13 @@ export default function BookingCheckout({
     queryFn: bookingApi.getPaymentSettings,
     staleTime: 30_000,
   });
+  const addOnList = useQuery({
+    queryKey: ['public', 'add-ons'],
+    queryFn: bookingApi.listAddOns,
+    staleTime: 60_000,
+  });
+  const offeredAddOns = addOnsFor(addOnList.data ?? [], packageItem.category);
+  const summary = summarizeOrder(packageItem, offeredAddOns, form.addOns);
   const studio = useStudioInfo(true, initialStudio ?? undefined);
 
   const allowDownPayment = paymentSettings.data?.allowDownPayment !== false;
@@ -106,6 +114,11 @@ export default function BookingCheckout({
         timeSlot: form.timeSlot,
         paymentPlan: activePlan,
         notes: form.notes.trim() || undefined,
+        // Ids and quantities only; the server works out the prices.
+        addOns: summary.lines.map((line) => ({
+          addOnId: line.addOn.id,
+          quantity: line.quantity,
+        })),
       };
       return bookingApi.createBooking(payload, keyFor(`${JSON.stringify(payload)}#${attempt}`));
     },
@@ -138,6 +151,11 @@ export default function BookingCheckout({
     createBooking.reset();
     setStep('preview');
   }
+
+  const onFormChange = useCallback(
+    (patch: Partial<CustomerForm>) => setForm((current) => ({ ...current, ...patch })),
+    [],
+  );
 
   const handleConfirmed = useCallback(() => {
     setSuccessStatus('CONFIRMED');
@@ -248,7 +266,9 @@ export default function BookingCheckout({
               form={form}
               errors={errors}
               notice={notice}
-              onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+              packageItem={packageItem}
+              addOns={offeredAddOns}
+              onChange={onFormChange}
               onNext={handleCustomerNext}
             />
           )}
@@ -256,6 +276,7 @@ export default function BookingCheckout({
           {step === 'preview' && (
             <StepOrderPreview
               packageItem={packageItem}
+              summary={summary}
               form={form}
               plan={activePlan}
               allowDownPayment={allowDownPayment}

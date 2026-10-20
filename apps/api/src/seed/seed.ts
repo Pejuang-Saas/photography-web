@@ -5,6 +5,7 @@ import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
+import { seedPricelist } from './pricelist';
 
 // Initial site content, written with upsert on stable keys (slug, media key, deterministic id),
 // so re-running never duplicates rows. `update: {}` means existing rows are left as admins edited them.
@@ -133,62 +134,6 @@ const FAQS = [
   },
 ];
 
-const PACKAGES = [
-  {
-    name: 'Solo Graduation',
-    slug: 'solo-graduation',
-    category: 'Solo',
-    description:
-      'Sesi personal untuk kamu yang ingin foto kebaya dan toga dengan hasil yang anggun dan berkarakter.',
-    price: 350000,
-    durationMinutes: 60,
-    maxPeople: 1,
-    features: [
-      '1 Orang Wisudawan',
-      'Durasi sesi 1 jam',
-      '30 foto edited color grade',
-      '1 titik lokasi kampus pilihan',
-      'Seluruh file mentah dikirim via Drive',
-    ],
-  },
-  {
-    name: 'Squad Graduation',
-    slug: 'squad-graduation',
-    category: 'Squad',
-    description:
-      'Paling diminati untuk foto bersama geng sahabat, circle terdekat, atau satu divisi kampus.',
-    price: 650000,
-    durationMinutes: 120,
-    maxPeople: 5,
-    features: [
-      '2 sampai 5 orang',
-      'Durasi sesi 2 jam fleksibel',
-      '60 foto edited color grade',
-      '2 titik lokasi kampus',
-      'Pengarahan pose dan interaksi natural',
-      'Seluruh file mentah dikirim via Drive',
-    ],
-  },
-  {
-    name: 'Family Package',
-    slug: 'family-package',
-    category: 'Family',
-    description:
-      'Momen kelulusan hangat bersama orang tua dan keluarga besar tanpa batasan jumlah anggota.',
-    price: 900000,
-    durationMinutes: 180,
-    maxPeople: 10,
-    features: [
-      'Wisudawan plus keluarga inti',
-      'Durasi sesi 3 jam santai',
-      '100 foto edited color grade',
-      'Lokasi bebas di area Semarang',
-      '1 cetakan mini album fisik 20 halaman',
-      'Seluruh file mentah dikirim via Drive',
-    ],
-  },
-];
-
 const CRM_CATEGORIES = [
   { name: 'Prospek Baru', color: 'blue' },
   { name: 'Tanya Paket', color: 'amber' },
@@ -245,10 +190,7 @@ async function main() {
   };
 
   try {
-    for (const pkg of PACKAGES) {
-      await prisma.servicePackage.upsert({ where: { slug: pkg.slug }, create: pkg, update: {} });
-    }
-    console.log(`✅ packages: ${PACKAGES.length}`);
+    await seedPricelist(prisma);
 
     for (const [sortOrder, text] of MARQUEE.entries()) {
       await prisma.marqueeItem.upsert({

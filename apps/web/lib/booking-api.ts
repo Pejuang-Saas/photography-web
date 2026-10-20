@@ -18,9 +18,55 @@ export type ServicePackage = {
   durationMinutes: number;
   maxPeople: number;
   features: unknown;
+  /** Order within its group; lower comes first. */
+  sortOrder: number;
+  /** What the package promises, as numbers; null when it makes no such promise. */
+  editedPhotos: number | null;
+  driveActiveDays: number | null;
+  uploadAllHours: number | null;
+  uploadEditDays: number | null;
+  maxSpots: number | null;
+  bonusPriorityEdits: number | null;
+  lateToleranceMinutes: number | null;
+  /** This package's own conditions, one sentence each. */
+  terms: unknown;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Something added to a package at checkout, priced per unit. */
+export type AddOn = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  /** What one unit is: "30 menit", "5 foto", "orang". */
+  unitLabel: string;
+  price: number;
+  /** Session time one unit adds. */
+  extraMinutes: number;
+  maxQuantity: number;
+  /** Package categories it applies to; empty means every package. */
+  categories: string[];
+  sortOrder: number;
+  isActive: boolean;
+};
+
+/** An add-on as it was when the booking was made. */
+export type BookingAddOnLine = {
+  name: string;
+  unitLabel: string;
+  unitPrice: number;
+  quantity: number;
+  extraMinutes: number;
+  subtotal: number;
+};
+
+export type SlotAvailability = {
+  date: string;
+  durationMinutes: number;
+  slots: Array<{ slot: string; minutes: number; available: boolean }>;
 };
 
 export type ManualPaymentAccount = {
@@ -50,6 +96,8 @@ export type CreateBookingInput = {
   timeSlot: string;
   paymentPlan: PaymentPlan;
   notes?: string;
+  /** Only ids and quantities: the server prices them. */
+  addOns?: Array<{ addOnId: string; quantity: number }>;
 };
 
 export type Booking = {
@@ -66,6 +114,9 @@ export type Booking = {
   paymentStatus: PaymentStatus;
   sessionDate: string;
   timeSlot: string;
+  /** Session time the add-ons lengthen it by. */
+  extraMinutes?: number;
+  addOns?: BookingAddOnLine[];
   expiresAt: string | null;
   createdAt: string;
 };
@@ -82,6 +133,8 @@ export type PublicBooking = {
   paymentStatus: PaymentStatus;
   sessionDate: string;
   timeSlot: string;
+  extraMinutes?: number;
+  addOns?: BookingAddOnLine[];
   invoice: { invoiceNumber: string; amount: number; status: string; issuedAt: string } | null;
 };
 
@@ -105,6 +158,14 @@ export type GatewayIntent = {
 
 export const bookingApi = {
   listPackages: () => apiRequest<ServicePackage[]>('/public/packages'),
+
+  listAddOns: () => apiRequest<AddOn[]>('/public/add-ons'),
+
+  /** Free times on a date for a package; `extraMinutes` counts add-on time in. */
+  getAvailability: (date: string, packageId: string, extraMinutes = 0) =>
+    apiRequest<SlotAvailability>(
+      `/public/availability?date=${date}&packageId=${packageId}&extraMinutes=${extraMinutes}`,
+    ),
 
   getPaymentSettings: () => apiRequest<PublicPaymentSettings>('/public/payment-settings'),
 

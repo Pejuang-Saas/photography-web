@@ -1,14 +1,6 @@
 import { todayWib } from './format';
 import { isIdMobile, PHONE_ERROR } from './phone';
 
-export const TIME_SLOTS = [
-  '08:30 - 09:30',
-  '09:30 - 10:30',
-  '10:30 - 11:30',
-  '13:00 - 14:30',
-  '15:00 - 16:30',
-];
-
 export type CustomerForm = {
   customerName: string;
   customerPhone: string;
@@ -16,6 +8,8 @@ export type CustomerForm = {
   sessionDate: string; // YYYY-MM-DD
   timeSlot: string;
   notes: string;
+  /** Add-on id -> how many; an add-on that is not picked has no entry. */
+  addOns: Record<string, number>;
 };
 
 export const EMPTY_CUSTOMER_FORM: CustomerForm = {
@@ -25,6 +19,7 @@ export const EMPTY_CUSTOMER_FORM: CustomerForm = {
   sessionDate: '',
   timeSlot: '',
   notes: '',
+  addOns: {},
 };
 
 export type CustomerErrors = Partial<Record<keyof CustomerForm, string>>;

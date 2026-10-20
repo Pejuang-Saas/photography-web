@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { BookingStatus, PaymentStatus, PaymentPlan, Prisma } from '@prisma/client';
 import { randomInt } from 'crypto';
+import { AddOnsService } from '../add-ons/add-ons.service';
 import { PackagesService } from '../packages/packages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentSettingsService } from '../payments/payment-settings.service';
@@ -18,7 +19,18 @@ import {
   requireIdempotencyKey,
 } from '../common/idempotency';
 import { paymentDeadline } from '../common/payment-window';
+import { findSlot, occupied, overlaps, slotsForDuration } from '../common/session-slots';
 import { CreateBookingDto } from './dto/booking.dto';
+
+/** What a booking shows of each add-on it took. */
+const ADD_ON_LINE = {
+  name: true,
+  unitLabel: true,
+  unitPrice: true,
+  quantity: true,
+  extraMinutes: true,
+  subtotal: true,
+} as const;
 
 @Injectable()
 export class BookingsService {
@@ -29,6 +41,7 @@ export class BookingsService {
     private readonly queues: QueuesService,
     private readonly outbox: OutboxService,
     private readonly storage: StorageService,
+    private readonly addOns: AddOnsService,
   ) {}
 
   async create(dto: CreateBookingDto, rawIdempotencyKey?: string) {
@@ -36,6 +49,7 @@ export class BookingsService {
     const idempotencyHash = hashIdempotencyPayload(dto);
     const previous = await this.prisma.booking.findUnique({
       where: { idempotencyKey },
+      include: { addOns: true },
     });
     if (previous) {
       assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
@@ -54,29 +68,32 @@ export class BookingsService {
       throw new BadRequestException('Down payment is currently disabled');
     }
 
-    const totalAmount = packageItem.price;
+    // The slot must be one of the studio's and fit the package: a 60-minute package does not take a
+    // 90-minute window.
+    const slot = findSlot(dto.timeSlot);
+    if (
+      !slot ||
+      !slotsForDuration(packageItem.durationMinutes).some((s) => s.label === slot.label)
+    ) {
+      throw new BadRequestException('Jam sesi ini tidak tersedia untuk paket yang dipilih');
+    }
+
+    // Add-ons are priced here, from the add-ons as they are now; the client only names them.
+    const lines = await this.addOns.price(dto.addOns, packageItem);
+    const addOnsTotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
+    const extraMinutes = lines.reduce((sum, line) => sum + line.extraMinutes, 0);
+
+    const totalAmount = packageItem.price + addOnsTotal;
     const requiredAmount =
       dto.paymentPlan === PaymentPlan.DP_50 ? Math.ceil(totalAmount / 2) : totalAmount;
-    const reservationKey = `${dateOnly}:${dto.timeSlot.trim()}`;
+    const reservationKey = `${dateOnly}:${slot.label}`;
     const expiresAt = paymentDeadline(settings.activeMode);
 
     try {
       const booking = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.booking.findUnique({ where: { reservationKey } });
-        if (existing) {
-          if (
-            existing.status === BookingStatus.PENDING_PAYMENT &&
-            existing.expiresAt &&
-            existing.expiresAt < new Date()
-          ) {
-            await tx.booking.update({
-              where: { id: existing.id },
-              data: { reservationKey: null, status: BookingStatus.CANCELLED },
-            });
-          } else {
-            throw new ConflictException('The selected session slot is no longer available');
-          }
-        }
+        // One booking per date at a time, so two customers cannot take overlapping times together.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${dateOnly}))`;
+        await this.assertFree(tx, sessionDate, slot.label, extraMinutes);
 
         const booking = await tx.booking.create({
           data: {
@@ -95,11 +112,15 @@ export class BookingsService {
             paymentPlan: dto.paymentPlan,
             requiredAmount,
             sessionDate,
-            timeSlot: dto.timeSlot.trim(),
+            timeSlot: slot.label,
+            extraMinutes,
             reservationKey,
             expiresAt,
+            addOns: {
+              create: lines.map(({ addOnId, ...line }) => ({ addOnId, ...line })),
+            },
           },
-          include: { package: true },
+          include: { package: true, addOns: true },
         });
 
         await tx.notification.create({
@@ -133,6 +154,7 @@ export class BookingsService {
       if (this.isUniqueViolation(error)) {
         const previous = await this.prisma.booking.findUnique({
           where: { idempotencyKey },
+          include: { addOns: true },
         });
         if (previous) {
           assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
@@ -151,6 +173,7 @@ export class BookingsService {
       include: {
         package: true,
         invoice: true,
+        addOns: true,
         payments: { orderBy: { createdAt: 'desc' }, include: { proof: true, manualAccount: true } },
       },
     });
@@ -162,6 +185,7 @@ export class BookingsService {
       include: {
         package: true,
         invoice: true,
+        addOns: true,
         payments: {
           orderBy: { createdAt: 'desc' },
           include: { proof: true, manualAccount: true },
@@ -202,6 +226,8 @@ export class BookingsService {
         paymentStatus: true,
         sessionDate: true,
         timeSlot: true,
+        extraMinutes: true,
+        addOns: { select: ADD_ON_LINE },
         invoice: { select: { invoiceNumber: true, amount: true, status: true, issuedAt: true } },
       },
     });
@@ -232,6 +258,8 @@ export class BookingsService {
         paymentStatus: true,
         sessionDate: true,
         timeSlot: true,
+        extraMinutes: true,
+        addOns: { select: ADD_ON_LINE },
         expiresAt: true,
         createdAt: true,
         payments: {
@@ -261,6 +289,85 @@ export class BookingsService {
     if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
     const url = (metadata as { redirectUrl?: unknown }).redirectUrl;
     return typeof url === 'string' ? url : null;
+  }
+
+  /**
+   * The times of one day that can still be booked for a package, with any add-on time counted in:
+   * a slot is free when nothing already booked overlaps what this booking would occupy.
+   */
+  async availability(date: string, packageId: string, extraMinutes = 0) {
+    const packageItem = await this.packagesService.requireActive(packageId);
+    const sessionDate = this.parseSessionDate(date);
+    const taken = await this.takenOn(this.prisma, sessionDate);
+
+    return {
+      date: date.slice(0, 10),
+      durationMinutes: packageItem.durationMinutes,
+      slots: slotsForDuration(packageItem.durationMinutes).map((slot) => {
+        const wanted = occupied(slot.label, extraMinutes)!;
+        return {
+          slot: slot.label,
+          minutes: slot.minutes,
+          available: !taken.some((range) => overlaps(wanted, range)),
+        };
+      }),
+    };
+  }
+
+  /** The time every live booking of a day occupies; unpaid ones past their deadline do not count. */
+  private async takenOn(db: Pick<PrismaService, 'booking'>, sessionDate: Date) {
+    const day = await db.booking.findMany({
+      where: { sessionDate, reservationKey: { not: null } },
+      select: { timeSlot: true, extraMinutes: true, status: true, expiresAt: true },
+    });
+    const now = new Date();
+    return day
+      .filter(
+        (booking) =>
+          !(
+            booking.status === BookingStatus.PENDING_PAYMENT &&
+            booking.expiresAt &&
+            booking.expiresAt < now
+          ),
+      )
+      .flatMap((booking) => {
+        const range = occupied(booking.timeSlot, booking.extraMinutes);
+        return range ? [range] : [];
+      });
+  }
+
+  /**
+   * Throws when something already booked overlaps the time this booking would occupy. An unpaid
+   * booking past its deadline is released on the way, so its slot can be taken again.
+   */
+  private async assertFree(
+    tx: Prisma.TransactionClient,
+    sessionDate: Date,
+    label: string,
+    extraMinutes: number,
+  ) {
+    const wanted = occupied(label, extraMinutes)!;
+    const day = await tx.booking.findMany({
+      where: { sessionDate, reservationKey: { not: null } },
+      select: { id: true, timeSlot: true, extraMinutes: true, status: true, expiresAt: true },
+    });
+    for (const booking of day) {
+      if (
+        booking.status === BookingStatus.PENDING_PAYMENT &&
+        booking.expiresAt &&
+        booking.expiresAt < new Date()
+      ) {
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: { reservationKey: null, status: BookingStatus.CANCELLED },
+        });
+        continue;
+      }
+      const range = occupied(booking.timeSlot, booking.extraMinutes);
+      if (range && overlaps(wanted, range)) {
+        throw new ConflictException('The selected session slot is no longer available');
+      }
+    }
   }
 
   private parseSessionDate(value: string) {

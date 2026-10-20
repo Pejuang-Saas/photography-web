@@ -49,6 +49,7 @@ export class InvoicePdfService {
       include: {
         booking: {
           include: {
+            addOns: { orderBy: { createdAt: 'asc' } },
             payments: {
               where: { status: { in: [PaymentStatus.PAID_DP, PaymentStatus.PAID_FULL] } },
             },
@@ -156,7 +157,12 @@ export class InvoicePdfService {
       'Detail sesi foto',
       [
         ['Tanggal', longDate.format(booking.sessionDate)],
-        ['Jam', `${booking.timeSlot} WIB`],
+        [
+          'Jam',
+          booking.extraMinutes > 0
+            ? `${booking.timeSlot} WIB (+${booking.extraMinutes} menit)`
+            : `${booking.timeSlot} WIB`,
+        ],
       ],
       left + width / 2 + 12,
     );
@@ -186,7 +192,33 @@ export class InvoicePdfService {
       .fontSize(11)
       .fillColor(INK)
       .text(rupiah.format(booking.packagePrice), left, rowY, { width: width - 12, align: 'right' });
-    const afterRow = Math.max(doc.y, rowY + 34) + 12;
+    let cursor = Math.max(doc.y, rowY + 34) + 4;
+
+    // What the customer added to the package, as it was priced when they booked.
+    for (const addOn of booking.addOns) {
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .fillColor(INK)
+        .text(addOn.name, left + 12, cursor, { width: width * 0.65 });
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor(MUTED)
+        .text(
+          `${addOn.quantity} x ${addOn.unitLabel} @ ${rupiah.format(addOn.unitPrice)}`,
+          left + 12,
+          doc.y + 1,
+          { width: width * 0.65 },
+        );
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .fillColor(INK)
+        .text(rupiah.format(addOn.subtotal), left, cursor, { width: width - 12, align: 'right' });
+      cursor = Math.max(doc.y, cursor + 28) + 6;
+    }
+    const afterRow = cursor + 8;
     doc.moveTo(left, afterRow).lineTo(right, afterRow).lineWidth(0.5).strokeColor(LINE).stroke();
 
     // --- Totals ---

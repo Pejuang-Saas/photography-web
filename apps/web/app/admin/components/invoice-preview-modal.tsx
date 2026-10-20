@@ -160,6 +160,7 @@ export default function InvoicePreviewModal() {
                   </p>
                   <p className="text-zinc-800 dark:text-zinc-200 font-mono font-semibold">
                     Pukul: {booking.timeSlot} WIB
+                    {booking.extraMinutes > 0 && ` (+${booking.extraMinutes} menit)`}
                   </p>
                   <p className="text-zinc-600 dark:text-zinc-400">
                     Skema: {booking.paymentPlan === 'FULL' ? 'Bayar Lunas' : 'DP 50%'}
@@ -192,6 +193,22 @@ export default function InvoicePreviewModal() {
                         {formatRupiah(booking.packagePrice)}
                       </td>
                     </tr>
+                    {booking.addOns.map((line) => (
+                      <tr key={line.name}>
+                        <td className="p-3 pl-4">
+                          <p className="font-semibold text-zinc-900 dark:text-white">{line.name}</p>
+                          <p className="text-[11px] text-zinc-500">
+                            {formatRupiah(line.unitPrice)} / {line.unitLabel}
+                          </p>
+                        </td>
+                        <td className="p-3 text-center text-zinc-600 dark:text-zinc-400">
+                          {line.quantity}
+                        </td>
+                        <td className="p-3 pr-4 text-right font-mono font-bold text-zinc-900 dark:text-white">
+                          {formatRupiah(line.subtotal)}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

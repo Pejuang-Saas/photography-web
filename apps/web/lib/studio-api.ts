@@ -18,6 +18,8 @@ export type StudioInfo = {
   openTime: string | null;
   closeTime: string | null;
   guarantees: string[];
+  /** The general conditions every package is booked under. */
+  reservationTerms: string[];
 };
 
 export type AdminStudioSettings = StudioInfo & { updatedAt: string };
@@ -33,6 +35,7 @@ export type UpdateStudioInput = Partial<{
   openTime: string;
   closeTime: string;
   guarantees: string[];
+  reservationTerms: string[];
 }>;
 
 export const studioApi = {

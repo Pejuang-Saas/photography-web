@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import {
   adminApi,
   type ManualAccountInput,
+  type AddOnInput,
   type ServicePackageInput,
   type UpdatePaymentSettingsInput,
 } from './admin-api';
@@ -17,6 +18,7 @@ export const adminKeys = {
   bookings: ['admin', 'bookings'] as const,
   booking: (id: string) => ['admin', 'bookings', id] as const,
   packages: ['admin', 'packages'] as const,
+  addOns: ['admin', 'add-ons'] as const,
   notifications: ['admin', 'notifications'] as const,
   paymentSettings: ['admin', 'payment-settings'] as const,
   manualAccounts: ['admin', 'payment-accounts'] as const,
@@ -120,6 +122,34 @@ export function useSavePackage() {
     onSuccess: (_data, { id }) => {
       toast.success(id ? 'Paket diperbarui' : 'Paket ditambahkan');
       return queryClient.invalidateQueries({ queryKey: adminKeys.packages });
+    },
+  });
+}
+
+export function useAdminAddOns() {
+  return useQuery({ queryKey: adminKeys.addOns, queryFn: adminApi.listAddOns });
+}
+
+export function useSaveAddOn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: AddOnInput }) =>
+      id ? adminApi.updateAddOn(id, body) : adminApi.createAddOn(body),
+    onSuccess: (_data, { id }) => {
+      toast.success(id ? 'Add-on diperbarui' : 'Add-on ditambahkan');
+      return queryClient.invalidateQueries({ queryKey: adminKeys.addOns });
+    },
+  });
+}
+
+export function useDeleteAddOn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.deleteAddOn(id),
+    onError: (error) => toast.error(errorMessage(error)),
+    onSuccess: () => {
+      toast.success('Add-on dihapus');
+      return queryClient.invalidateQueries({ queryKey: adminKeys.addOns });
     },
   });
 }

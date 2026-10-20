@@ -12,7 +12,10 @@ export interface PackageData {
   summary: string;
   price: number;
   badge?: string;
-  features: string[];
+  /** What the package includes, one line each. */
+  lines: string[];
+  /** This package's own conditions; shown folded away. */
+  terms: string[];
   isFeatured: boolean;
 }
 
@@ -106,7 +109,7 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
             Rincian Paket:
           </span>
           <ul className="space-y-2.5">
-            {pkg.features.map((feat, idx) => (
+            {pkg.lines.map((feat, idx) => (
               <li key={idx} className="flex items-start gap-2.5 text-xs text-fg/90">
                 <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent mt-0.5 font-bold">
                   <Check size={10} weight="bold" />
@@ -116,6 +119,28 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
             ))}
           </ul>
         </div>
+
+        {pkg.terms.length > 0 && (
+          <details className="group/terms mt-5 rounded-xl border border-white/10 px-3.5 py-2.5 text-xs">
+            <summary className="flex cursor-pointer list-none items-center justify-between font-semibold text-fg/90">
+              Ketentuan paket
+              <span className="text-[11px] font-normal text-accent group-open/terms:hidden">
+                Lihat
+              </span>
+              <span className="hidden text-[11px] font-normal text-accent group-open/terms:inline">
+                Tutup
+              </span>
+            </summary>
+            <ul className="mt-2.5 space-y-2 leading-relaxed text-muted">
+              {pkg.terms.map((term) => (
+                <li key={term} className="flex gap-2">
+                  <span className="text-accent">•</span>
+                  {term}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
 
         {/* CTA Button with Nested Arrow Hover Physics */}
         {onSelect ? (

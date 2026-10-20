@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { Camera, Check, MapPin, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { ServicePackage } from '@/lib/booking-api';
 import type { PaymentMode, PaymentPlan } from '@/lib/api-types';
-import { dpAmount, featureList, type CustomerForm } from '@/lib/booking-form';
+import { dpAmount, type CustomerForm } from '@/lib/booking-form';
 import { formatDay, formatRupiah } from '@/lib/format';
+import { packageLines, packageTerms, type OrderSummary } from '@/lib/package-details';
 import type { StudioInfo } from '@/lib/studio-api';
 import { BookingButton } from './booking-button';
 import ConfirmPaymentDialog from './confirm-payment-dialog';
@@ -44,6 +45,7 @@ function InfoItem({
 
 export default function StepOrderPreview({
   packageItem,
+  summary,
   form,
   plan,
   allowDownPayment,
@@ -57,6 +59,8 @@ export default function StepOrderPreview({
   onNext,
 }: {
   packageItem: ServicePackage;
+  /** The package and the add-ons the customer picked, with what they add up to. */
+  summary: OrderSummary;
   form: CustomerForm;
   plan: PaymentPlan;
   allowDownPayment: boolean;
@@ -69,8 +73,12 @@ export default function StepOrderPreview({
   onBack: () => void;
   onNext: () => void;
 }) {
-  const features = featureList(packageItem.features);
-  const dp = dpAmount(packageItem.price);
+  const features = packageLines(packageItem);
+  const dp = dpAmount(summary.total);
+  // The general conditions and this package's own, which the customer agrees to by booking.
+  const terms = [...(studio?.reservationTerms ?? []), ...packageTerms(packageItem)];
+  const [agreed, setAgreed] = useState(false);
+  const needsAgreement = terms.length > 0;
   const options: Array<{ value: PaymentPlan; title: string; amount: number; note: string }> = [
     ...(allowDownPayment
       ? [
@@ -85,13 +93,13 @@ export default function StepOrderPreview({
     {
       value: 'FULL',
       title: 'Bayar Lunas 100%',
-      amount: packageItem.price,
+      amount: summary.total,
       note: 'Bayar penuh di awal, tanpa tagihan tambahan di hari-H.',
     },
   ];
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const payNow = plan === 'FULL' ? packageItem.price : dp;
+  const payNow = plan === 'FULL' ? summary.total : dp;
 
   return (
     <div>
@@ -110,13 +118,27 @@ export default function StepOrderPreview({
           )}
           <div className="mt-4 space-y-1.5 border-t border-white/10 pt-4">
             <Row label="Tanggal">{formatDay(form.sessionDate)}</Row>
-            <Row label="Jam">{form.timeSlot} WIB</Row>
+            <Row label="Jam">
+              {form.timeSlot} WIB
+              {summary.extraMinutes > 0 && ` (+${summary.extraMinutes} menit)`}
+            </Row>
             <Row label="Nama">{form.customerName}</Row>
             <Row label="WhatsApp">{form.customerPhone}</Row>
           </div>
-          <div className="mt-auto flex justify-between border-t border-white/10 pt-4">
-            <span className="text-muted">Total paket</span>
-            <span className="font-bold">{formatRupiah(packageItem.price)}</span>
+          <div className="mt-auto space-y-1.5 border-t border-white/10 pt-4">
+            <Row label={packageItem.name}>{formatRupiah(packageItem.price)}</Row>
+            {summary.lines.map((line) => (
+              <Row
+                key={line.addOn.id}
+                label={`${line.addOn.name} · ${line.quantity} × ${line.addOn.unitLabel}`}
+              >
+                {formatRupiah(line.subtotal)}
+              </Row>
+            ))}
+            <div className="flex justify-between pt-1.5 text-base">
+              <span className="font-semibold">Total</span>
+              <span className="font-black text-accent">{formatRupiah(summary.total)}</span>
+            </div>
           </div>
         </StepCard>
 
@@ -217,13 +239,52 @@ export default function StepOrderPreview({
         </StepColumn>
       </StepGrid>
 
+      {needsAgreement && (
+        <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold">
+              <span>Ketentuan reservasi ({terms.length})</span>
+              <span className="text-xs font-normal text-accent group-open:hidden">Baca</span>
+              <span className="hidden text-xs font-normal text-accent group-open:inline">
+                Tutup
+              </span>
+            </summary>
+            <ul className="mt-3 space-y-2 text-xs leading-relaxed text-muted">
+              {terms.map((term) => (
+                <li key={term} className="flex gap-2">
+                  <span className="text-accent">•</span>
+                  {term}
+                </li>
+              ))}
+            </ul>
+          </details>
+          <label className="mt-4 flex cursor-pointer items-start gap-2.5 border-t border-white/10 pt-4">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(event) => setAgreed(event.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-amber-500"
+            />
+            <span className="text-xs leading-relaxed">
+              Saya sudah membaca dan menyetujui seluruh ketentuan reservasi di atas.
+            </span>
+          </label>
+        </section>
+      )}
+
       {error && (
         <p className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-200">
           {error}
         </p>
       )}
 
-      <StepFooter hint="Kamu akan diminta konfirmasi sebelum slot dikunci dan pembayaran dimulai.">
+      <StepFooter
+        hint={
+          needsAgreement && !agreed
+            ? 'Setujui ketentuan reservasi untuk melanjutkan.'
+            : 'Kamu akan diminta konfirmasi sebelum slot dikunci dan pembayaran dimulai.'
+        }
+      >
         <BookingButton type="button" variant="outline" onClick={onBack} disabled={pending}>
           Ubah Data
         </BookingButton>
@@ -231,7 +292,7 @@ export default function StepOrderPreview({
           type="button"
           className="sm:w-72"
           onClick={() => setConfirmOpen(true)}
-          disabled={pending}
+          disabled={pending || (needsAgreement && !agreed)}
         >
           Lanjut ke Pembayaran →
         </BookingButton>

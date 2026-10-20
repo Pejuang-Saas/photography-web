@@ -64,4 +64,12 @@ export class UpdateStudioSettingsDto {
   @IsString({ each: true })
   @MaxLength(160, { each: true })
   guarantees?: string[];
+
+  /** The general conditions shown at checkout, one sentence each. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(500, { each: true })
+  reservationTerms?: string[];
 }

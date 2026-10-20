@@ -11,7 +11,7 @@ export class PackagesService {
   list(includeInactive = false) {
     return this.prisma.servicePackage.findMany({
       where: includeInactive ? undefined : { isActive: true },
-      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ isActive: 'desc' }, { sortOrder: 'asc' }, { price: 'asc' }],
     });
   }
 

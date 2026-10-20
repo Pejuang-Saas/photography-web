@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AddOnsModule } from '../add-ons/add-ons.module';
 import { PackagesModule } from '../packages/packages.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -9,7 +10,14 @@ import { BookingExpirationService } from './booking-expiration.service';
 import { BookingsService } from './bookings.service';
 
 @Module({
-  imports: [OutboxModule, PackagesModule, PaymentsModule, QueuesModule, StorageModule],
+  imports: [
+    AddOnsModule,
+    OutboxModule,
+    PackagesModule,
+    PaymentsModule,
+    QueuesModule,
+    StorageModule,
+  ],
   controllers: [BookingsController],
   providers: [BookingsService, BookingExpirationService],
   exports: [BookingExpirationService],

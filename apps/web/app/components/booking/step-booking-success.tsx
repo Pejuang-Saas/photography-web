@@ -80,8 +80,19 @@ export default function StepBookingSuccess({
               <dt className="text-muted">Jadwal</dt>
               <dd className="text-right font-medium">
                 {formatDay(booking.sessionDate)} · {booking.timeSlot} WIB
+                {(booking.extraMinutes ?? 0) > 0 && ` (+${booking.extraMinutes} menit)`}
               </dd>
             </div>
+            {(booking.addOns ?? []).map((line) => (
+              <div key={line.name} className="flex justify-between gap-4">
+                <dt className="text-muted">
+                  {line.name} · {line.quantity} × {line.unitLabel}
+                </dt>
+                <dd className="text-right font-medium tabular-nums">
+                  {formatRupiah(line.subtotal)}
+                </dd>
+              </div>
+            ))}
             <div className="flex justify-between gap-4 border-t border-white/10 pt-3">
               <dt className="text-muted">{mode === 'GATEWAY' ? 'Dibayar' : 'Ditransfer'}</dt>
               <dd className="font-bold tabular-nums text-accent">{nominal}</dd>

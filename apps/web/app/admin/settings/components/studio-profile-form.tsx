@@ -25,10 +25,12 @@ function draftFrom(settings: AdminStudioSettings) {
     openTime: settings.openTime ?? '',
     closeTime: settings.closeTime ?? '',
     guarantees: settings.guarantees,
+    reservationTerms: settings.reservationTerms,
   };
 }
 
 const MAX_GUARANTEES = 6;
+const MAX_TERMS = 20;
 
 const cleaned = (items: string[]) => items.map((item) => item.trim()).filter(Boolean);
 
@@ -41,8 +43,10 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
   // Blank rows are ignored on save, so they should not count as an unsaved change either.
   const dirty =
     (Object.keys(saved) as Array<keyof typeof saved>).some(
-      (key) => key !== 'guarantees' && draft[key] !== saved[key],
-    ) || JSON.stringify(cleaned(draft.guarantees)) !== JSON.stringify(saved.guarantees);
+      (key) => key !== 'guarantees' && key !== 'reservationTerms' && draft[key] !== saved[key],
+    ) ||
+    JSON.stringify(cleaned(draft.guarantees)) !== JSON.stringify(saved.guarantees) ||
+    JSON.stringify(cleaned(draft.reservationTerms)) !== JSON.stringify(saved.reservationTerms);
 
   const phoneInvalid = draft.whatsappNumber !== '' && !isIdMobile(draft.whatsappNumber);
   const waDigits = phoneInvalid ? '' : normalizeWhatsapp(draft.whatsappNumber);
@@ -59,6 +63,7 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
       openTime: draft.openTime,
       closeTime: draft.closeTime,
       guarantees: cleaned(draft.guarantees),
+      reservationTerms: cleaned(draft.reservationTerms),
     });
   }
 
@@ -210,6 +215,27 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
             addLabel="Tambah Jaminan"
             emptyText="Belum ada jaminan. Tambahkan poin pertama."
             placeholder="Contoh: Garansi uang kembali jika sesi dibatalkan studio"
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
+        <CardHeader className="border-b border-zinc-100 pb-3 dark:border-zinc-800/80">
+          <CardTitle className="text-sm font-bold">Ketentuan Umum Reservasi</CardTitle>
+          <CardDescription className="text-xs">
+            Berlaku untuk semua paket. Tampil di katalog dan harus disetujui customer sebelum
+            membayar. Ketentuan khusus tiap paket diatur di halaman Paket.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <StringListEditor
+            items={draft.reservationTerms}
+            onChange={(reservationTerms) => set({ reservationTerms })}
+            max={MAX_TERMS}
+            itemLabel="Ketentuan"
+            addLabel="Tambah Ketentuan"
+            emptyText="Belum ada ketentuan umum. Tambahkan poin pertama."
+            placeholder="Contoh: Revisi minor maksimal 1 kali untuk setiap foto edit"
           />
         </CardContent>
       </Card>

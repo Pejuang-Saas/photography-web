@@ -3,19 +3,15 @@
 import React, { useMemo, useState } from 'react';
 import { errorMessage, useAdminBookings, useAdminPackages } from '@/lib/admin-queries';
 import type { ServicePackage } from '@/lib/booking-api';
+import { packageLines } from '@/lib/package-details';
 import { formatRupiah } from '@/lib/format';
 import { Plus, Edit, Check, Camera, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { QueryError, QueryLoading } from '../components/query-state';
+import AddOnsSection from './add-ons-section';
 import PackageDialog from './package-dialog';
-
-function featureList(features: unknown) {
-  return Array.isArray(features)
-    ? features.filter((item): item is string => typeof item === 'string')
-    : [];
-}
 
 export default function PackagesManagementPage() {
   const packagesQuery = useAdminPackages();
@@ -66,7 +62,7 @@ export default function PackagesManagementPage() {
       {/* Packages Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {(packagesQuery.data ?? []).map((pkg) => {
-          const features = featureList(pkg.features);
+          const features = packageLines(pkg);
           return (
             <Card
               key={pkg.id}
@@ -150,6 +146,14 @@ export default function PackagesManagementPage() {
           );
         })}
       </div>
+
+      <AddOnsSection
+        categories={[
+          ...new Set(
+            (packagesQuery.data ?? []).flatMap((pkg) => (pkg.category ? [pkg.category] : [])),
+          ),
+        ]}
+      />
 
       {dialog && (
         <PackageDialog

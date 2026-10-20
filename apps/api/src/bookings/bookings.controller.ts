@@ -15,6 +15,18 @@ export class BookingsController {
     return this.bookingsService.create(dto, idempotencyKey);
   }
 
+  /** Which times are free on a date for a package; `extraMinutes` counts add-on time in. */
+  @Public()
+  @Get('public/availability')
+  availability(
+    @Query('date') date: string,
+    @Query('packageId', ParseUUIDPipe) packageId: string,
+    @Query('extraMinutes') extraMinutes?: string,
+  ) {
+    const extra = Math.min(Math.max(Math.trunc(Number(extraMinutes)) || 0, 0), 1440);
+    return this.bookingsService.availability(date ?? '', packageId, extra);
+  }
+
   @Public()
   @Get('public/bookings/:id/resume')
   resume(@Param('id', ParseUUIDPipe) id: string) {

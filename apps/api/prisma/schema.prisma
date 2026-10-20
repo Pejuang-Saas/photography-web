@@ -117,23 +117,82 @@ enum GatewayWebhookStatus {
 }
 
 model ServicePackage {
-  id              String   @id @default(uuid())
-  name            String
-  slug            String   @unique
-  description     String?
-  category        String?
-  price           Int
-  durationMinutes Int      @default(60) @map("duration_minutes")
-  maxPeople       Int      @default(1) @map("max_people")
-  features        Json?
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(uuid())
+  name                 String
+  slug                 String   @unique
+  description          String?
+  category             String?
+  price                Int
+  durationMinutes      Int      @default(60) @map("duration_minutes")
+  maxPeople            Int      @default(1) @map("max_people")
+  features             Json?
+  /// Order within its group on the catalog; lower comes first.
+  sortOrder            Int      @default(0) @map("sort_order")
+  /// What the package promises, kept as numbers so the catalog and checkout read them the same way.
+  editedPhotos         Int?     @map("edited_photos")
+  driveActiveDays      Int?     @map("drive_active_days")
+  uploadAllHours       Int?     @map("upload_all_hours")
+  uploadEditDays       Int?     @map("upload_edit_days")
+  maxSpots             Int?     @map("max_spots")
+  bonusPriorityEdits   Int?     @map("bonus_priority_edits")
+  lateToleranceMinutes Int?     @map("late_tolerance_minutes")
+  /// This package's own conditions, a list of sentences.
+  terms                Json?
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   bookings Booking[]
 
   @@index([isActive, createdAt])
   @@map("service_packages")
+}
+
+/// Something a customer can add to a package at checkout, priced per unit.
+model AddOn {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  /// What one unit is, as the customer reads it: "30 menit", "5 foto", "orang".
+  unitLabel    String   @default("unit") @map("unit_label")
+  price        Int
+  /// Session time one unit adds; 0 for add-ons that do not lengthen the session.
+  extraMinutes Int      @default(0) @map("extra_minutes")
+  maxQuantity  Int      @default(10) @map("max_quantity")
+  /// Package categories this applies to, such as Lite and Premium; empty means every package.
+  categories   String[] @default([])
+  sortOrder    Int      @default(0) @map("sort_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  bookingLines BookingAddOn[]
+
+  @@index([isActive, sortOrder])
+  @@map("add_ons")
+}
+
+/// An add-on as it was when the customer booked: name and price are copied, so later price
+/// changes never touch an existing booking or its invoice.
+model BookingAddOn {
+  id           String   @id @default(uuid())
+  bookingId    String   @map("booking_id")
+  addOnId      String?  @map("add_on_id")
+  name         String
+  unitLabel    String   @map("unit_label")
+  unitPrice    Int      @map("unit_price")
+  quantity     Int
+  /// Session time all the units add together.
+  extraMinutes Int      @default(0) @map("extra_minutes")
+  subtotal     Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  addOn   AddOn?  @relation(fields: [addOnId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@map("booking_add_ons")
 }
 
 model PaymentSetting {
@@ -297,19 +356,21 @@ model WhatsappMessage {
 }
 
 model StudioSetting {
-  id              String   @id @default("default")
-  studioName      String   @default("Kayastory Photography") @map("studio_name")
-  whatsappNumber  String?  @map("whatsapp_number")
-  address         String?
-  mapsUrl         String?  @map("maps_url")
-  instagramHandle String?  @map("instagram_handle")
-  city            String?
-  region          String?
-  openTime        String?  @map("open_time")
-  closeTime       String?  @map("close_time")
-  guarantees      Json?
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id               String   @id @default("default")
+  studioName       String   @default("Kayastory Photography") @map("studio_name")
+  whatsappNumber   String?  @map("whatsapp_number")
+  address          String?
+  mapsUrl          String?  @map("maps_url")
+  instagramHandle  String?  @map("instagram_handle")
+  city             String?
+  region           String?
+  openTime         String?  @map("open_time")
+  closeTime        String?  @map("close_time")
+  guarantees       Json?
+  /// The general conditions shown at checkout, a list of sentences.
+  reservationTerms Json?    @map("reservation_terms")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("studio_settings")
 }
@@ -351,7 +412,10 @@ model Booking {
   packageId       String        @map("package_id")
   packageName     String        @map("package_name")
   packagePrice    Int           @map("package_price")
+  /// Package price plus add-ons.
   totalAmount     Int           @map("total_amount")
+  /// Session time the add-ons lengthen it by.
+  extraMinutes    Int           @default(0) @map("extra_minutes")
   paymentMode     PaymentMode   @map("payment_mode")
   paymentPlan     PaymentPlan   @map("payment_plan")
   requiredAmount  Int           @map("required_amount")
@@ -372,6 +436,7 @@ model Booking {
   invoice       Invoice?
   notifications Notification[]
   galleries     Gallery[]
+  addOns        BookingAddOn[]
 
   @@index([status, createdAt])
   @@index([sessionDate, timeSlot])

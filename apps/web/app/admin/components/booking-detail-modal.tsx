@@ -230,6 +230,26 @@ function BookingDetail({
               </span>
             </div>
 
+            {booking.addOns.map((line) => (
+              <div
+                key={line.name}
+                className="flex items-center justify-between text-xs p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm"
+              >
+                <div>
+                  <span className="font-semibold text-zinc-900 dark:text-white block">
+                    {line.name}
+                  </span>
+                  <span className="text-[11px] text-zinc-500">
+                    {line.quantity} × {line.unitLabel} · {formatRupiah(line.unitPrice)}
+                    {line.extraMinutes > 0 && ` · +${line.extraMinutes} menit sesi`}
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                  {formatRupiah(line.subtotal)}
+                </span>
+              </div>
+            ))}
+
             <div className="grid grid-cols-2 gap-3 pt-2 text-xs border-t border-zinc-200 dark:border-zinc-800">
               <div>
                 <span className="text-zinc-500 block text-[11px]">Tanggal Sesi</span>
@@ -242,6 +262,11 @@ function BookingDetail({
                 <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-200">
                   {booking.timeSlot} WIB
                 </span>
+                {booking.extraMinutes > 0 && (
+                  <span className="block text-[11px] text-amber-600 dark:text-amber-400">
+                    +{booking.extraMinutes} menit dari add-on
+                  </span>
+                )}
               </div>
               <div>
                 <span className="text-zinc-500 block text-[11px]">Metode Pembayaran</span>
