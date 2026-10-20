@@ -60,31 +60,41 @@ function isActive(pathname: string, item: NavLeaf) {
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-const itemClass = (active: boolean) =>
+const itemClass = (active: boolean, sub = false) =>
   cn(
-    'group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+    'group relative flex items-center justify-between rounded-lg px-3 font-medium transition-colors duration-150',
+    sub ? 'py-1.5 text-[12.5px]' : 'py-2 text-[13px]',
     active
-      ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white font-semibold border border-zinc-200/80 dark:border-zinc-700/80'
-      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:text-zinc-900 dark:hover:text-zinc-200',
+      ? 'bg-amber-500/10 font-semibold text-zinc-900 before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-amber-500 dark:bg-amber-500/10 dark:text-white'
+      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900/70 dark:hover:text-zinc-200',
   );
 
-const iconClass = (active: boolean) =>
+const iconClass = (active: boolean, sub = false) =>
   cn(
-    'size-4 transition-colors',
+    sub ? 'size-3.5' : 'size-4',
+    'shrink-0 transition-colors',
     active
       ? 'text-amber-600 dark:text-amber-400'
       : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300',
   );
 
-function NavLink({ item, pathname }: { item: NavLeaf; pathname: string }) {
+function NavLink({
+  item,
+  pathname,
+  sub = false,
+}: {
+  item: NavLeaf;
+  pathname: string;
+  sub?: boolean;
+}) {
   const active = isActive(pathname, item);
   const Icon = item.icon;
 
   return (
-    <Link href={item.href} className={itemClass(active)}>
-      <div className="flex items-center gap-3">
-        <Icon className={iconClass(active)} />
-        <span>{item.title}</span>
+    <Link href={item.href} className={itemClass(active, sub)}>
+      <div className="flex min-w-0 items-center gap-3">
+        <Icon className={iconClass(active, sub)} />
+        <span className="truncate">{item.title}</span>
       </div>
       {item.badge !== null && item.badge !== undefined && (
         <span
@@ -122,7 +132,7 @@ function NavSubmenu({ group, pathname }: { group: NavGroup; pathname: string }) 
         <div className="flex items-center gap-3">
           <Icon
             className={cn(
-              'size-4',
+              'size-4 shrink-0',
               hasActiveChild ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-400',
             )}
           />
@@ -133,9 +143,9 @@ function NavSubmenu({ group, pathname }: { group: NavGroup; pathname: string }) 
         />
       </button>
       {open && (
-        <div className="mt-1 ml-5 space-y-1 border-l border-zinc-200 pl-2 dark:border-zinc-800">
+        <div className="mt-0.5 ml-[1.15rem] space-y-0.5 border-l border-zinc-200 pl-2 dark:border-zinc-800">
           {group.children.map((child) => (
-            <NavLink key={child.href} item={child} pathname={pathname} />
+            <NavLink key={child.href} item={child} pathname={pathname} sub />
           ))}
         </div>
       )}
@@ -159,66 +169,71 @@ export default function AdminSidebar({
     (b) => b.status === 'PENDING_VERIFICATION',
   ).length;
 
-  const studioNav: NavEntry[] = [
-    { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
+  const sections: { label: string; entries: NavEntry[] }[] = [
     {
-      title: 'Reservasi & Verifikasi',
-      href: '/admin/bookings',
-      icon: FileCheck2,
-      badge: pendingCount > 0 ? pendingCount : null,
-      badgeColor: 'bg-amber-500 text-zinc-950',
+      label: 'Operasional',
+      entries: [
+        { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
+        {
+          title: 'Reservasi & Verifikasi',
+          href: '/admin/bookings',
+          icon: FileCheck2,
+          badge: pendingCount > 0 ? pendingCount : null,
+          badgeColor: 'bg-amber-500 text-zinc-950',
+        },
+        { title: 'Kalender Jadwal', href: '/admin/calendar', icon: CalendarDays },
+        { title: 'Invoice & Pembayaran', href: '/admin/invoices', icon: Receipt },
+      ],
     },
-    { title: 'Kalender Jadwal', href: '/admin/calendar', icon: CalendarDays },
-    { title: 'Invoice & Pembayaran', href: '/admin/invoices', icon: Receipt },
     {
-      title: 'Mini CRM',
-      href: '/admin/crm',
-      icon: MessagesSquare,
-      badge: crmUnread > 0 ? crmUnread : null,
-      badgeColor: 'bg-emerald-500 text-white',
+      label: 'Klien',
+      entries: [
+        {
+          title: 'Mini CRM',
+          href: '/admin/crm',
+          icon: MessagesSquare,
+          badge: crmUnread > 0 ? crmUnread : null,
+          badgeColor: 'bg-emerald-500 text-white',
+        },
+        { title: 'Galeri Klien', href: '/admin/galleries', icon: FolderOpen },
+      ],
     },
-    { title: 'Galeri Klien', href: '/admin/galleries', icon: FolderOpen },
-    { title: 'Paket & Layanan', href: '/admin/packages', icon: Layers },
-    // Integration features from other specs (WAHA / template builder / SMTP) add their pages here.
     {
-      title: 'Pengaturan & Integrasi',
-      icon: Settings2,
-      children: [
+      label: 'Pengelolaan',
+      entries: [
+        { title: 'Paket & Layanan', href: '/admin/packages', icon: Layers },
+        // Integration features from other specs (WAHA / template builder / SMTP) add their pages here.
         {
-          title: 'Profil Studio',
-          href: '/admin/settings/profil-studio',
-          icon: Store,
-        },
-        {
-          title: 'Otomasi WhatsApp',
-          href: '/admin/settings/whatsapp',
-          icon: MessageSquare,
-        },
-        {
-          title: 'Notifikasi Email',
-          href: '/admin/settings/email',
-          icon: Mail,
-        },
-        {
-          title: 'Metode Pembayaran',
-          href: '/admin/settings/metode-pembayaran',
-          icon: CreditCard,
+          title: 'Pengaturan & Integrasi',
+          icon: Settings2,
+          children: [
+            { title: 'Profil Studio', href: '/admin/settings/profil-studio', icon: Store },
+            { title: 'Otomasi WhatsApp', href: '/admin/settings/whatsapp', icon: MessageSquare },
+            { title: 'Notifikasi Email', href: '/admin/settings/email', icon: Mail },
+            {
+              title: 'Metode Pembayaran',
+              href: '/admin/settings/metode-pembayaran',
+              icon: CreditCard,
+            },
+          ],
         },
       ],
     },
-  ];
-
-  const contentNav: NavEntry[] = [
     {
-      title: 'CMS',
-      icon: PanelsTopLeft,
-      children: [
-        { title: 'Konten Halaman', href: '/admin/cms/landing', icon: LayoutTemplate },
-        { title: 'Gallery', href: '/admin/cms/gallery', icon: Images },
-        { title: 'Kategori Gallery', href: '/admin/cms/categories', icon: FolderKanban },
-        { title: 'Marquee', href: '/admin/cms/marquee', icon: Megaphone },
-        { title: 'FAQ', href: '/admin/cms/faq', icon: HelpCircle },
-        { title: 'Testimonial', href: '/admin/cms/testimonials', icon: MessageSquareQuote },
+      label: 'Konten Website',
+      entries: [
+        {
+          title: 'CMS',
+          icon: PanelsTopLeft,
+          children: [
+            { title: 'Konten Halaman', href: '/admin/cms/landing', icon: LayoutTemplate },
+            { title: 'Gallery', href: '/admin/cms/gallery', icon: Images },
+            { title: 'Kategori Gallery', href: '/admin/cms/categories', icon: FolderKanban },
+            { title: 'Marquee', href: '/admin/cms/marquee', icon: Megaphone },
+            { title: 'FAQ', href: '/admin/cms/faq', icon: HelpCircle },
+            { title: 'Testimonial', href: '/admin/cms/testimonials', icon: MessageSquareQuote },
+          ],
+        },
       ],
     },
   ];
@@ -259,16 +274,15 @@ export default function AdminSidebar({
       </div>
 
       {/* Navigation Links */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-5">
-        <div className="mb-2 px-3 text-[10px] font-bold tracking-[0.14em] text-zinc-400 dark:text-zinc-500 uppercase">
-          Menu Studio
-        </div>
-        <nav className="space-y-1">{renderEntries(studioNav)}</nav>
-
-        <div className="mb-2 mt-8 px-3 text-[10px] font-bold tracking-[0.14em] text-zinc-400 dark:text-zinc-500 uppercase">
-          Konten Website
-        </div>
-        <nav className="space-y-1">{renderEntries(contentNav)}</nav>
+      <div className="flex-1 space-y-6 overflow-y-auto px-2.5 py-5">
+        {sections.map((section) => (
+          <div key={section.label}>
+            <div className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+              {section.label}
+            </div>
+            <nav className="space-y-0.5">{renderEntries(section.entries)}</nav>
+          </div>
+        ))}
       </div>
 
       {/* Footer Profile & Website Link */}
