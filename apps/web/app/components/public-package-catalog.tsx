@@ -2,7 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { bookingApi, type AddOn, type ServicePackage } from '@/lib/booking-api';
+import {
+  bookingApi,
+  type AddOn,
+  type PackageCategory,
+  type ServicePackage,
+} from '@/lib/booking-api';
 import { formatRupiah } from '@/lib/format';
 import {
   addOnPrice,
@@ -16,19 +21,22 @@ import { useStudioInfo } from '@/lib/studio-queries';
 import PackageCard, { type PackageData } from './package-card';
 import ScrollReveal from './scroll-reveal';
 
-// Cover photos, handed out in turn: the packages are not tied to particular pictures.
-const COVERS = ['01', '02', '08', '03', '05', '06', '09'];
-
-function toPackageCardData(pkg: ServicePackage, index: number): PackageData {
+function toPackageCardData(pkg: ServicePackage): PackageData {
+  // The headline figures get tiles of their own, so the list does not repeat them.
+  const stats = [
+    { value: `${pkg.durationMinutes} menit`, label: 'Durasi' },
+    ...(pkg.editedPhotos ? [{ value: `${pkg.editedPhotos} foto`, label: 'Foto edit' }] : []),
+    ...(pkg.driveActiveDays ? [{ value: `${pkg.driveActiveDays} hari`, label: 'Link Drive' }] : []),
+  ];
   return {
     id: pkg.id,
     name: pkg.name,
-    cover: COVERS[index % COVERS.length],
     summary:
       pkg.description ??
       `${pkg.durationMinutes} menit sesi foto untuk maksimal ${pkg.maxPeople} orang.`,
     price: pkg.price,
-    lines: packageLines(pkg),
+    stats,
+    lines: packageLines(pkg, ['duration', 'editedPhotos', 'driveActiveDays']),
     terms: packageTerms(pkg),
     isFeatured: false,
   };
@@ -64,9 +72,11 @@ function AddOnPanel({ title, addOns }: { title: string; addOns: AddOn[] }) {
 
 export default function PublicPackageCatalog({
   initialPackages,
+  initialCategories,
   initialStudio,
 }: {
   initialPackages?: ServicePackage[] | null;
+  initialCategories?: PackageCategory[] | null;
   initialStudio?: StudioInfo | null;
 }) {
   const router = useRouter();
@@ -75,6 +85,12 @@ export default function PublicPackageCatalog({
     queryFn: bookingApi.listPackages,
     // Server-rendered list: the catalog is in the first HTML (SEO) and shows no loading flash.
     initialData: initialPackages ?? undefined,
+    staleTime: 60_000,
+  });
+  const categories = useQuery({
+    queryKey: ['public', 'package-categories'],
+    queryFn: bookingApi.listPackageCategories,
+    initialData: initialCategories ?? undefined,
     staleTime: 60_000,
   });
   const addOns = useQuery({
@@ -114,14 +130,13 @@ export default function PublicPackageCatalog({
     );
   }
 
-  const groups = groupPackages(activePackages);
+  const groups = groupPackages(activePackages, categories.data ?? []);
   const generalTerms = studio.data?.reservationTerms ?? [];
 
   // Groups sold with the same add-ons share one panel, placed after the last of them, as the price
   // list does ("Add-on Lite & Premium").
   const offered = groups.map((group) => addOnsFor(addOns.data ?? [], group.category));
   const panelKey = (list: AddOn[]) => list.map((addOn) => addOn.id).join(',');
-  let cover = 0;
 
   return (
     <div className="mt-14 space-y-16">
@@ -171,7 +186,7 @@ export default function PublicPackageCatalog({
               {group.packages.map((pkg, index) => (
                 <ScrollReveal key={pkg.id} delay={index * 0.1}>
                   <PackageCard
-                    pkg={toPackageCardData(pkg, cover++)}
+                    pkg={toPackageCardData(pkg)}
                     onSelect={closed ? undefined : () => router.push(`/reservasi/${pkg.slug}`)}
                   />
                 </ScrollReveal>

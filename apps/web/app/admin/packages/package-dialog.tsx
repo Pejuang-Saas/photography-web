@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from 'react';
 import type { ServicePackage } from '@/lib/booking-api';
-import { errorMessage, useSavePackage } from '@/lib/admin-queries';
+import Link from 'next/link';
+import { errorMessage, useAdminPackageCategories, useSavePackage } from '@/lib/admin-queries';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -53,6 +54,7 @@ export default function PackageDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const save = useSavePackage();
+  const categories = useAdminPackageCategories();
   const [name, setName] = useState(item?.name ?? '');
   const [slug, setSlug] = useState(item?.slug ?? '');
   const [slugTouched, setSlugTouched] = useState(Boolean(item));
@@ -140,12 +142,33 @@ export default function PackageDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1">
               <span className="font-medium text-zinc-600 dark:text-zinc-400">Kategori</span>
-              <Input
-                maxLength={80}
-                placeholder="Lite, Premium, Group..."
+              <select
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
-              />
+                className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+              >
+                <option value="">Tanpa kategori</option>
+                {(categories.data ?? []).map((entry) => (
+                  <option key={entry.id} value={entry.name}>
+                    {entry.title}
+                  </option>
+                ))}
+                {/* A category the package already has stays selectable if it is not listed yet. */}
+                {category &&
+                  !(categories.data ?? []).some(
+                    (entry) => entry.name.toLowerCase() === category.toLowerCase(),
+                  ) && <option value={category}>{category}</option>}
+              </select>
+              <span className="block text-[11px] text-zinc-500">
+                Dikelola di{' '}
+                <Link
+                  href="/admin/packages/categories"
+                  className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+                >
+                  Kategori Paket
+                </Link>
+                .
+              </span>
             </label>
             <label className="space-y-1">
               <span className="font-medium text-zinc-600 dark:text-zinc-400">Harga (Rp) *</span>

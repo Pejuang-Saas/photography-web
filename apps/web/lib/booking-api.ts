@@ -35,6 +35,18 @@ export type ServicePackage = {
   updatedAt: string;
 };
 
+/** The heading and introduction of a group of packages on the catalog. */
+export type PackageCategory = {
+  id: string;
+  /** What packages and add-ons call it: "Lite". */
+  name: string;
+  key: string;
+  /** The heading shown on the catalog: "Lite Version". */
+  title: string;
+  description: string | null;
+  sortOrder: number;
+};
+
 /** Something added to a package at checkout, priced per unit. */
 export type AddOn = {
   id: string;
@@ -160,6 +172,8 @@ export const bookingApi = {
   listPackages: () => apiRequest<ServicePackage[]>('/public/packages'),
 
   listAddOns: () => apiRequest<AddOn[]>('/public/add-ons'),
+
+  listPackageCategories: () => apiRequest<PackageCategory[]>('/public/package-categories'),
 
   /** Free times on a date for a package; `extraMinutes` counts add-on time in. */
   getAvailability: (date: string, packageId: string, extraMinutes = 0) =>

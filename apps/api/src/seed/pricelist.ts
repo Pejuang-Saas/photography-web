@@ -212,10 +212,41 @@ export const GENERAL_TERMS = [
   'Dengan melakukan reservasi, klien dianggap telah membaca dan menyetujui seluruh ketentuan yang berlaku.',
 ];
 
+export const PRICELIST_CATEGORIES = [
+  {
+    name: 'Lite',
+    title: 'Lite Version',
+    sortOrder: 10,
+    description:
+      'Paket sederhana untuk mengabadikan momen wisuda dengan hasil yang tetap berkualitas dan berkesan. Cocok untuk sesi singkat bersama keluarga dan teman terdekat.',
+  },
+  {
+    name: 'Premium',
+    title: 'Premium Version',
+    sortOrder: 20,
+    description:
+      'Untuk kamu yang menginginkan pengalaman sesi foto wisuda yang lebih eksklusif dan hasil yang lebih maksimal. Lebih banyak waktu, lebih banyak foto edit, dan prioritas pengerjaan untuk momen yang benar-benar istimewa.',
+  },
+  {
+    name: 'Group',
+    title: 'Group Session',
+    sortOrder: 30,
+    description:
+      'Abadikan kebersamaan bersama sahabat wisudamu dalam satu sesi yang seru dan penuh cerita. Cocok untuk momen perpisahan, persahabatan, dan kenangan yang akan selalu dikenang.',
+  },
+];
+
 /** The packages the studio sold before the price list; kept for old bookings, but no longer offered. */
 const LEGACY_SLUGS = ['solo-graduation', 'squad-graduation', 'family-package'];
 
 export async function seedPricelist(prisma: PrismaClient) {
+  for (const category of PRICELIST_CATEGORIES) {
+    await prisma.packageCategory.upsert({
+      where: { key: category.name.toLowerCase() },
+      create: { key: category.name.toLowerCase(), ...category },
+      update: {},
+    });
+  }
   for (const pkg of PRICELIST_PACKAGES) {
     await prisma.servicePackage.upsert({ where: { slug: pkg.slug }, create: pkg, update: {} });
   }
@@ -239,6 +270,6 @@ export async function seedPricelist(prisma: PrismaClient) {
   }
 
   console.log(
-    `✅ price list: ${PRICELIST_PACKAGES.length} packages, ${PRICELIST_ADD_ONS.length} add-ons, ${retired.count} old packages hidden`,
+    `✅ price list: ${PRICELIST_CATEGORIES.length} categories, ${PRICELIST_PACKAGES.length} packages, ${PRICELIST_ADD_ONS.length} add-ons, ${retired.count} old packages hidden`,
   );
 }

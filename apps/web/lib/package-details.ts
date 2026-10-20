@@ -1,4 +1,4 @@
-import type { AddOn, ServicePackage } from './booking-api';
+import type { AddOn, PackageCategory, ServicePackage } from './booking-api';
 
 const stringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
@@ -9,12 +9,18 @@ const stringList = (value: unknown): string[] =>
  * come next, worded from the package's own fields so they always match what is stored; the rest of
  * the free-text features close the list.
  */
-export function packageLines(pkg: ServicePackage): string[] {
+export function packageLines(
+  pkg: ServicePackage,
+  /** Figures the caller already shows on their own, so they are not listed twice. */
+  omit: Array<'duration' | 'editedPhotos' | 'driveActiveDays'> = [],
+): string[] {
   const features = stringList(pkg.features);
   const lines: string[] = [];
-  lines.push(`Durasi sesi ${pkg.durationMinutes} menit`);
-  if (pkg.editedPhotos) lines.push(`${pkg.editedPhotos} foto edit`);
-  if (pkg.driveActiveDays) {
+  if (!omit.includes('duration')) lines.push(`Durasi sesi ${pkg.durationMinutes} menit`);
+  if (pkg.editedPhotos && !omit.includes('editedPhotos')) {
+    lines.push(`${pkg.editedPhotos} foto edit`);
+  }
+  if (pkg.driveActiveDays && !omit.includes('driveActiveDays')) {
     lines.push(`Link Google Drive aktif selama ${pkg.driveActiveDays} hari`);
   }
   if (pkg.uploadAllHours) {
@@ -39,25 +45,6 @@ export function packageLines(pkg: ServicePackage): string[] {
 /** This package's own conditions. */
 export const packageTerms = (pkg: ServicePackage): string[] => stringList(pkg.terms);
 
-/** The headings and introductions of the price list's groups; an unknown group has neither. */
-const GROUP_COPY: Record<string, { title: string; intro: string }> = {
-  lite: {
-    title: 'Lite Version',
-    intro:
-      'Paket sederhana untuk mengabadikan momen wisuda dengan hasil yang tetap berkualitas dan berkesan. Cocok untuk sesi singkat bersama keluarga dan teman terdekat.',
-  },
-  premium: {
-    title: 'Premium Version',
-    intro:
-      'Untuk kamu yang menginginkan pengalaman sesi foto wisuda yang lebih eksklusif dan hasil yang lebih maksimal. Lebih banyak waktu, lebih banyak foto edit, dan prioritas pengerjaan untuk momen yang benar-benar istimewa.',
-  },
-  group: {
-    title: 'Group Session',
-    intro:
-      'Abadikan kebersamaan bersama sahabat wisudamu dalam satu sesi yang seru dan penuh cerita. Cocok untuk momen perpisahan, persahabatan, dan kenangan yang akan selalu dikenang.',
-  },
-};
-
 export type PackageGroup = {
   key: string;
   category: string;
@@ -66,30 +53,47 @@ export type PackageGroup = {
   packages: ServicePackage[];
 };
 
-/** Packages gathered by category, groups and packages in the order the admin set. */
-export function groupPackages(packages: ServicePackage[]): PackageGroup[] {
+/**
+ * Packages gathered by category. A category's heading, introduction and place come from the
+ * categories the admin keeps; one with no entry there shows under its own name, after the rest.
+ */
+export function groupPackages(
+  packages: ServicePackage[],
+  categories: PackageCategory[] = [],
+): PackageGroup[] {
+  const known = new Map(categories.map((category) => [category.key, category]));
   const sorted = [...packages].sort(
     (a, b) => a.sortOrder - b.sortOrder || a.price - b.price || a.name.localeCompare(b.name),
   );
-  const groups = new Map<string, PackageGroup>();
+
+  const groups = new Map<string, PackageGroup & { order: number }>();
   for (const pkg of sorted) {
-    const category = pkg.category?.trim() || 'Paket';
-    const key = category.toLowerCase();
+    const name = pkg.category?.trim() || 'Paket';
+    const key = name.toLowerCase();
     let group = groups.get(key);
     if (!group) {
-      const copy = GROUP_COPY[key];
+      const entry = known.get(key);
       group = {
         key,
-        category,
-        title: copy?.title ?? category,
-        intro: copy?.intro ?? null,
+        category: entry?.name ?? name,
+        title: entry?.title ?? name,
+        intro: entry?.description ?? null,
+        order: entry?.sortOrder ?? Number.MAX_SAFE_INTEGER,
         packages: [],
       };
       groups.set(key, group);
     }
     group.packages.push(pkg);
   }
-  return [...groups.values()];
+  return [...groups.values()]
+    .sort((a, b) => a.order - b.order || a.packages[0].sortOrder - b.packages[0].sortOrder)
+    .map((group) => ({
+      key: group.key,
+      category: group.category,
+      title: group.title,
+      intro: group.intro,
+      packages: group.packages,
+    }));
 }
 
 /** The add-ons offered with a package of this category. */

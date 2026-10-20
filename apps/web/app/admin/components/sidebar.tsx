@@ -28,6 +28,9 @@ import {
   MessagesSquare,
   LayoutTemplate,
   FolderOpen,
+  PackageOpen,
+  PlusCircle,
+  Tags,
   ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
@@ -201,7 +204,16 @@ export default function AdminSidebar({
     {
       label: 'Pengelolaan',
       entries: [
-        { title: 'Paket & Layanan', href: '/admin/packages', icon: Layers },
+        {
+          title: 'Paket & Layanan',
+          icon: Layers,
+          children: [
+            { title: 'Kategori Paket', href: '/admin/packages/categories', icon: Tags },
+            // The other two live below /admin/packages, so this one must match exactly.
+            { title: 'Paket', href: '/admin/packages', icon: PackageOpen, exact: true },
+            { title: 'Add-on', href: '/admin/packages/add-ons', icon: PlusCircle },
+          ],
+        },
         // Integration features from other specs (WAHA / template builder / SMTP) add their pages here.
         {
           title: 'Pengaturan & Integrasi',

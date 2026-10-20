@@ -14,7 +14,7 @@ import QuickBookingDock from './components/quick-booking-dock';
 import FrameCounter from './components/frame-counter';
 import StructuredData from './components/structured-data';
 import type { LandingCmsContent } from '@/lib/landing-cms';
-import type { ServicePackage } from '@/lib/booking-api';
+import type { PackageCategory, ServicePackage } from '@/lib/booking-api';
 import { formatClock, whatsappLink } from '@/lib/format';
 import type { LandingContent } from '@/lib/landing-content-api';
 import { brandMark, FALLBACK_STUDIO_NAME, type StudioInfo } from '@/lib/studio-api';
@@ -50,12 +50,14 @@ export default function Landing({
   content,
   studio,
   packages,
+  packageCategories,
   allowDownPayment = true,
 }: {
   cmsContent?: LandingCmsContent | null;
   content: LandingContent | null;
   studio?: StudioInfo | null;
   packages?: ServicePackage[] | null;
+  packageCategories?: PackageCategory[] | null;
   allowDownPayment?: boolean;
 }) {
   const studioName = studio?.studioName ?? FALLBACK_STUDIO_NAME;
@@ -235,7 +237,11 @@ export default function Landing({
             </div>
           </ScrollReveal>
 
-          <PublicPackageCatalog initialPackages={packages} initialStudio={studio} />
+          <PublicPackageCatalog
+            initialPackages={packages}
+            initialCategories={packageCategories}
+            initialStudio={studio}
+          />
         </div>
       </section>
 

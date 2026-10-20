@@ -2,6 +2,7 @@ import Landing from './landing';
 import { getLandingCmsContent } from '@/lib/landing-cms';
 import {
   getLandingContent,
+  getPublicPackageCategories,
   getPublicPackages,
   getPublicPaymentSettings,
   getStudioInfo,
@@ -9,13 +10,15 @@ import {
 import { QueryProvider } from '@/lib/query-provider';
 
 export default async function Home() {
-  const [cmsContent, content, studio, packages, paymentSettings] = await Promise.all([
-    getLandingCmsContent(),
-    getLandingContent(),
-    getStudioInfo(),
-    getPublicPackages(),
-    getPublicPaymentSettings(),
-  ]);
+  const [cmsContent, content, studio, packages, packageCategories, paymentSettings] =
+    await Promise.all([
+      getLandingCmsContent(),
+      getLandingContent(),
+      getStudioInfo(),
+      getPublicPackages(),
+      getPublicPackageCategories(),
+      getPublicPaymentSettings(),
+    ]);
 
   return (
     <QueryProvider>
@@ -24,6 +27,7 @@ export default async function Home() {
         content={content}
         studio={studio}
         packages={packages}
+        packageCategories={packageCategories}
         allowDownPayment={paymentSettings?.allowDownPayment ?? true}
       />
     </QueryProvider>

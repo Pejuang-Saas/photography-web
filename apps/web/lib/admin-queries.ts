@@ -6,6 +6,7 @@ import {
   adminApi,
   type ManualAccountInput,
   type AddOnInput,
+  type PackageCategoryInput,
   type ServicePackageInput,
   type UpdatePaymentSettingsInput,
 } from './admin-api';
@@ -19,6 +20,7 @@ export const adminKeys = {
   booking: (id: string) => ['admin', 'bookings', id] as const,
   packages: ['admin', 'packages'] as const,
   addOns: ['admin', 'add-ons'] as const,
+  packageCategories: ['admin', 'package-categories'] as const,
   notifications: ['admin', 'notifications'] as const,
   paymentSettings: ['admin', 'payment-settings'] as const,
   manualAccounts: ['admin', 'payment-accounts'] as const,
@@ -122,6 +124,45 @@ export function useSavePackage() {
     onSuccess: (_data, { id }) => {
       toast.success(id ? 'Paket diperbarui' : 'Paket ditambahkan');
       return queryClient.invalidateQueries({ queryKey: adminKeys.packages });
+    },
+  });
+}
+
+export function useAdminPackageCategories() {
+  return useQuery({
+    queryKey: adminKeys.packageCategories,
+    queryFn: adminApi.listPackageCategories,
+  });
+}
+
+export function useSavePackageCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: PackageCategoryInput }) =>
+      id ? adminApi.updatePackageCategory(id, body) : adminApi.createPackageCategory(body),
+    onSuccess: (_data, { id }) => {
+      toast.success(id ? 'Kategori diperbarui' : 'Kategori ditambahkan');
+      // A rename reaches the packages and add-ons that use the category.
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminKeys.packageCategories }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.packages }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.addOns }),
+      ]);
+    },
+  });
+}
+
+export function useDeletePackageCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.deletePackageCategory(id),
+    onError: (error) => toast.error(errorMessage(error)),
+    onSuccess: () => {
+      toast.success('Kategori dihapus');
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminKeys.packageCategories }),
+        queryClient.invalidateQueries({ queryKey: adminKeys.addOns }),
+      ]);
     },
   });
 }

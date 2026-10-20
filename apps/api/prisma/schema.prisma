@@ -148,6 +148,25 @@ model ServicePackage {
   @@map("service_packages")
 }
 
+/// The heading and introduction of a group of packages on the catalog, such as "Lite Version". It
+/// belongs to a package category by name, ignoring capitals; a category with no row here is shown
+/// under its own name with no introduction.
+model PackageCategory {
+  id          String   @id @default(uuid())
+  /// The category as packages spell it, e.g. "Lite".
+  name        String
+  /// `name` in lower case, which is what packages are matched against.
+  key         String   @unique
+  title       String
+  description String?
+  /// Order of the groups on the catalog; lower comes first.
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("package_categories")
+}
+
 /// Something a customer can add to a package at checkout, priced per unit.
 model AddOn {
   id           String   @id @default(uuid())

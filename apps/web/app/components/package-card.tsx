@@ -1,20 +1,20 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import Image from 'next/image';
 import { ArrowRight, Check } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
 
 export interface PackageData {
   id: string;
   name: string;
-  cover: string;
   summary: string;
   price: number;
   badge?: string;
-  /** What the package includes, one line each. */
+  /** The figures that matter most, shown as tiles: "90 menit", "30 foto edit". */
+  stats: Array<{ value: string; label: string }>;
+  /** What else the package includes, one line each. */
   lines: string[];
-  /** This package's own conditions; shown folded away. */
+  /** This package's own conditions, under their own tab; no tab when there are none. */
   terms: string[];
   isFeatured: boolean;
 }
@@ -28,6 +28,8 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
+  const [tab, setTab] = useState<'details' | 'terms'>('details');
+  const hasTerms = pkg.terms.length > 0;
   const shouldReduceMotion = useReducedMotion();
   const formattedPrice = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -70,95 +72,126 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
         />
       )}
 
-      {/* Photo Cover on Top with Viewfinder frame */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-black z-10">
-        <Image
-          src={`/portfolio/kayastory-${pkg.cover}.jpg`}
-          alt={`Cover Paket ${pkg.name}`}
-          fill
-          sizes="(max-width: 1024px) 400px, 450px"
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-        />
-
+      <div className="relative z-10 flex flex-1 flex-col p-6 sm:p-8">
         {pkg.badge && (
-          <span className="absolute top-3 right-3 rounded-full bg-accent px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-accent-fg shadow-lg">
+          <span className="mb-3 w-fit rounded-full bg-accent px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-accent-fg">
             {pkg.badge}
           </span>
         )}
 
-        {/* Subtle camera optical tag */}
-        <div className="absolute bottom-2 left-3 rounded bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/80 backdrop-blur-md">
-          <span>FRAME #{pkg.cover}</span>
-        </div>
-      </div>
+        <h3 className="text-xl font-bold text-fg">{pkg.name}</h3>
+        <p className="mt-3 flex items-baseline gap-1.5">
+          <span className="text-3xl font-black tracking-tight text-accent">{formattedPrice}</span>
+          <span className="text-xs text-muted">/ sesi</span>
+        </p>
+        <p className="mt-3 text-xs leading-relaxed text-muted">{pkg.summary}</p>
 
-      {/* Package Content */}
-      <div className="p-6 sm:p-7 flex flex-col flex-1 relative z-10">
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="text-xl font-bold text-fg group-hover:text-white transition-colors">
-            {pkg.name}
-          </h3>
-          <span className="text-xl font-black text-accent tracking-tight">{formattedPrice}</span>
-        </div>
-
-        <p className="mt-2 text-xs leading-relaxed text-muted">{pkg.summary}</p>
-
-        {/* Features List */}
-        <div className="mt-6 border-t border-white/10 pt-5 flex-1">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-muted-dim block mb-3">
-            Rincian Paket:
-          </span>
-          <ul className="space-y-2.5">
-            {pkg.lines.map((feat, idx) => (
-              <li key={idx} className="flex items-start gap-2.5 text-xs text-fg/90">
-                <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent mt-0.5 font-bold">
-                  <Check size={10} weight="bold" />
-                </span>
-                <span>{feat}</span>
-              </li>
+        {pkg.stats.length > 0 && (
+          <dl
+            className="mt-6 grid gap-2.5"
+            style={{ gridTemplateColumns: `repeat(${pkg.stats.length}, minmax(0, 1fr))` }}
+          >
+            {pkg.stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-center"
+              >
+                <dt className="text-[10px] font-mono uppercase tracking-wider text-muted-dim">
+                  {stat.label}
+                </dt>
+                <dd className="mt-1 text-sm font-bold text-fg">{stat.value}</dd>
+              </div>
             ))}
-          </ul>
-        </div>
+          </dl>
+        )}
 
-        {pkg.terms.length > 0 && (
-          <details className="group/terms mt-5 rounded-xl border border-white/10 px-3.5 py-2.5 text-xs">
-            <summary className="flex cursor-pointer list-none items-center justify-between font-semibold text-fg/90">
-              Ketentuan paket
-              <span className="text-[11px] font-normal text-accent group-open/terms:hidden">
-                Lihat
-              </span>
-              <span className="hidden text-[11px] font-normal text-accent group-open/terms:inline">
-                Tutup
-              </span>
-            </summary>
-            <ul className="mt-2.5 space-y-2 leading-relaxed text-muted">
-              {pkg.terms.map((term) => (
-                <li key={term} className="flex gap-2">
-                  <span className="text-accent">•</span>
-                  {term}
+        {/* Details and conditions share one tabbed area, so a card never grows when its tab changes */}
+        <div className="mt-6 border-t border-white/10 pt-5">
+          {hasTerms && (
+            <div
+              role="tablist"
+              aria-label={`Informasi ${pkg.name}`}
+              className="mb-5 inline-flex rounded-full border border-white/10 bg-white/[0.03] p-1"
+            >
+              {(
+                [
+                  ['details', 'Rincian'],
+                  ['terms', 'Ketentuan'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === value}
+                  onClick={() => setTab(value)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                    tab === value ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="grid">
+            <ul
+              role="tabpanel"
+              className={`col-start-1 row-start-1 space-y-2.5 ${tab === 'details' ? '' : 'invisible'}`}
+              aria-hidden={tab !== 'details'}
+            >
+              {pkg.lines.map((feat) => (
+                <li
+                  key={feat}
+                  className="flex items-start gap-2.5 text-xs leading-relaxed text-fg/90"
+                >
+                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-accent/15 font-bold text-accent">
+                    <Check size={10} weight="bold" />
+                  </span>
+                  <span>{feat}</span>
                 </li>
               ))}
             </ul>
-          </details>
-        )}
+            {hasTerms && (
+              <ul
+                role="tabpanel"
+                className={`col-start-1 row-start-1 space-y-3 ${tab === 'terms' ? '' : 'invisible'}`}
+                aria-hidden={tab !== 'terms'}
+              >
+                {pkg.terms.map((term) => (
+                  <li
+                    key={term}
+                    className="flex items-start gap-2.5 text-xs leading-relaxed text-muted"
+                  >
+                    <span className="mt-0.5 shrink-0 text-accent">•</span>
+                    <span>{term}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
 
-        {/* CTA Button with Nested Arrow Hover Physics */}
-        {onSelect && (
-          <button
-            type="button"
-            onClick={() => onSelect(pkg.id)}
-            className={`group/btn mt-7 flex items-center justify-center gap-2 rounded-full py-3.5 px-6 text-center text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.97] ${
-              pkg.isFeatured
-                ? 'bg-accent text-accent-fg hover:bg-accent-light shadow-lg shadow-accent/20'
-                : 'border border-white/15 bg-bg text-fg hover:border-accent hover:text-accent'
-            }`}
-          >
-            <span>Pilih {pkg.name}</span>
-            <span className="transition-transform duration-200 group-hover/btn:translate-x-1">
-              <ArrowRight size={13} weight="bold" />
-            </span>
-          </button>
-        )}
+        {/* Pushed to the bottom so the buttons of side-by-side cards line up */}
+        <div className="mt-auto pt-6">
+          {onSelect && (
+            <button
+              type="button"
+              onClick={() => onSelect(pkg.id)}
+              className={`group/btn flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-center text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.97] ${
+                pkg.isFeatured
+                  ? 'bg-accent text-accent-fg shadow-lg shadow-accent/20 hover:bg-accent-light'
+                  : 'border border-white/15 bg-bg text-fg hover:border-accent hover:text-accent'
+              }`}
+            >
+              <span>Pilih {pkg.name}</span>
+              <span className="transition-transform duration-200 group-hover/btn:translate-x-1">
+                <ArrowRight size={13} weight="bold" />
+              </span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

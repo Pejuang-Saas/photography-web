@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { QueryError, QueryLoading } from '../components/query-state';
-import AddOnsSection from './add-ons-section';
 import PackageDialog from './package-dialog';
 
 export default function PackagesManagementPage() {
@@ -146,14 +145,6 @@ export default function PackagesManagementPage() {
           );
         })}
       </div>
-
-      <AddOnsSection
-        categories={[
-          ...new Set(
-            (packagesQuery.data ?? []).flatMap((pkg) => (pkg.category ? [pkg.category] : [])),
-          ),
-        ]}
-      />
 
       {dialog && (
         <PackageDialog

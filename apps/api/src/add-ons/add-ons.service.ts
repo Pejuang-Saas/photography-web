@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { revalidateWeb } from '../common/revalidate-web';
+import { registerCategories } from '../packages/category-registry';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAddOnDto, UpdateAddOnDto } from './dto/add-on.dto';
 
@@ -41,6 +42,7 @@ export class AddOnsService {
   }
 
   async create(dto: CreateAddOnDto) {
+    await registerCategories(this.prisma, dto.categories ?? []);
     try {
       const created = await this.prisma.addOn.create({
         data: { ...dto, categories: this.clean(dto.categories) },
@@ -54,6 +56,7 @@ export class AddOnsService {
 
   async update(id: string, dto: UpdateAddOnDto) {
     await this.require(id);
+    await registerCategories(this.prisma, dto.categories ?? []);
     try {
       const updated = await this.prisma.addOn.update({
         where: { id },

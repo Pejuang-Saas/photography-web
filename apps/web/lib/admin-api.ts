@@ -1,5 +1,5 @@
 import { apiRequest } from './api-client';
-import type { AddOn, BookingAddOnLine, ServicePackage } from './booking-api';
+import type { AddOn, BookingAddOnLine, PackageCategory, ServicePackage } from './booking-api';
 import type {
   BookingStatus,
   GatewayEnvironment,
@@ -146,6 +146,19 @@ export type ServicePackageInput = {
   isActive?: boolean;
 };
 
+export type AdminPackageCategory = PackageCategory & {
+  /** How many packages and add-ons use it. */
+  packageCount: number;
+  addOnCount: number;
+};
+
+export type PackageCategoryInput = {
+  name: string;
+  title: string;
+  description?: string;
+  sortOrder?: number;
+};
+
 export type AddOnInput = {
   name: string;
   slug: string;
@@ -180,6 +193,20 @@ export const adminApi = {
     apiRequest<ServicePackage>('/admin/packages', { method: 'POST', body: json(body) }),
   updatePackage: (id: string, body: Partial<ServicePackageInput>) =>
     apiRequest<ServicePackage>(`/admin/packages/${id}`, { method: 'PATCH', body: json(body) }),
+
+  listPackageCategories: () => apiRequest<AdminPackageCategory[]>('/admin/package-categories'),
+  createPackageCategory: (body: PackageCategoryInput) =>
+    apiRequest<PackageCategory>('/admin/package-categories', {
+      method: 'POST',
+      body: json(body),
+    }),
+  updatePackageCategory: (id: string, body: Partial<PackageCategoryInput>) =>
+    apiRequest<PackageCategory>(`/admin/package-categories/${id}`, {
+      method: 'PATCH',
+      body: json(body),
+    }),
+  deletePackageCategory: (id: string) =>
+    apiRequest<void>(`/admin/package-categories/${id}`, { method: 'DELETE' }),
 
   listAddOns: () => apiRequest<AddOn[]>('/admin/add-ons'),
   createAddOn: (body: AddOnInput) =>

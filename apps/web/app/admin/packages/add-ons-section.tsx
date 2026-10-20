@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 import { Edit, Plus, Trash2 } from 'lucide-react';
-import { errorMessage, useAdminAddOns, useDeleteAddOn } from '@/lib/admin-queries';
+import {
+  errorMessage,
+  useAdminAddOns,
+  useAdminPackageCategories,
+  useDeleteAddOn,
+} from '@/lib/admin-queries';
 import type { AddOn } from '@/lib/booking-api';
 import { formatRupiah } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
@@ -13,19 +18,20 @@ import { QueryError, QueryLoading } from '../components/query-state';
 import AddOnDialog from './add-on-dialog';
 
 /** The add-ons customers can pick at checkout, and where each applies. */
-export default function AddOnsSection({ categories }: { categories: string[] }) {
+export default function AddOnsSection() {
   const addOns = useAdminAddOns();
+  const categories = useAdminPackageCategories();
   const remove = useDeleteAddOn();
   const [dialog, setDialog] = useState<{ item?: AddOn } | null>(null);
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-col justify-between gap-3 border-b border-zinc-200/80 pb-4 dark:border-zinc-800/80 sm:flex-row sm:items-center">
+    <section className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 border-b border-zinc-200/80 pb-5 dark:border-zinc-800/80 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-base font-extrabold tracking-tight text-zinc-900 dark:text-white">
+          <h1 className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">
             Add-on
-          </h2>
-          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+          </h1>
+          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">
             Tambahan yang bisa dipilih customer saat reservasi: tambah waktu, extra edit, dan
             sejenisnya.
           </p>
@@ -163,7 +169,7 @@ export default function AddOnsSection({ categories }: { categories: string[] }) 
         <AddOnDialog
           key={dialog.item?.id ?? 'new'}
           item={dialog.item}
-          categories={categories}
+          categories={(categories.data ?? []).map((category) => category.name)}
           open
           onOpenChange={(open) => !open && setDialog(null)}
         />

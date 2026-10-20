@@ -21,6 +21,7 @@ function build(found: Array<Record<string, unknown>>) {
       update: jest.fn(async ({ data }: any) => ({ id: 'a1', ...data })),
       delete: jest.fn().mockResolvedValue({}),
     },
+    packageCategory: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
   };
   return { prisma, service: new AddOnsService(prisma as never) };
 }
@@ -113,6 +114,14 @@ describe('AddOnsService admin', () => {
     });
 
     expect(prisma.addOn.create.mock.calls[0][0].data.categories).toEqual(['Lite', 'Premium']);
+    // A category named here that nobody listed yet is listed along the way.
+    expect(prisma.packageCategory.createMany).toHaveBeenCalledWith({
+      data: [
+        { key: 'lite', name: 'Lite', title: 'Lite' },
+        { key: 'premium', name: 'Premium', title: 'Premium' },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   it('deletes one that exists and says so when it does not', async () => {
