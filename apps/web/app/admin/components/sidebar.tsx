@@ -192,7 +192,7 @@ export default function AdminSidebar({
       label: 'Klien',
       entries: [
         {
-          title: 'Mini CRM',
+          title: 'Pesan Pelanggan',
           href: '/admin/crm',
           icon: MessagesSquare,
           badge: crmUnread > 0 ? crmUnread : null,

@@ -72,7 +72,7 @@ function CrmWorkspace() {
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200/80 pb-4 dark:border-zinc-800/80">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-2xl">
-            Mini CRM
+            Pesan Pelanggan
           </h1>
           <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">
             Percakapan WhatsApp dengan customer, dikelompokkan per kategori dan dicocokkan dengan

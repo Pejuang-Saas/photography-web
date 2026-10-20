@@ -73,7 +73,7 @@ function StepsSection() {
 }
 
 function WhatsappAutomationContent() {
-  // The Mini CRM links straight to ?tab=templates.
+  // The Pesan Pelanggan links straight to ?tab=templates.
   const [tab, setTab] = useState(
     useSearchParams().get('tab') === 'templates' ? 'templates' : 'connection',
   );

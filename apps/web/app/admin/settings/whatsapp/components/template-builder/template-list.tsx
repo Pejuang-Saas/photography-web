@@ -68,7 +68,7 @@ function TemplateCard({
               {template.trigger}
             </p>
           ) : (
-            <p className="text-xs text-zinc-500">Dikirim lewat Mini CRM</p>
+            <p className="text-xs text-zinc-500">Dikirim lewat Pesan Pelanggan</p>
           )}
           <p className="line-clamp-2 whitespace-pre-line text-xs text-zinc-600 dark:text-zinc-400">
             {template.body}
@@ -138,8 +138,8 @@ export default function WhatsappTemplatesTab() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-xl text-xs text-zinc-500">
-          Template yang aktif muncul di Mini CRM. Template otomatis yang dimatikan berarti customer
-          tidak menerima WhatsApp untuk kejadian itu.
+          Template yang aktif muncul di Pesan Pelanggan. Template otomatis yang dimatikan berarti
+          customer tidak menerima WhatsApp untuk kejadian itu.
         </p>
         <Button
           size="sm"

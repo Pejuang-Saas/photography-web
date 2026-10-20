@@ -13,7 +13,7 @@ export const whatsappTemplateKeys = {
   variables: ['admin', 'whatsapp-template-variables'] as const,
 };
 
-/** The Mini CRM offers the active templates, so it must hear about every change made here. */
+/** The Pesan Pelanggan offers the active templates, so it must hear about every change made here. */
 function useRefreshTemplates() {
   const queryClient = useQueryClient();
   return () =>

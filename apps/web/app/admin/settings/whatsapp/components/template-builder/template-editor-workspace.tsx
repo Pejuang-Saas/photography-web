@@ -245,7 +245,7 @@ export default function TemplateEditorWorkspace({
               <CardTitle className="text-sm font-bold">Identitas</CardTitle>
               <CardDescription className="text-xs">
                 {template?.trigger ??
-                  'Dikirim lewat tombol template di Mini CRM, bukan oleh sistem secara otomatis.'}
+                  'Dikirim lewat tombol template di Pesan Pelanggan, bukan oleh sistem secara otomatis.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 pt-5">

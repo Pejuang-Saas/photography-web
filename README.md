@@ -19,7 +19,7 @@
 
 <br />
 
-Kaya Story Photography Platform adalah monorepo berskala enterprise yang dirancang untuk mengelola seluruh aspek operasional studio foto. Solusi ini menghubungkan etalase publik yang elegan dengan sistem backend tangguh yang mengatur pemesanan (booking), pengelolaan kalender studio, pembayaran terintegrasi, dan Mini CRM via WhatsApp — semuanya dalam satu ekosistem modern.
+Kaya Story Photography Platform adalah monorepo berskala enterprise yang dirancang untuk mengelola seluruh aspek operasional studio foto. Solusi ini menghubungkan etalase publik yang elegan dengan sistem backend tangguh yang mengatur pemesanan (booking), pengelolaan kalender studio, pembayaran terintegrasi, dan Pesan Pelanggan via WhatsApp — semuanya dalam satu ekosistem modern.
 
 ---
 
@@ -229,7 +229,7 @@ curl -X GET http://localhost:3002/docs-json
 | :---------------------- | :----------------------------------------------------------------- | :------------------------------------------- |
 | **Landing Page Publik** | [http://localhost:3000](http://localhost:3000)                     | Katalog paket foto, ulasan, & checkout       |
 | **Admin Dashboard**     | [http://localhost:3000/admin](http://localhost:3000/admin)         | Metrik pendapatan, daftar booking, kalender  |
-| **Admin Mini CRM**      | [http://localhost:3000/admin/crm](http://localhost:3000/admin/crm) | Obrolan WhatsApp & penanda anti-ban          |
+| **Pesan Pelanggan**     | [http://localhost:3000/admin/crm](http://localhost:3000/admin/crm) | Obrolan WhatsApp & penanda anti-ban          |
 | **API Base URL**        | [http://localhost:3002](http://localhost:3002)                     | NestJS REST API Gateway                      |
 | **API Health Check**    | [http://localhost:3002/health](http://localhost:3002/health)       | Ping status server & database                |
 | **API Swagger Docs**    | [http://localhost:3002/docs](http://localhost:3002/docs)           | OpenAPI Interactive Documentation            |
@@ -257,9 +257,9 @@ Aplikasi hanya mengelola sesi bernama `WAHA_SESSION`. Sesi lain di server WAHA y
 
 Lampiran dari customer (foto, stiker, video, catatan suara, dokumen) disalin ke bucket privat MinIO (`S3_PRIVATE_BUCKET`, folder `crm-media/`) begitu pesannya masuk, atau saat pertama kali dibuka untuk riwayat lama, lalu disajikan hanya kepada admin yang login. Batasnya 25 MB per file, dan file yang berbahaya (HTML, SVG) selalu diunduh, tidak pernah ditampilkan. Lampiran yang sudah dihapus WhatsApp ditandai kedaluwarsa. Jumlah pesan belum dibaca muncul di sidebar, judul tab, dan toast.
 
-Mengirim dari Mini CRM punya pengaman yang ditegakkan di server: pesan bebas hanya boleh dalam 24 jam sejak customer terakhir menulis; di luar itu hanya template resmi (tabel `whatsapp_templates`, tiga template awal di-seed) yang bisa dikirim. Batas pengiriman per menit diatur `WHATSAPP_SEND_LIMIT_PER_MINUTE` (bawaan 20), dan setiap pesan didahului indikator "mengetik".
+Mengirim dari Pesan Pelanggan punya pengaman yang ditegakkan di server: pesan bebas hanya boleh dalam 24 jam sejak customer terakhir menulis; di luar itu hanya template resmi (tabel `whatsapp_templates`, tiga template awal di-seed) yang bisa dikirim. Batas pengiriman per menit diatur `WHATSAPP_SEND_LIMIT_PER_MINUTE` (bawaan 20), dan setiap pesan didahului indikator "mengetik".
 
-Pesan masuk (untuk Mini CRM) dikirim WAHA ke API sebagai webhook bertanda tangan HMAC-SHA512 di `POST /webhooks/waha`. Isi `WAHA_WEBHOOK_SECRET` (`openssl rand -hex 32`); tanpa secret, endpoint menolak semua permintaan. `WAHA_WEBHOOK_URL` adalah alamat API yang dilihat container WAHA (bawaan `http://photography-api:3000/webhooks/waha`). Webhook dipasang ke sesi saat menekan **Hubungkan WhatsApp**.
+Pesan masuk (untuk Pesan Pelanggan) dikirim WAHA ke API sebagai webhook bertanda tangan HMAC-SHA512 di `POST /webhooks/waha`. Isi `WAHA_WEBHOOK_SECRET` (`openssl rand -hex 32`); tanpa secret, endpoint menolak semua permintaan. `WAHA_WEBHOOK_URL` adalah alamat API yang dilihat container WAHA (bawaan `http://photography-api:3000/webhooks/waha`). Webhook dipasang ke sesi saat menekan **Hubungkan WhatsApp**.
 
 ---
 
