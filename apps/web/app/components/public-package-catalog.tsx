@@ -11,6 +11,7 @@ import {
   packageLines,
   packageTerms,
 } from '@/lib/package-details';
+import type { StudioInfo } from '@/lib/studio-api';
 import { useStudioInfo } from '@/lib/studio-queries';
 import PackageCard, { type PackageData } from './package-card';
 import ScrollReveal from './scroll-reveal';
@@ -63,8 +64,10 @@ function AddOnPanel({ title, addOns }: { title: string; addOns: AddOn[] }) {
 
 export default function PublicPackageCatalog({
   initialPackages,
+  initialStudio,
 }: {
   initialPackages?: ServicePackage[] | null;
+  initialStudio?: StudioInfo | null;
 }) {
   const router = useRouter();
   const packages = useQuery({
@@ -79,7 +82,9 @@ export default function PublicPackageCatalog({
     queryFn: bookingApi.listAddOns,
     staleTime: 60_000,
   });
-  const studio = useStudioInfo();
+  const studio = useStudioInfo(true, initialStudio ?? undefined);
+  // Reservations switched off: the catalog is for looking only, with no way to start a booking.
+  const closed = studio.data?.reservationsOpen === false;
 
   if (packages.isLoading) {
     return (
@@ -120,6 +125,19 @@ export default function PublicPackageCatalog({
 
   return (
     <div className="mt-14 space-y-16">
+      {closed && (
+        <p
+          role="status"
+          className="mx-auto max-w-2xl rounded-2xl border border-accent/30 bg-accent/[0.07] px-5 py-4 text-center text-sm text-fg"
+        >
+          Reservasi online sedang ditutup. Katalog ini untuk informasi saja
+          {studio.data?.whatsappNumber
+            ? '; hubungi kami lewat WhatsApp untuk menanyakan jadwal'
+            : ''}
+          .
+        </p>
+      )}
+
       {groups.map((group, groupIndex) => {
         const mine = offered[groupIndex];
         const key = panelKey(mine);
@@ -154,7 +172,7 @@ export default function PublicPackageCatalog({
                 <ScrollReveal key={pkg.id} delay={index * 0.1}>
                   <PackageCard
                     pkg={toPackageCardData(pkg, cover++)}
-                    onSelect={() => router.push(`/reservasi/${pkg.slug}`)}
+                    onSelect={closed ? undefined : () => router.push(`/reservasi/${pkg.slug}`)}
                   />
                 </ScrollReveal>
               ))}

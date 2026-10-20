@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import BookingEntry from '@/app/components/booking/booking-entry';
+import ReservationsClosed from '@/app/components/booking/reservations-closed';
 import { getPublicPackages, getStudioInfo } from '@/lib/landing-data';
 import { QueryProvider } from '@/lib/query-provider';
 
@@ -34,6 +35,10 @@ export default async function ReservationPage({ params, searchParams }: Props) {
   const resumeId = typeof b === 'string' && UUID.test(b) ? b : null;
   const [pkg, studio] = await Promise.all([findPackage(slug), getStudioInfo()]);
   if (!pkg) notFound();
+  // Closed: nobody starts a booking, but one already made (`?b=`) can still be paid.
+  if (studio && !studio.reservationsOpen && !resumeId) {
+    return <ReservationsClosed studio={studio} packageName={pkg.name} />;
+  }
 
   return (
     <QueryProvider>

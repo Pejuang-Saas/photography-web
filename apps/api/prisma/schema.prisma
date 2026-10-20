@@ -369,6 +369,8 @@ model StudioSetting {
   guarantees       Json?
   /// The general conditions shown at checkout, a list of sentences.
   reservationTerms Json?    @map("reservation_terms")
+  /// Off shows the catalog only: nobody can book online until it is turned back on.
+  reservationsOpen Boolean   @default(true) @map("reservations_open")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 

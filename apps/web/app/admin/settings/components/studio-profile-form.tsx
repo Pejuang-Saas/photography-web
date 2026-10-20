@@ -8,6 +8,7 @@ import { isIdMobile, PHONE_ERROR, sanitizePhoneInput } from '@/lib/phone';
 import { errorMessage, useUpdateStudioSettings } from '@/lib/admin-queries';
 import { FormField } from '../../components/form-field';
 import { StringListEditor } from '../../components/list-editors';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ function draftFrom(settings: AdminStudioSettings) {
     closeTime: settings.closeTime ?? '',
     guarantees: settings.guarantees,
     reservationTerms: settings.reservationTerms,
+    reservationsOpen: settings.reservationsOpen,
   };
 }
 
@@ -64,11 +66,36 @@ export default function StudioProfileForm({ settings }: { settings: AdminStudioS
       closeTime: draft.closeTime,
       guarantees: cleaned(draft.guarantees),
       reservationTerms: cleaned(draft.reservationTerms),
+      reservationsOpen: draft.reservationsOpen,
     });
   }
 
   return (
     <div className="space-y-5">
+      <Card
+        className={`rounded-xl shadow-sm ${
+          draft.reservationsOpen
+            ? 'border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-zinc-900/60'
+            : 'border-amber-500/40 bg-amber-500/[0.05]'
+        }`}
+      >
+        <CardContent className="flex items-start justify-between gap-4 p-5">
+          <div>
+            <h3 className="text-sm font-bold">Reservasi Online</h3>
+            <p className="mt-1 max-w-xl text-xs text-zinc-500 dark:text-zinc-400">
+              {draft.reservationsOpen
+                ? 'Aktif: customer bisa memilih paket dan memesan lewat website.'
+                : 'Ditutup: website hanya menampilkan katalog. Tombol pesan disembunyikan dan reservasi baru ditolak. Customer yang sudah memesan tetap bisa melanjutkan pembayaran.'}
+            </p>
+          </div>
+          <Switch
+            checked={draft.reservationsOpen}
+            onCheckedChange={(reservationsOpen) => set({ reservationsOpen })}
+            aria-label="Reservasi online"
+          />
+        </CardContent>
+      </Card>
+
       <Card className="rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
         <CardHeader className="border-b border-zinc-100 pb-3 dark:border-zinc-800/80">
           <CardTitle className="text-sm font-bold">Kontak & Lokasi</CardTitle>

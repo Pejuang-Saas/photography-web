@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -54,6 +55,18 @@ export class BookingsService {
     if (previous) {
       assertSameIdempotencyPayload(previous.idempotencyHash, idempotencyHash);
       return previous;
+    }
+
+    // A booking already made is returned above; a new one waits until the studio opens reservations.
+    const studio = await this.prisma.studioSetting.findUnique({
+      where: { id: 'default' },
+      select: { reservationsOpen: true },
+    });
+    if (studio && !studio.reservationsOpen) {
+      throw new ForbiddenException({
+        message: 'Reservasi online sedang ditutup. Silakan hubungi studio.',
+        errorCode: 'RESERVATIONS_CLOSED',
+      });
     }
 
     const packageItem = await this.packagesService.requireActive(dto.packageId);

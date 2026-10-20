@@ -59,6 +59,7 @@ export default function Landing({
   allowDownPayment?: boolean;
 }) {
   const studioName = studio?.studioName ?? FALLBACK_STUDIO_NAME;
+  const reservationsOpen = studio?.reservationsOpen !== false;
   const greeting = `Halo ${studioName}!`;
   const waLink = (text: string) =>
     whatsappLink(studio?.whatsappNumber ?? '', `${greeting} ${text}`);
@@ -113,7 +114,11 @@ export default function Landing({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] glow-gold-top -z-10" />
 
       {/* ── CAMERA VIEWFINDER FRAMING HEADER ── */}
-      <HeaderViewfinder navLinks={navLinks} brand={brandMark(studioName)} />
+      <HeaderViewfinder
+        navLinks={navLinks}
+        brand={brandMark(studioName)}
+        reservationsOpen={reservationsOpen}
+      />
 
       {/* ── SECTION 1: HERO ── */}
       <section
@@ -122,7 +127,7 @@ export default function Landing({
       >
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-12 lg:gap-8">
           {/* Left Column: Staggered Entrance */}
-          {content && <HeroEntrance hero={content.hero} />}
+          {content && <HeroEntrance hero={content.hero} reservationsOpen={reservationsOpen} />}
 
           {/* Right Column: Dual Infinite Film Strips with Spring Interactive Tilt */}
           <div className="flex items-center justify-center lg:col-span-5 lg:justify-end">
@@ -230,7 +235,7 @@ export default function Landing({
             </div>
           </ScrollReveal>
 
-          <PublicPackageCatalog initialPackages={packages} />
+          <PublicPackageCatalog initialPackages={packages} initialStudio={studio} />
         </div>
       </section>
 
@@ -383,7 +388,7 @@ export default function Landing({
                   className="group inline-flex items-center gap-3 rounded-full bg-accent px-8 py-5 text-sm font-bold uppercase tracking-wider text-accent-fg transition-all duration-300 hover:bg-accent-light shadow-2xl shadow-accent/25 hover:shadow-accent/40"
                   strength={0.3}
                 >
-                  <span>Mulai Reservasi</span>
+                  <span>{reservationsOpen ? 'Mulai Reservasi' : 'Tanya Jadwal via WhatsApp'}</span>
                   <span className="text-base transition-transform duration-200 group-hover:translate-x-1.5 group-hover:-translate-y-0.5 font-mono">
                     ↗
                   </span>
@@ -413,7 +418,11 @@ export default function Landing({
               </p>
               <div className="mt-6 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-accent">
                 <span className="size-1.5 rounded-full bg-accent animate-pulse" />
-                <span>Menerima Reservasi Wisuda 2026</span>
+                <span>
+                  {reservationsOpen
+                    ? 'Menerima Reservasi Wisuda 2026'
+                    : 'Reservasi online ditutup sementara'}
+                </span>
               </div>
             </div>
 

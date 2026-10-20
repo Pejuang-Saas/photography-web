@@ -20,6 +20,8 @@ export type StudioInfo = {
   guarantees: string[];
   /** The general conditions every package is booked under. */
   reservationTerms: string[];
+  /** Off means the catalog is for looking only: nobody can book online. */
+  reservationsOpen: boolean;
 };
 
 export type AdminStudioSettings = StudioInfo & { updatedAt: string };
@@ -36,6 +38,7 @@ export type UpdateStudioInput = Partial<{
   closeTime: string;
   guarantees: string[];
   reservationTerms: string[];
+  reservationsOpen: boolean;
 }>;
 
 export const studioApi = {

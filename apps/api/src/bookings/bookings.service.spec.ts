@@ -4,6 +4,7 @@ jest.mock('../outbox/outbox.service', () => ({ OutboxService: class OutboxServic
 jest.mock('../queues/queues.service', () => ({ QueuesService: class QueuesService {} }));
 jest.mock('../storage/storage.service', () => ({ StorageService: class StorageService {} }));
 
+import { hashIdempotencyPayload } from '../common/idempotency';
 import { BookingsService } from './bookings.service';
 
 const base = {
@@ -134,7 +135,12 @@ describe('BookingsService.create: slots and add-ons', () => {
   });
 
   function build(
-    options: { duration?: number; day?: Array<Record<string, unknown>>; lines?: unknown[] } = {},
+    options: {
+      open?: boolean;
+      duration?: number;
+      day?: Array<Record<string, unknown>>;
+      lines?: unknown[];
+    } = {},
   ) {
     const tx = {
       $executeRaw: jest.fn().mockResolvedValue(1),
@@ -148,6 +154,9 @@ describe('BookingsService.create: slots and add-ons', () => {
     };
     const prisma = {
       booking: { findUnique: jest.fn().mockResolvedValue(null), findMany: tx.booking.findMany },
+      studioSetting: {
+        findUnique: jest.fn().mockResolvedValue({ reservationsOpen: options.open ?? true }),
+      },
       $transaction: jest.fn(async (work: (t: typeof tx) => unknown) => work(tx)),
     };
     const addOns = { price: jest.fn().mockResolvedValue(options.lines ?? []) };
@@ -173,6 +182,29 @@ describe('BookingsService.create: slots and add-ons', () => {
     quantity: 1,
     extraMinutes,
     subtotal,
+  });
+
+  it('refuses a new booking while reservations are closed, and does not touch the calendar', async () => {
+    const { service, tx } = build({ open: false });
+
+    await expect(service.create(dto() as never, 'key-12345678')).rejects.toMatchObject({
+      status: 403,
+      response: { errorCode: 'RESERVATIONS_CLOSED' },
+    });
+    expect(tx.booking.create).not.toHaveBeenCalled();
+  });
+
+  it('still hands back a booking made before they closed, when the same request is repeated', async () => {
+    const { service, tx } = build({ open: false });
+    const prisma = (service as unknown as { prisma: { booking: { findUnique: jest.Mock } } })
+      .prisma;
+    const hash = hashIdempotencyPayload(dto());
+    prisma.booking.findUnique.mockResolvedValue({ id: 'old', idempotencyHash: hash, addOns: [] });
+
+    await expect(service.create(dto() as never, 'key-12345678')).resolves.toMatchObject({
+      id: 'old',
+    });
+    expect(tx.booking.create).not.toHaveBeenCalled();
   });
 
   it('adds the add-ons to the total and the deposit, and keeps a copy of each line', async () => {

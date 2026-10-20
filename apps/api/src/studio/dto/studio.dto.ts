@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsOptional,
   IsString,
   IsUrl,
@@ -72,4 +73,9 @@ export class UpdateStudioSettingsDto {
   @IsString({ each: true })
   @MaxLength(500, { each: true })
   reservationTerms?: string[];
+
+  /** Whether customers can book online; off leaves only the catalog. */
+  @IsOptional()
+  @IsBoolean()
+  reservationsOpen?: boolean;
 }

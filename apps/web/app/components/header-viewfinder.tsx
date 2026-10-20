@@ -13,9 +13,15 @@ export interface NavLink {
 interface HeaderViewfinderProps {
   navLinks: NavLink[];
   brand: string;
+  /** Off: the buttons say "Lihat Paket" instead, since nothing can be booked online. */
+  reservationsOpen?: boolean;
 }
 
-export default function HeaderViewfinder({ navLinks, brand }: HeaderViewfinderProps) {
+export default function HeaderViewfinder({
+  navLinks,
+  brand,
+  reservationsOpen = true,
+}: HeaderViewfinderProps) {
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -140,7 +146,7 @@ export default function HeaderViewfinder({ navLinks, brand }: HeaderViewfinderPr
               href="#paket"
               className="group inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.96] shadow-sm"
             >
-              <span>Reservasi</span>
+              <span>{reservationsOpen ? 'Reservasi' : 'Lihat Paket'}</span>
               <span className="font-mono text-xs transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                 ↗
               </span>
@@ -189,7 +195,7 @@ export default function HeaderViewfinder({ navLinks, brand }: HeaderViewfinderPr
                   onClick={() => setMobileMenuOpen(false)}
                   className="mt-3 block rounded-xl bg-accent px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-accent-fg transition-colors hover:bg-accent-light active:scale-[0.97]"
                 >
-                  Reservasi Sekarang
+                  {reservationsOpen ? 'Reservasi Sekarang' : 'Lihat Paket'}
                 </a>
               </div>
             </motion.div>

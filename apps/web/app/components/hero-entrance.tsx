@@ -4,7 +4,14 @@ import { motion, useReducedMotion, type Variants } from 'motion/react';
 import { ArrowRight } from '@phosphor-icons/react';
 import type { LandingContent } from '@/lib/landing-content-api';
 
-export default function HeroEntrance({ hero }: { hero: LandingContent['hero'] }) {
+export default function HeroEntrance({
+  hero,
+  reservationsOpen = true,
+}: {
+  hero: LandingContent['hero'];
+  /** Off: the main button leads to the catalog and says so, instead of the CMS "book" wording. */
+  reservationsOpen?: boolean;
+}) {
   const shouldReduceMotion = useReducedMotion();
 
   const variants: Variants = {
@@ -88,7 +95,7 @@ export default function HeroEntrance({ hero }: { hero: LandingContent['hero'] })
           href="#paket"
           className="group inline-flex items-center gap-3 rounded-full bg-accent px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.97] shadow-xl shadow-accent/15"
         >
-          <span>{hero.primaryCta}</span>
+          <span>{reservationsOpen ? hero.primaryCta : 'Lihat Paket'}</span>
           <span className="transition-transform duration-200 group-hover:translate-x-1">
             <ArrowRight size={15} weight="bold" />
           </span>
