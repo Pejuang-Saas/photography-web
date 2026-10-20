@@ -15,6 +15,10 @@ export function getApiUrl() {
  * profile. Returns null (and logs) on failure so the page degrades instead of crashing.
  */
 export async function fetchPublic<T>(path: string, label: string): Promise<T | null> {
+  // `next build` runs where the API's private name does not resolve (and the API may not be up yet);
+  // pages that need this data are rendered per request, so the build does not try to fetch it.
+  if (process.env.NEXT_PHASE === 'phase-production-build') return null;
+
   try {
     const response = await fetch(`${getApiUrl()}${path}`, {
       next: { revalidate: 60, tags: ['landing-cms'] },
