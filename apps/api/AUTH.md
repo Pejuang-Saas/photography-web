@@ -18,6 +18,14 @@ Better Auth runs in the NestJS API and stores users, accounts, and sessions in P
 
    The command asks for the email, name, and password, then assigns the `admin` role. It requires database access.
 
+   **In a production image** there is no TypeScript source and no network for that command, so use the built script instead, from the application's terminal. It reads `ADMIN_EMAIL`, `ADMIN_NAME` and `ADMIN_PASSWORD` (12 characters or more), or `--email`, `--name` and `--password`:
+
+   ```bash
+   ADMIN_EMAIL=owner@example.com ADMIN_NAME="Owner" ADMIN_PASSWORD='at-least-12-characters' node dist/seed/create-admin.cli.js
+   ```
+
+   Running it again for an existing email makes that user an admin and leaves the password as it was.
+
 ## Endpoints
 
 - `POST /api/auth/sign-in/email`: email and password login.
@@ -25,6 +33,6 @@ Better Auth runs in the NestJS API and stores users, accounts, and sessions in P
 - `POST /api/auth/sign-out`: end the current session.
 - `GET /admin/auth/me`: admin-only profile; returns 401 without a session and 403 for a non-admin user.
 
-Session cookies are HTTP-only. Browser requests to the API must include credentials. If the frontend and API use unrelated domains, expose `/api/auth/*` through a same-origin reverse proxy or deploy both under a shared parent domain; configure `BETTER_AUTH_URL` and cookie routing for that public origin.
+Session cookies are HTTP-only. When the web app and the API are different subdomains (for example `example.com` and `api.example.com`), set `AUTH_COOKIE_DOMAIN=.example.com` on the API. The cookie is then visible to the web app, whose `/admin` guard looks for it; without it the guard never sees the login and keeps redirecting to the login page. Browser requests to the API must include credentials. If the frontend and API use unrelated domains, expose `/api/auth/*` through a same-origin reverse proxy or deploy both under a shared parent domain; configure `BETTER_AUTH_URL` and cookie routing for that public origin.
 
 The API revokes an admin's older sessions when a new session is created. Its existing `GET /` and `GET /health` routes remain public.

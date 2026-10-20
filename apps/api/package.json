@@ -21,6 +21,8 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "seed": "node dist/seed/seed.js",
+    "seed:pricelist": "node dist/seed/pricelist.cli.js",
+    "admin:create": "node dist/seed/create-admin.cli.js",
     "auth:create-admin": "npx auth@1.7.5 create-admin --config src/auth/auth.ts --role admin"
   },
   "dependencies": {

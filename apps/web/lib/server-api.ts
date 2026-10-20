@@ -1,9 +1,12 @@
 import 'server-only';
 
+/**
+ * Where the server side of the web app reaches the API. `API_INTERNAL_URL` is the address on the
+ * private network (a service name), set wherever the API is not at its public address; without it
+ * the public `NEXT_PUBLIC_API_URL` is used, which always works, just through the public route.
+ */
 export function getApiUrl() {
-  if (process.env.API_INTERNAL_URL) return process.env.API_INTERNAL_URL;
-  if (process.env.HOSTNAME === '0.0.0.0') return 'http://photography-api:3000';
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3002';
+  return process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3002';
 }
 
 /**

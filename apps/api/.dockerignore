@@ -5,3 +5,10 @@ dist
 npm-debug.log*
 .git
 .DS_Store
+Dockerfile*
+docker-compose*
+.dockerignore
+*.md
+# Kept for the record only: Prisma never reads this folder, and the image does not need it.
+prisma/legacy-migrations
+coverage

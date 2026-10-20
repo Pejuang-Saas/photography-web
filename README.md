@@ -223,6 +223,12 @@ curl -X GET http://localhost:3002/docs-json
 
 ---
 
+## 🚀 Deploy Produksi
+
+Aplikasi dideploy ke Dokploy sebagai aplikasi terpisah (API, worker, web) tanpa Docker Compose. Dockerfile produksi ada di `apps/api/Dockerfile` (target `worker` untuk worker) dan `apps/web/Dockerfile`. Panduan langkah demi langkah, daftar environment, seed, dan pembuatan admin pertama ada di [`docs/deploy/DOKPLOY.md`](docs/deploy/DOKPLOY.md).
+
+---
+
 ## 🔗 URL Referensi Sistem
 
 | Komponen                | URL Akses                                                          | Keterangan                                   |
