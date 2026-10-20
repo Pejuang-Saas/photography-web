@@ -718,6 +718,8 @@ model Gallery {
   description     String?
   /// Null means no limit.
   maxSelections   Int?          @map("max_selections")
+  /// How many customers may pick; once that many have started, newcomers can only look. Null means no limit.
+  maxCustomers    Int?          @map("max_customers")
   bookingId       String?       @map("booking_id")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")

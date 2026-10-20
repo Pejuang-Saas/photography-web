@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useReducer, useState } from 'react';
-import { CheckCircle2, ImageOff, Loader2, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, Eye, ImageOff, Loader2, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Toaster } from '@/components/ui/sonner';
@@ -115,12 +115,19 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
   const [mediaType, setMediaType] = useState<MediaType>('all');
 
   const onSubmittedElsewhere = useCallback(() => dispatch({ type: 'submitted' }), []);
+  // The studio released this customer while the page was open: start over rather than save forever.
+  const onSessionLost = useCallback(() => {
+    localStorage.removeItem(sessionStorageKey(token));
+    toast.info('Sesi Anda sudah dilepas oleh studio. Halaman dimuat ulang.');
+    setTimeout(() => window.location.reload(), 1500);
+  }, [token]);
   const { flush, markSaved } = useAutoSave({
     token,
     sessionToken,
     selectedIds: state.selectedIds,
     enabled: boot.phase === 'ready' && !state.isSubmitted,
     onSubmittedElsewhere,
+    onSessionLost,
   });
 
   // ── Opening the link: the gallery, then the customer's earlier session if the browser has one ──
@@ -180,7 +187,13 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
       setCustomerName(data.customerName);
       setSessionToken(session.sessionToken);
     } catch (error) {
-      setEntryError(errorMessage(error));
+      // Someone took the last place while the form was open: from here on it is look-only.
+      if (error instanceof ApiError && error.errorCode === 'GALLERY_FULL') {
+        setInfo((current) => current && { ...current, customersFull: true });
+        toast.info('Kuota customer sudah penuh. Anda hanya bisa melihat foto.');
+      } else {
+        setEntryError(errorMessage(error));
+      }
     } finally {
       setEntryPending(false);
     }
@@ -203,9 +216,11 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
   );
 
   // One page of the open folder (or of a tab) at a time; the next page loads as the customer scrolls.
+  // Every place is taken and this visitor has none: they can look, not choose.
+  const viewOnly = boot.phase === 'ready' && !!info?.customersFull && !sessionToken;
   const pages = usePhotoPages({
     queryKey: ['gallery', token, sessionToken, state.activeFilter, mediaType, folderTrail.path],
-    enabled: !!sessionToken,
+    enabled: !!sessionToken || viewOnly,
     fetchPage: (page) =>
       publicGalleryApi.photos(token, {
         page,
@@ -341,12 +356,27 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm font-bold text-amber-700 dark:text-amber-400">
-                {selectedCount} dipilih
-              </span>
+              {!viewOnly && (
+                <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm font-bold text-amber-700 dark:text-amber-400">
+                  {selectedCount} dipilih
+                </span>
+              )}
               <ThemeToggle />
             </div>
           </div>
+
+          {viewOnly && (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/[0.08] p-4 text-sm text-amber-900 dark:text-amber-300"
+            >
+              <Eye className="mt-0.5 size-4 shrink-0" />
+              <p>
+                Kuota customer untuk galeri ini sudah penuh. Anda hanya bisa melihat foto, tidak
+                bisa memilih.
+              </p>
+            </div>
+          )}
 
           {thanks && (
             <div
@@ -359,7 +389,12 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <FilterTabs active={state.activeFilter} counts={counts} onChange={changeFilter} />
+            {/* Picking is off for a look-only visitor, so there is nothing to filter by. */}
+            {viewOnly ? (
+              <span />
+            ) : (
+              <FilterTabs active={state.activeFilter} counts={counts} onChange={changeFilter} />
+            )}
             <TypeFilter
               value={mediaType}
               onChange={setMediaType}
@@ -376,7 +411,7 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
             <PhotoGrid
               photos={shown}
               selectedIds={state.selectedIds}
-              disabled={state.isSubmitted}
+              disabled={state.isSubmitted || viewOnly}
               lockUnselected={atLimit}
               onToggle={toggle}
               onPreview={setPreviewId}
@@ -425,7 +460,7 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
         />
       )}
       <GalleryEntryModal
-        isOpen={!sessionToken}
+        isOpen={!sessionToken && !viewOnly}
         galleryName={info?.name ?? ''}
         error={entryError}
         pending={entryPending}
@@ -435,7 +470,8 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
         photos={shown}
         index={previewIndex >= 0 ? previewIndex : null}
         selectedIds={state.selectedIds}
-        disabled={state.isSubmitted}
+        disabled={state.isSubmitted || viewOnly}
+        hideSelect={viewOnly}
         onToggle={toggle}
         onNavigate={(index) => setPreviewId(shown[index]?.id ?? null)}
         onClose={() => setPreviewId(null)}

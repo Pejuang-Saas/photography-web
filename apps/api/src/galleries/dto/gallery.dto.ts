@@ -44,6 +44,13 @@ export class CreateGalleryDto {
   @Max(100_000)
   maxSelections?: number;
 
+  /** How many customers may pick before newcomers can only look. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100_000)
+  maxCustomers?: number;
+
   @IsOptional()
   @Transform(blankToUndefined)
   @IsString()
@@ -78,6 +85,14 @@ export class UpdateGalleryDto {
   @Min(1)
   @Max(100_000)
   maxSelections?: number | null;
+
+  /** null removes the limit. */
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  @Min(1)
+  @Max(100_000)
+  maxCustomers?: number | null;
 
   /** A new folder takes effect at the next sync; photos only in the old folder are then retired. */
   @IsOptional()

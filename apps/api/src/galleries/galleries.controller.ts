@@ -86,4 +86,13 @@ export class GalleriesController {
   ) {
     return this.galleries.selection(id, selectionId);
   }
+
+  @Delete(':id/selections/:selectionId')
+  @HttpCode(204)
+  removeSelection(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('selectionId', ParseUUIDPipe) selectionId: string,
+  ) {
+    return this.galleries.removeSelection(id, selectionId);
+  }
 }

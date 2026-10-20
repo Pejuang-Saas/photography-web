@@ -58,6 +58,8 @@ export const galleryApi = {
     apiRequest<Paginated<SelectionSummary>>(`/admin/galleries/${id}/selections${query(params)}`),
   selection: (id: string, selectionId: string) =>
     apiRequest<SelectionDetail>(`/admin/galleries/${id}/selections/${selectionId}`),
+  removeSelection: (id: string, selectionId: string) =>
+    apiRequest<void>(`/admin/galleries/${id}/selections/${selectionId}`, { method: 'DELETE' }),
 };
 
 /** The customer's side, reached by the secret in the link. */

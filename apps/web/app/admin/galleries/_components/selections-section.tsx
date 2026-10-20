@@ -2,16 +2,21 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ImageOff, Users } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ImageOff, Trash2, Users } from 'lucide-react';
 import PhotoPreview from '@/app/gallery/_components/PhotoPreview';
 import { errorMessage } from '@/lib/admin-queries';
 import { formatDateTime } from '@/lib/format';
-import { useGallerySelection, useGallerySelections } from '@/lib/gallery-queries';
+import {
+  useGallerySelection,
+  useGallerySelections,
+  useRemoveSelection,
+} from '@/lib/gallery-queries';
 import { cn } from '@/lib/utils';
 import type { SelectionStatus, SelectionSummary } from '@/types/gallery';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { CmsDeleteDialog } from '../../components/cms-delete-dialog';
 import { QueryError, QueryLoading } from '../../components/query-state';
 
 const NO_SELECTION = new Set<string>();
@@ -112,6 +117,7 @@ function SelectionRow({
   onToggle: () => void;
 }) {
   const contact = [selection.customerEmail, selection.customerPhone].filter(Boolean).join(' · ');
+  const remove = useRemoveSelection(galleryId);
 
   return (
     <Card className="rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
@@ -143,6 +149,34 @@ function SelectionRow({
               {open ? 'Tutup foto' : 'Lihat foto'}
               <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
             </Button>
+            <CmsDeleteDialog
+              title={selection.customerName}
+              entityLabel="customer"
+              description={
+                <>
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    {selection.customerName}
+                  </span>{' '}
+                  dilepas dari galeri ini: {selection.selectedCount} foto pilihannya
+                  {selection.status === 'SUBMITTED' ? ' yang sudah dikirim' : ''} dihapus permanen
+                  dan tempatnya di kuota kosong lagi. Customer bisa memilih dari awal kalau masih
+                  ada tempat.
+                </>
+              }
+              isPending={remove.isPending}
+              onConfirm={() => remove.mutate(selection.id)}
+              trigger={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label={`Lepas ${selection.customerName}`}
+                  className="h-8 gap-1.5 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
+                >
+                  <Trash2 className="size-3.5" />
+                  Lepas
+                </Button>
+              }
+            />
           </div>
         </div>
         {open && <ChosenPhotos galleryId={galleryId} selectionId={selection.id} />}

@@ -2,7 +2,14 @@ import { GalleriesService, slugify } from './galleries.service';
 
 type Row = Record<string, any>;
 
-function setup(options: { slugs?: string[]; booking?: Row | null; gallery?: Row | null } = {}) {
+function setup(
+  options: {
+    slugs?: string[];
+    booking?: Row | null;
+    gallery?: Row | null;
+    removedSelections?: number;
+  } = {},
+) {
   const prisma = {
     booking: {
       findUnique: jest
@@ -27,6 +34,9 @@ function setup(options: { slugs?: string[]; booking?: Row | null; gallery?: Row 
       delete: jest.fn().mockResolvedValue({}),
       update: jest.fn(async ({ data }: any) => ({ id: 'g1', publicToken: 'tok', ...data })),
       count: jest.fn().mockResolvedValue(0),
+    },
+    selection: {
+      deleteMany: jest.fn().mockResolvedValue({ count: options.removedSelections ?? 1 }),
     },
     syncJob: { count: jest.fn().mockResolvedValue(0) },
   };
@@ -174,5 +184,26 @@ describe('GalleriesService.update', () => {
 
     await service.update('g1', { bookingId: null });
     expect(prisma.gallery.update.mock.calls[0][0].data.bookingId).toBeNull();
+  });
+});
+
+describe('GalleriesService.removeSelection', () => {
+  it('deletes the customer session, only under its own gallery', async () => {
+    const { service, prisma } = setup();
+
+    await service.removeSelection('g1', 's1');
+
+    expect(prisma.selection.deleteMany).toHaveBeenCalledWith({
+      where: { id: 's1', galleryId: 'g1' },
+    });
+  });
+
+  it('says so when the session is not in this gallery', async () => {
+    const { service } = setup({ removedSelections: 0 });
+
+    await expect(service.removeSelection('g1', 'other')).rejects.toMatchObject({
+      status: 404,
+      response: { errorCode: 'SELECTION_NOT_FOUND' },
+    });
   });
 });

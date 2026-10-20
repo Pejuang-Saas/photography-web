@@ -9,11 +9,19 @@ function setup(
     validPhotos?: number;
     selected?: number;
     submittedRows?: number;
+    customers?: number;
   } = {},
 ) {
   const gallery =
     options.gallery === undefined
-      ? { id: 'g1', name: 'Wedding', description: null, status: 'ACTIVE', maxSelections: 3 }
+      ? {
+          id: 'g1',
+          name: 'Wedding',
+          description: null,
+          status: 'ACTIVE',
+          maxSelections: 3,
+          maxCustomers: null,
+        }
       : options.gallery;
   const selection =
     options.selection === undefined
@@ -29,6 +37,7 @@ function setup(
     },
     selection: {
       create: jest.fn().mockResolvedValue({ id: 's1', sessionToken: 'sess' }),
+      count: jest.fn().mockResolvedValue(options.customers ?? 0),
       findFirst: jest.fn().mockResolvedValue(selection),
       updateMany: jest.fn().mockResolvedValue({ count: options.submittedRows ?? 1 }),
       update: jest.fn().mockReturnValue('touch'),
@@ -39,7 +48,10 @@ function setup(
       deleteMany: jest.fn().mockReturnValue('delete'),
       createMany: jest.fn().mockReturnValue('create'),
     },
-    $transaction: jest.fn().mockResolvedValue([]),
+    $executeRaw: jest.fn().mockResolvedValue([]),
+    $transaction: jest.fn(async (work: unknown) =>
+      typeof work === 'function' ? work(prisma) : [],
+    ),
   };
   return { prisma, service: new SelectionsService(prisma as never) };
 }
@@ -54,6 +66,7 @@ describe('SelectionsService: reaching a gallery', () => {
       totalPhotos: 10,
       totalVideos: 4,
       maxSelections: 3,
+      customersFull: false,
       status: 'ACTIVE',
     });
   });
@@ -115,6 +128,40 @@ describe('SelectionsService: sessions', () => {
       customerName: 'Budi',
       customerEmail: null,
       customerPhone: '0812',
+    });
+  });
+
+  describe('customer limit', () => {
+    const limited = { id: 'g1', name: 'W', description: null, status: 'ACTIVE', maxSelections: 3 };
+
+    it('lets customers start while there is room', async () => {
+      const { service, prisma } = setup({ gallery: { ...limited, maxCustomers: 2 }, customers: 1 });
+
+      expect(await service.createSession('tok', { customerName: 'Budi' })).toMatchObject({
+        sessionToken: 'sess',
+      });
+      expect(prisma.$executeRaw).toHaveBeenCalled();
+      expect((await service.info('tok')).customersFull).toBe(false);
+    });
+
+    it('turns a newcomer away once every place is taken, and says the gallery is full', async () => {
+      const { service, prisma } = setup({ gallery: { ...limited, maxCustomers: 2 }, customers: 2 });
+
+      await expect(service.createSession('tok', { customerName: 'Budi' })).rejects.toMatchObject({
+        status: 403,
+        response: { errorCode: 'GALLERY_FULL' },
+      });
+      expect(prisma.selection.create).not.toHaveBeenCalled();
+      expect((await service.info('tok')).customersFull).toBe(true);
+    });
+
+    it('never counts when there is no limit', async () => {
+      const { service, prisma } = setup({ customers: 99 });
+
+      await service.createSession('tok', { customerName: 'Budi' });
+
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+      expect((await service.info('tok')).customersFull).toBe(false);
     });
   });
 

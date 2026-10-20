@@ -117,6 +117,20 @@ export function useGallerySelections(
   });
 }
 
+/** Lets a customer go: their picks are deleted and their place in the quota is free again. */
+export function useRemoveSelection(galleryId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (selectionId: string) => galleryApi.removeSelection(galleryId, selectionId),
+    onError: fail,
+    onSuccess: () => {
+      toast.success('Customer dilepas');
+      // The gallery's own counts (customers, picks) change with it.
+      return queryClient.invalidateQueries({ queryKey: galleryKeys.all });
+    },
+  });
+}
+
 export function useGallerySelection(id: string, selectionId: string | null) {
   return useQuery({
     queryKey: galleryKeys.selection(id, selectionId ?? ''),

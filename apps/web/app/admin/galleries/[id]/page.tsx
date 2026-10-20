@@ -185,6 +185,21 @@ export default function GalleryDetailPage() {
             <Row label="Batas pilihan">
               {data.maxSelections ? `${data.maxSelections} foto` : 'Tidak dibatasi'}
             </Row>
+            <Row label="Kuota customer">
+              {data.maxCustomers ? (
+                <span className="inline-flex items-center gap-2">
+                  {Math.min(data.totalSelections, data.maxCustomers)} dari {data.maxCustomers}{' '}
+                  customer
+                  {data.totalSelections >= data.maxCustomers && (
+                    <span className="rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[11px] font-bold text-rose-600">
+                      Penuh · customer lain hanya bisa melihat
+                    </span>
+                  )}
+                </span>
+              ) : (
+                'Tidak dibatasi'
+              )}
+            </Row>
             {data.booking && (
               <Row label="Booking">
                 {data.booking.bookingCode} · {data.booking.customerName}

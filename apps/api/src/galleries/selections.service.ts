@@ -12,11 +12,14 @@ export class SelectionsService {
 
   async info(token: string) {
     const gallery = await this.activeGallery(token);
-    const [totalPhotos, totalVideos] = await Promise.all([
+    const [totalPhotos, totalVideos, customers] = await Promise.all([
       this.prisma.galleryPhoto.count({ where: { galleryId: gallery.id, isActive: true } }),
       this.prisma.galleryPhoto.count({
         where: { galleryId: gallery.id, isActive: true, ...mediaTypeWhere('video') },
       }),
+      gallery.maxCustomers === null
+        ? 0
+        : this.prisma.selection.count({ where: { galleryId: gallery.id } }),
     ]);
     return {
       name: gallery.name,
@@ -24,6 +27,8 @@ export class SelectionsService {
       totalPhotos,
       totalVideos,
       maxSelections: gallery.maxSelections,
+      // Full: everyone who may pick has started, so a newcomer can only look.
+      customersFull: gallery.maxCustomers !== null && customers >= gallery.maxCustomers,
       status: gallery.status,
     };
   }
@@ -76,14 +81,28 @@ export class SelectionsService {
 
   async createSession(token: string, dto: CreateSessionDto) {
     const gallery = await this.activeGallery(token);
-    const selection = await this.prisma.selection.create({
-      data: {
-        galleryId: gallery.id,
-        customerName: dto.customerName.trim(),
-        customerEmail: dto.customerEmail ?? null,
-        customerPhone: dto.customerPhone?.trim() || null,
-      },
-      select: { id: true, sessionToken: true },
+    const selection = await this.prisma.$transaction(async (tx) => {
+      if (gallery.maxCustomers !== null) {
+        // One at a time per gallery, so two customers cannot both take the last place.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${gallery.id}))`;
+        const taken = await tx.selection.count({ where: { galleryId: gallery.id } });
+        if (taken >= gallery.maxCustomers) {
+          throw galleryError(
+            403,
+            'GALLERY_FULL',
+            'Kuota customer untuk galeri ini sudah penuh. Anda hanya bisa melihat foto.',
+          );
+        }
+      }
+      return tx.selection.create({
+        data: {
+          galleryId: gallery.id,
+          customerName: dto.customerName.trim(),
+          customerEmail: dto.customerEmail ?? null,
+          customerPhone: dto.customerPhone?.trim() || null,
+        },
+        select: { id: true, sessionToken: true },
+      });
     });
     return { sessionToken: selection.sessionToken, selectionId: selection.id };
   }

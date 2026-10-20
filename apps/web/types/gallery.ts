@@ -51,6 +51,8 @@ export interface PublicGalleryInfo {
   /** Of the total, how many are videos. */
   totalVideos: number;
   maxSelections: number | null;
+  /** Everyone who may pick has started: a newcomer can only look. */
+  customersFull: boolean;
   status: GalleryStatus;
 }
 
@@ -81,6 +83,8 @@ export interface AdminGallery {
   status: GalleryStatus;
   description: string | null;
   maxSelections: number | null;
+  /** How many customers may pick before newcomers can only look; null is no limit. */
+  maxCustomers: number | null;
   bookingId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -108,6 +112,7 @@ export interface CreateGalleryInput {
   driveFolderUrl: string;
   description?: string;
   maxSelections?: number;
+  maxCustomers?: number;
   bookingId?: string;
   status?: GalleryStatus;
 }
@@ -117,6 +122,7 @@ export interface UpdateGalleryInput {
   description?: string;
   status?: GalleryStatus;
   maxSelections?: number | null;
+  maxCustomers?: number | null;
   driveFolderUrl?: string;
   /** null unlinks the booking. */
   bookingId?: string | null;

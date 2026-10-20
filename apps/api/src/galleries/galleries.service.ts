@@ -56,6 +56,7 @@ export class GalleriesService {
         driveFolderId,
         description: dto.description ?? null,
         maxSelections: dto.maxSelections ?? null,
+        maxCustomers: dto.maxCustomers ?? null,
         bookingId: dto.bookingId ?? null,
         status: dto.status ?? GalleryStatus.DRAFT,
       },
@@ -189,6 +190,7 @@ export class GalleriesService {
         description: dto.description,
         status: dto.status,
         maxSelections: dto.maxSelections,
+        maxCustomers: dto.maxCustomers,
         driveFolderId,
         bookingId: dto.bookingId,
       },
@@ -255,6 +257,20 @@ export class GalleriesService {
       })),
       ...pagination(page, limit, total),
     };
+  }
+
+  /**
+   * Lets a customer go: their session and picks are deleted and their place is free again. Their
+   * browser still holds the old session link, which now simply is not found.
+   */
+  async removeSelection(id: string, selectionId: string) {
+    await this.find(id);
+    const removed = await this.prisma.selection.deleteMany({
+      where: { id: selectionId, galleryId: id },
+    });
+    if (removed.count === 0) {
+      throw galleryError(404, 'SELECTION_NOT_FOUND', 'Pilihan customer tidak ditemukan');
+    }
   }
 
   async selection(id: string, selectionId: string) {

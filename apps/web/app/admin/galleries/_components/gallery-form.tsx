@@ -17,6 +17,8 @@ export type GalleryFormValues = {
   description: string;
   /** Undefined means no limit. */
   maxSelections: number | undefined;
+  /** Undefined means any number of customers. */
+  maxCustomers: number | undefined;
   /** Empty means not linked to a booking. */
   bookingId: string;
   status: GalleryStatus;
@@ -57,6 +59,7 @@ export default function GalleryForm({
   const [driveFolderUrl, setDriveFolderUrl] = useState(initial.driveFolderUrl);
   const [description, setDescription] = useState(initial.description);
   const [maxSelections, setMaxSelections] = useState(initial.maxSelections?.toString() ?? '');
+  const [maxCustomers, setMaxCustomers] = useState(initial.maxCustomers?.toString() ?? '');
   const [bookingId, setBookingId] = useState(initial.bookingId);
   const [status, setStatus] = useState<GalleryStatus>(initial.status);
   const [problem, setProblem] = useState<string | null>(null);
@@ -65,7 +68,11 @@ export default function GalleryForm({
   const completed = (bookings.data ?? []).filter((booking) => booking.status === 'COMPLETED');
   const max = maxSelections.trim() === '' ? undefined : Number(maxSelections);
   const maxInvalid = max !== undefined && (!Number.isInteger(max) || max < 1);
-  const ready = name.trim() !== '' && driveFolderUrl.trim() !== '' && !maxInvalid;
+  const customers = maxCustomers.trim() === '' ? undefined : Number(maxCustomers);
+  const customersInvalid =
+    customers !== undefined && (!Number.isInteger(customers) || customers < 1);
+  const ready =
+    name.trim() !== '' && driveFolderUrl.trim() !== '' && !maxInvalid && !customersInvalid;
   const folderChanged = driveFolderUrl.trim() !== initial.driveFolderUrl;
 
   async function submit(event: React.FormEvent) {
@@ -79,6 +86,7 @@ export default function GalleryForm({
         driveFolderUrl: driveFolderUrl.trim(),
         description: description.trim(),
         maxSelections: max,
+        maxCustomers: customers,
         bookingId,
         status,
       });
@@ -139,6 +147,21 @@ export default function GalleryForm({
               />
             </FormField>
 
+            <FormField
+              label="Maksimal customer yang bisa memilih (opsional)"
+              hint="Setelah sebanyak ini customer mulai memilih, customer lain hanya bisa melihat foto. Kosongkan jika tidak dibatasi."
+              error={customersInvalid ? 'Isi dengan angka bulat, minimal 1' : undefined}
+            >
+              <Input
+                inputMode="numeric"
+                value={maxCustomers}
+                onChange={(event) => setMaxCustomers(event.target.value)}
+                placeholder="1"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
             <FormField label="Booking terkait (opsional)" hint="Hanya booking yang sudah selesai.">
               <select
                 value={bookingId}

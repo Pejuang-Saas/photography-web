@@ -35,6 +35,7 @@ export default function EditGalleryPage() {
       name: values.name,
       description: values.description,
       maxSelections: values.maxSelections ?? null,
+      maxCustomers: values.maxCustomers ?? null,
       bookingId: values.bookingId || null,
       status: values.status,
       ...(folderChanged && { driveFolderUrl: values.driveFolderUrl }),
@@ -62,6 +63,7 @@ export default function EditGalleryPage() {
           driveFolderUrl: folderUrl,
           description: data.description ?? '',
           maxSelections: data.maxSelections ?? undefined,
+          maxCustomers: data.maxCustomers ?? undefined,
           bookingId: data.booking?.id ?? '',
           status: data.status,
         }}

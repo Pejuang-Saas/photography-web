@@ -19,6 +19,7 @@ export function useAutoSave({
   selectedIds,
   enabled,
   onSubmittedElsewhere,
+  onSessionLost,
 }: {
   token: string;
   sessionToken: string | null;
@@ -26,6 +27,8 @@ export function useAutoSave({
   /** False until the saved draft has been loaded and after submitting. */
   enabled: boolean;
   onSubmittedElsewhere: () => void;
+  /** The studio released this customer: the session no longer exists, so saving cannot work. */
+  onSessionLost: () => void;
 }) {
   const latest = useRef(selectedIds);
   const savedKey = useRef('');
@@ -62,6 +65,10 @@ export function useAutoSave({
           onSubmittedElsewhere();
           return;
         }
+        if (error instanceof ApiError && error.errorCode === 'SESSION_NOT_FOUND') {
+          onSessionLost();
+          return;
+        }
         throw error;
       })
       .finally(() => {
@@ -69,7 +76,7 @@ export function useAutoSave({
       });
     saving.current = job;
     await job;
-  }, [token, sessionToken, onSubmittedElsewhere]);
+  }, [token, sessionToken, onSubmittedElsewhere, onSessionLost]);
 
   useEffect(() => {
     if (!enabled || !sessionToken) return;

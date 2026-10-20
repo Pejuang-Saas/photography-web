@@ -22,6 +22,7 @@ function NewGalleryForm() {
       driveFolderUrl: values.driveFolderUrl,
       description: values.description || undefined,
       maxSelections: values.maxSelections,
+      maxCustomers: values.maxCustomers,
       bookingId: values.bookingId || undefined,
       status: values.status,
     });
@@ -39,6 +40,7 @@ function NewGalleryForm() {
         driveFolderUrl: '',
         description: '',
         maxSelections: undefined,
+        maxCustomers: undefined,
         bookingId,
         status: 'DRAFT',
       }}
