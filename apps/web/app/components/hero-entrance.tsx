@@ -7,10 +7,13 @@ import type { LandingContent } from '@/lib/landing-content-api';
 export default function HeroEntrance({
   hero,
   reservationsOpen = true,
+  hasGallery = true,
 }: {
   hero: LandingContent['hero'];
   /** Off: the main button leads to the catalog and says so, instead of the CMS "book" wording. */
   reservationsOpen?: boolean;
+  /** The second button leads to the gallery section, which is left out when it has no photos. */
+  hasGallery?: boolean;
 }) {
   const shouldReduceMotion = useReducedMotion();
 
@@ -29,20 +32,8 @@ export default function HeroEntrance({
 
   return (
     <div className="lg:col-span-7 z-10">
-      {/* Eyebrow Badge */}
-      <motion.div
-        custom={1}
-        initial={shouldReduceMotion ? false : 'hidden'}
-        animate="visible"
-        variants={variants}
-      >
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-card px-4 py-1.5 text-xs text-muted font-mono tracking-wider uppercase shadow-sm">
-          {hero.badge}
-        </span>
-      </motion.div>
-
       {/* Main Staggered Headline */}
-      <h1 className="mt-8 font-extrabold tracking-[-0.04em] text-fg">
+      <h1 className="font-extrabold tracking-[-0.04em] text-fg">
         <motion.span
           custom={2}
           initial={shouldReduceMotion ? false : 'hidden'}
@@ -93,7 +84,7 @@ export default function HeroEntrance({
       >
         <a
           href="#paket"
-          className="group inline-flex items-center gap-3 rounded-full bg-accent px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.97] shadow-xl shadow-accent/15"
+          className="group inline-flex min-h-14 items-center gap-3 rounded-full bg-accent px-8 text-xs sm:text-sm font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.97] shadow-xl shadow-accent/15"
         >
           <span>{reservationsOpen ? hero.primaryCta : 'Lihat Paket'}</span>
           <span className="transition-transform duration-200 group-hover:translate-x-1">
@@ -101,12 +92,14 @@ export default function HeroEntrance({
           </span>
         </a>
 
-        <a
-          href="#portfolio"
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-card px-6 py-4 text-xs sm:text-sm font-semibold tracking-wide text-fg transition-all duration-200 hover:border-white/30 hover:bg-card-hover active:scale-[0.97]"
-        >
-          <span>{hero.secondaryCta}</span>
-        </a>
+        {hasGallery && (
+          <a
+            href="#portfolio"
+            className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/15 bg-card px-6 text-xs sm:text-sm font-semibold tracking-wide text-fg transition-colors duration-200 hover:border-white/30 hover:bg-card-hover active:scale-[0.97]"
+          >
+            <span>{hero.secondaryCta}</span>
+          </a>
+        )}
       </motion.div>
     </div>
   );

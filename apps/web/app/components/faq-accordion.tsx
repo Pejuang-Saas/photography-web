@@ -52,9 +52,9 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
 
               {/* Native GPU-accelerated Rotatable + icon indicator */}
               <span
-                className={`flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-bold shadow-sm transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                className={`flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-bold transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
                   isOpen
-                    ? 'rotate-45 bg-accent border-accent text-accent-fg shadow-accent/20'
+                    ? 'rotate-45 bg-accent border-accent text-accent-fg'
                     : 'rotate-0 bg-card border-white/10 text-accent hover:border-accent'
                 }`}
               >

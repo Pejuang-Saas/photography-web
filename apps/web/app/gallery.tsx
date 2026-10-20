@@ -15,10 +15,13 @@ export type Tile = {
   categoryLabel?: string;
   campus?: string;
   title?: string;
-  focal?: string;
 };
 
 const INITIAL_COUNT = 8;
+
+/** The lines under a photo, leaving out what the studio did not fill in. */
+const captionOf = (campus: string | undefined, alt: string) =>
+  [campus, alt].filter(Boolean).join(' • ');
 
 function getTileImageSrc(src: string) {
   return /^https?:\/\//i.test(src) ? src : `/portfolio/kayastory-${src}.jpg`;
@@ -51,39 +54,16 @@ export default function Gallery({
     ? [{ id: 'all', label: 'Semua Foto' }, ...categoryOptions]
     : DEFAULT_CATEGORIES;
 
-  const enrichedTiles = useMemo(() => {
-    return tiles.map((t) => {
-      let category = t.category ?? 'portrait';
-      let campus = t.campus ?? 'Universitas Diponegoro, Semarang';
-      let title = t.title ?? 'Sesi Wisuda Kebaya & Solo';
-      let focal = '35mm f/1.4';
-
-      if (!t.category && ['02', '04', '05', '14', '16', '17', '21', '24'].includes(t.src)) {
-        category = 'squad';
-        campus = 'Universitas Diponegoro, Tembalang';
-        title = 'Squad & Bestie Graduation';
-        focal = '28mm f/2.0';
-      } else if (!t.category && ['04', '05', '07', '11', '13'].includes(t.src)) {
-        category = 'campus';
-        campus = 'Universitas Negeri Semarang, Sekaran';
-        title = 'Outdoor Campus Session';
-        focal = '50mm f/1.4';
-      } else if (!t.category && ['09', '10', '15'].includes(t.src)) {
-        category = 'details';
-        campus = 'UDINUS Semarang';
-        title = 'Detail Medali & Selempang';
-        focal = '85mm f/1.8';
-      }
-
-      return {
+  // A photo shows only what the studio entered for it. Photos with no category stay under "Semua".
+  const enrichedTiles = useMemo(
+    () =>
+      tiles.map((t) => ({
         ...t,
-        category,
-        campus,
-        title,
-        focal,
-      };
-    });
-  }, [tiles]);
+        category: t.category ?? 'uncategorized',
+        title: t.title ?? t.alt,
+      })),
+    [tiles],
+  );
 
   const filteredTiles = useMemo(() => {
     if (activeCategory === 'all') return enrichedTiles;
@@ -155,7 +135,7 @@ export default function Gallery({
                 setActiveCategory(cat.id);
                 setShowAll(false);
               }}
-              className={`relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium tracking-wide transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              className={`relative inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-xs font-medium tracking-wide transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 isActive
                   ? 'text-accent-fg font-semibold'
                   : 'bg-card text-muted hover:text-fg border border-border-c hover:border-white/20'
@@ -176,7 +156,7 @@ export default function Gallery({
 
               <span className="relative z-10">{cat.label}</span>
               <span
-                className={`relative z-10 text-[10px] ${
+                className={`relative z-10 text-xs ${
                   isActive ? 'text-black/75 font-bold' : 'text-muted-dim'
                 }`}
               >
@@ -209,7 +189,7 @@ export default function Gallery({
                 className="group mb-4 break-inside-avoid cursor-pointer"
                 onClick={() => setSelectedIndex(i)}
               >
-                <div className="relative overflow-hidden rounded-xl bg-card border border-border-c transition-all duration-500 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/5">
+                <div className="relative overflow-hidden rounded-xl bg-card border border-border-c transition-all duration-500 hover:border-accent/40">
                   <Image
                     src={getTileImageSrc(t.src)}
                     alt={t.alt}
@@ -221,7 +201,7 @@ export default function Gallery({
                   />
 
                   {/* Optical Expand Hint */}
-                  <div className="absolute top-3 right-3 size-7 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div className="absolute top-3 right-3 size-7 rounded-full bg-black/60 border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <ArrowsOut size={13} weight="bold" />
                   </div>
 
@@ -229,7 +209,7 @@ export default function Gallery({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-end p-3.5">
                     <div>
                       <p className="text-xs font-bold text-white tracking-wide">{t.title}</p>
-                      <p className="text-[11px] font-mono text-accent">{t.campus}</p>
+                      {t.campus && <p className="text-xs text-fg/80">{t.campus}</p>}
                     </div>
                   </div>
                 </div>
@@ -253,14 +233,13 @@ export default function Gallery({
           <button
             type="button"
             onClick={() => setShowAll((v) => !v)}
-            className="inline-flex items-center gap-2.5 rounded-full border border-border-c bg-card px-7 py-3 text-xs font-semibold tracking-wider text-fg transition-all duration-200 hover:border-accent hover:text-accent active:scale-[0.97]"
+            className="inline-flex min-h-11 items-center gap-2.5 rounded-full border border-border-c bg-card px-7 text-xs font-semibold tracking-wider text-fg transition-all duration-200 hover:border-accent hover:text-accent active:scale-[0.97]"
           >
             <span>
               {showAll
                 ? 'Tampilkan Lebih Sedikit'
                 : `Buka Seluruh Galeri (${filteredTiles.length} Foto)`}
             </span>
-            <span className="font-mono text-accent">{showAll ? '▲' : '▼'}</span>
           </button>
         </div>
       )}
@@ -269,7 +248,10 @@ export default function Gallery({
       <AnimatePresence>
         {selectedTile && selectedIndex !== null && (
           <div
-            className="fixed inset-0 z-[999] flex flex-col justify-between bg-black/95 backdrop-blur-2xl p-4 sm:p-6 lg:p-8 select-none"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Pratinjau foto"
+            className="fixed inset-0 z-[999] flex flex-col justify-between bg-black/95 p-4 sm:p-6 lg:p-8 select-none"
             onClick={() => setSelectedIndex(null)}
           >
             {/* ── Top Bar: Clean Minimalist Frame Metadata & Close ── */}
@@ -280,7 +262,7 @@ export default function Gallery({
               {/* Left: Studio Index */}
               <div className="flex items-center gap-3 font-mono text-xs text-muted">
                 <span className="font-bold tracking-widest text-fg">KAYASTORY ARCHIVE</span>
-                <span className="text-accent">•</span>
+                <span className="text-fg/40">•</span>
                 <span>
                   FRAME {String(selectedIndex + 1).padStart(2, '0')} /{' '}
                   {String(filteredTiles.length).padStart(2, '0')}
@@ -291,10 +273,10 @@ export default function Gallery({
               <button
                 type="button"
                 onClick={() => setSelectedIndex(null)}
-                className="group flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 font-mono text-xs uppercase tracking-wider text-muted transition-all duration-200 hover:border-accent hover:text-accent hover:bg-white/10 active:scale-95"
+                className="group flex min-h-11 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 font-mono text-xs uppercase tracking-wider text-muted transition-all duration-200 hover:border-accent hover:text-accent hover:bg-white/10 active:scale-95"
               >
                 <span>Tutup</span>
-                <span className="text-[10px] text-muted-dim font-mono group-hover:text-accent/70">
+                <span className="text-xs text-muted-dim font-mono group-hover:text-accent/70">
                   [ESC]
                 </span>
                 <X size={14} weight="bold" />
@@ -311,7 +293,7 @@ export default function Gallery({
                 type="button"
                 onClick={handlePrev}
                 aria-label="Foto Sebelumnya"
-                className="absolute left-2 sm:left-6 z-20 flex size-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-fg backdrop-blur-md transition-all duration-200 hover:border-accent hover:text-accent hover:scale-110 active:scale-95 shadow-xl"
+                className="absolute left-2 sm:left-6 z-20 flex size-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-fg transition-all duration-200 hover:border-accent hover:text-accent hover:scale-110 active:scale-95"
               >
                 <CaretLeft size={22} weight="bold" />
               </button>
@@ -342,7 +324,7 @@ export default function Gallery({
                 type="button"
                 onClick={handleNext}
                 aria-label="Foto Selanjutnya"
-                className="absolute right-2 sm:right-6 z-20 flex size-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-fg backdrop-blur-md transition-all duration-200 hover:border-accent hover:text-accent hover:scale-110 active:scale-95 shadow-xl"
+                className="absolute right-2 sm:right-6 z-20 flex size-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-fg transition-all duration-200 hover:border-accent hover:text-accent hover:scale-110 active:scale-95"
               >
                 <CaretRight size={22} weight="bold" />
               </button>
@@ -353,35 +335,33 @@ export default function Gallery({
               className="relative z-20 mx-auto w-full max-w-3xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-white/15 bg-[#141312]/95 px-6 py-4 backdrop-blur-2xl shadow-2xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-white/15 bg-[#141312]/95 px-6 py-4 shadow-2xl">
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-fg">{selectedTile.title}</h3>
-                    <span className="rounded bg-white/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent font-semibold">
-                      {selectedTile.focal}
-                    </span>
                   </div>
                   <p className="text-xs text-muted mt-0.5">
-                    {selectedTile.campus} • {selectedTile.alt}
+                    {captionOf(selectedTile.campus, selectedTile.alt)}
                   </p>
                 </div>
 
-                {/* Refined CTA Button */}
-                <a
-                  href={whatsappLink(
-                    whatsappNumber ?? '',
-                    `Halo ${studioName}! Saya tertarik dengan konsep foto wisuda katalog #${selectedTile.src} (${selectedTile.title} di ${selectedTile.campus}). Boleh info paketnya?`,
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.96] shadow-lg shadow-accent/20"
-                >
-                  <WhatsappLogo size={15} weight="bold" />
-                  <span>Reservasi Konsep Ini</span>
-                  <span className="font-mono text-xs transition-transform duration-200 group-hover:translate-x-0.5">
-                    ↗
-                  </span>
-                </a>
+                {/* Chat about this photo: only when the studio has a WhatsApp number to send it to */}
+                {whatsappNumber && (
+                  <a
+                    href={whatsappLink(
+                      whatsappNumber,
+                      `Halo ${studioName}! Saya tertarik dengan konsep foto "${selectedTile.title}"${
+                        selectedTile.campus ? ` di ${selectedTile.campus}` : ''
+                      }. Boleh info paketnya?`,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-accent px-6 text-xs font-bold uppercase tracking-wider text-accent-fg transition-colors duration-200 hover:bg-accent-light active:scale-[0.96]"
+                  >
+                    <WhatsappLogo size={15} weight="bold" />
+                    <span>Tanya Konsep Ini</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>

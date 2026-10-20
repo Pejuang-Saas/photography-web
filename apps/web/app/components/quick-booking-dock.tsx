@@ -33,6 +33,9 @@ export default function QuickBookingDock({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Without a WhatsApp number there is nowhere for the button to go.
+  if (!whatsappNumber) return null;
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -43,31 +46,20 @@ export default function QuickBookingDock({
           transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
           className="fixed bottom-6 right-4 sm:right-6 z-40 select-none"
         >
-          <div className="flex items-center gap-3 rounded-full border border-white/20 bg-[#121110]/95 p-1.5 pl-4 shadow-2xl backdrop-blur-2xl">
-            {/* Studio Online Indicator */}
-            <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-muted pr-1">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-              </span>
-              <span className="text-fg font-medium">Slot Wisuda 2026</span>
-            </div>
+          <div className="flex items-center gap-3 rounded-full border border-white/20 bg-[#121110] p-1.5 pl-4">
+            <span className="hidden text-xs font-medium text-fg sm:inline">Slot Wisuda 2026</span>
 
-            {/* Quick Action Button with WhatsApp Green Accent & Haptic Feedback */}
             <a
               href={whatsappLink(
-                whatsappNumber ?? '',
+                whatsappNumber,
                 `Halo ${studioName}! Saya ingin tanya jadwal dan paket foto wisuda`,
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.96] shadow-lg shadow-accent/25"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-colors duration-200 hover:bg-accent-light active:scale-[0.96]"
             >
               <WhatsappLogo size={16} weight="bold" />
               <span>Tanya Jadwal</span>
-              <span className="font-mono text-xs transition-transform duration-200 group-hover:translate-x-0.5">
-                ↗
-              </span>
             </a>
           </div>
         </motion.div>

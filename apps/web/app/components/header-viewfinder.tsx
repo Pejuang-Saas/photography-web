@@ -65,28 +65,28 @@ export default function HeaderViewfinder({
             initial={shouldReduceMotion ? false : { scale: 1.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute -top-1 -left-1 size-2 border-t-2 border-l-2 border-accent"
+            className="absolute -top-1 -left-1 size-2 border-t-2 border-l-2 border-white/30"
           />
           <motion.span
             initial={shouldReduceMotion ? false : { scale: 1.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute -top-1 -right-1 size-2 border-t-2 border-r-2 border-accent"
+            className="absolute -top-1 -right-1 size-2 border-t-2 border-r-2 border-white/30"
           />
           <motion.span
             initial={shouldReduceMotion ? false : { scale: 1.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute -bottom-1 -left-1 size-2 border-b-2 border-l-2 border-accent"
+            className="absolute -bottom-1 -left-1 size-2 border-b-2 border-l-2 border-white/30"
           />
           <motion.span
             initial={shouldReduceMotion ? false : { scale: 1.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute -bottom-1 -right-1 size-2 border-b-2 border-r-2 border-accent"
+            className="absolute -bottom-1 -right-1 size-2 border-b-2 border-r-2 border-white/30"
           />
 
-          {/* Left: Brand & Optical Focal Spec */}
+          {/* Left: Brand */}
           <a
             href="#top"
             className="group flex items-center gap-3 text-fg active:scale-95 transition-transform duration-150"
@@ -95,17 +95,12 @@ export default function HeaderViewfinder({
               {brand}
               <span className="text-accent">.</span>
             </span>
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted">
-              <span>35MM</span>
-              <span className="text-accent">•</span>
-              <span>F/1.4</span>
-            </span>
           </a>
 
           {/* Center: Rangefinder Navigation with Sliding Hover Pill */}
           <nav
             onMouseLeave={() => setHoveredLink(null)}
-            className="hidden lg:flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted p-1"
+            className="hidden lg:flex items-center gap-1 text-sm font-medium text-muted p-1"
           >
             {navLinks.map((l) => {
               const isHovered = hoveredLink === l.href;
@@ -115,7 +110,7 @@ export default function HeaderViewfinder({
                   key={l.href}
                   href={l.href}
                   onMouseEnter={() => setHoveredLink(l.href)}
-                  className={`relative px-3.5 py-1.5 transition-colors duration-200 ${
+                  className={`relative px-3.5 py-2.5 transition-colors duration-200 ${
                     isHovered ? 'text-fg' : 'text-muted hover:text-fg'
                   }`}
                 >
@@ -138,18 +133,11 @@ export default function HeaderViewfinder({
 
           {/* Right: Shutter Release Button & Mobile Toggle */}
           <div className="flex items-center gap-3">
-            <span className="hidden md:inline-block font-mono text-[10px] uppercase tracking-wider text-muted-dim">
-              EXP // 2026
-            </span>
-
             <a
               href="#paket"
-              className="group inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-all duration-200 hover:bg-accent-light active:scale-[0.96] shadow-sm"
+              className="inline-flex min-h-11 items-center rounded-xl bg-accent px-5 text-xs font-bold uppercase tracking-wider text-accent-fg transition-colors duration-200 hover:bg-accent-light active:scale-[0.96]"
             >
-              <span>{reservationsOpen ? 'Reservasi' : 'Lihat Paket'}</span>
-              <span className="font-mono text-xs transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                ↗
-              </span>
+              {reservationsOpen ? 'Reservasi' : 'Lihat Paket'}
             </a>
 
             {/* Mobile Menu Toggle Button */}
@@ -157,7 +145,8 @@ export default function HeaderViewfinder({
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle navigasi"
-              className="flex size-9 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-card text-fg transition-colors duration-200 hover:border-accent hover:text-accent lg:hidden active:scale-95"
+              aria-expanded={mobileMenuOpen}
+              className="flex size-11 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-card text-fg transition-colors duration-200 hover:border-accent hover:text-accent lg:hidden active:scale-95"
             >
               {mobileMenuOpen ? <X size={18} weight="bold" /> : <List size={18} weight="bold" />}
             </button>
@@ -172,7 +161,7 @@ export default function HeaderViewfinder({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
               transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-              className="absolute right-0 top-16 w-64 rounded-2xl border border-white/15 bg-[#100f0e]/95 p-4 shadow-2xl backdrop-blur-2xl lg:hidden"
+              className="absolute right-0 top-16 w-64 rounded-2xl border border-white/15 bg-[#100f0e] p-4 shadow-2xl lg:hidden"
             >
               <div className="flex flex-col space-y-1">
                 {navLinks.map((l, i) => (
@@ -183,17 +172,16 @@ export default function HeaderViewfinder({
                     initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.03 + 0.05, duration: 0.2 }}
-                    className="flex items-center justify-between rounded-xl px-4 py-2.5 text-xs font-mono uppercase tracking-wider text-muted hover:text-fg hover:bg-white/5 transition-colors active:scale-[0.98]"
+                    className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-muted hover:text-fg hover:bg-white/5 transition-colors active:scale-[0.98]"
                   >
-                    <span>{l.label}</span>
-                    <span className="text-[10px] text-accent font-mono">0{i + 1}</span>
+                    {l.label}
                   </motion.a>
                 ))}
 
                 <a
                   href="#paket"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mt-3 block rounded-xl bg-accent px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-accent-fg transition-colors hover:bg-accent-light active:scale-[0.97]"
+                  className="mt-3 flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-center text-xs font-bold uppercase tracking-wider text-accent-fg transition-colors hover:bg-accent-light active:scale-[0.97]"
                 >
                   {reservationsOpen ? 'Reservasi Sekarang' : 'Lihat Paket'}
                 </a>

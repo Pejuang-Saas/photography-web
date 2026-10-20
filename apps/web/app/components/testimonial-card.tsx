@@ -38,7 +38,7 @@ export default function TestimonialCard({ story }: TestimonialCardProps) {
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-card transition-all duration-300 hover:border-accent/40 hover:shadow-2xl hover:shadow-accent/5 flex flex-col md:flex-row"
+      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-card transition-all duration-300 hover:border-accent/40 flex flex-col md:flex-row"
     >
       {/* Interactive Ambient Spotlight Glow */}
       {!shouldReduceMotion && isHovered && (
@@ -63,7 +63,7 @@ export default function TestimonialCard({ story }: TestimonialCardProps) {
         )}
 
         {/* 35mm Optical Watermark */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/80 backdrop-blur-md">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-black/80 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/80">
           <Camera size={11} className="text-accent" />
           <span>KAYASTORY</span>
         </div>

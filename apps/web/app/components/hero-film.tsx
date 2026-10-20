@@ -64,9 +64,6 @@ export default function HeroFilm({
       }}
       className="relative flex items-center justify-center gap-4 lg:gap-6 overflow-hidden h-[540px] md:h-[620px] lg:h-[680px] w-full max-w-[480px] select-none py-2"
     >
-      {/* Subtle ambient backlight */}
-      <div className="absolute inset-0 bg-accent/5 blur-3xl pointer-events-none -z-10" />
-
       {/* ── FILM STRIP 1 (Infinite Scroll UP) ── */}
       <div className="relative overflow-hidden w-[165px] sm:w-[195px] lg:w-[210px] -rotate-2 shrink-0 transition-transform duration-300 hover:rotate-0">
         <div
@@ -78,7 +75,10 @@ export default function HeroFilm({
           {loopA.map((frame, i) => (
             <div key={`stripA-${frame}-${i}`} className="flex flex-col my-2 first:mt-0 last:mb-0">
               {/* Top Film Frame Marker */}
-              <div className="flex items-center justify-between px-2 py-0.5 text-[9px] font-mono text-accent/70 tracking-widest uppercase">
+              <div
+                aria-hidden
+                className="flex items-center justify-between px-2 py-0.5 text-[9px] font-mono text-white/50 tracking-widest uppercase"
+              >
                 <span>KAYASTORY</span>
                 <span>▲ {String((i % stripA.length) + 1).padStart(2, '0')}</span>
               </div>
@@ -113,7 +113,10 @@ export default function HeroFilm({
           {loopB.map((frame, i) => (
             <div key={`stripB-${frame}-${i}`} className="flex flex-col my-2 first:mt-0 last:mb-0">
               {/* Top Film Frame Marker */}
-              <div className="flex items-center justify-between px-2 py-0.5 text-[9px] font-mono text-accent/70 tracking-widest uppercase">
+              <div
+                aria-hidden
+                className="flex items-center justify-between px-2 py-0.5 text-[9px] font-mono text-white/50 tracking-widest uppercase"
+              >
                 <span>ARCHIVE</span>
                 <span>▲ {String((i % stripB.length) + 13).padStart(2, '0')}</span>
               </div>

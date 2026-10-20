@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { SlidersHorizontal, Sparkle } from '@phosphor-icons/react';
+import { SlidersHorizontal } from '@phosphor-icons/react';
 
 interface ColorGradeSliderProps {
   imageSrc?: string;
@@ -36,6 +36,22 @@ export default function ColorGradeSlider({
     updatePosition(e.clientX);
   };
 
+  // The same moves as dragging, for keyboard and screen reader users.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 10 : 4;
+    const moves: Record<string, number> = {
+      ArrowLeft: sliderPosition - step,
+      ArrowDown: sliderPosition - step,
+      ArrowRight: sliderPosition + step,
+      ArrowUp: sliderPosition + step,
+      Home: 5,
+      End: 95,
+    };
+    if (!(e.key in moves)) return;
+    e.preventDefault();
+    setSliderPosition(Math.max(5, Math.min(95, moves[e.key])));
+  };
+
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     setIsDragging(false);
     try {
@@ -54,7 +70,16 @@ export default function ColorGradeSlider({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="relative aspect-[3/4] w-full cursor-ew-resize overflow-hidden rounded-xl bg-black touch-none"
+        onKeyDown={handleKeyDown}
+        role="slider"
+        tabIndex={0}
+        aria-label="Perbandingan foto sebelum dan sesudah color grade"
+        aria-orientation="horizontal"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(sliderPosition)}
+        aria-valuetext={`Tampilan color grade ${Math.round(sliderPosition)} persen`}
+        className="relative aspect-[3/4] w-full cursor-ew-resize overflow-hidden rounded-xl bg-black touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         {/* ── LAYER 1 (BOTTOM): RAW CAMERA FLAT PROFILE ── */}
         <div className="absolute inset-0">
@@ -67,7 +92,7 @@ export default function ColorGradeSlider({
             priority
           />
           {/* Label RAW */}
-          <div className="absolute top-3 left-3 rounded-md bg-black/70 px-2.5 py-1 font-mono text-[9px] uppercase tracking-widest text-white/70 backdrop-blur-md border border-white/10">
+          <div className="absolute top-3 left-3 rounded-md bg-black/80 px-2.5 py-1 font-mono text-xs uppercase tracking-wider text-white/80 border border-white/10">
             RAW CAMERA PROFILE
           </div>
         </div>
@@ -88,8 +113,7 @@ export default function ColorGradeSlider({
             priority
           />
           {/* Label Signature Color Grade */}
-          <div className="absolute top-3 right-3 rounded-md bg-accent/90 px-2.5 py-1 font-mono text-[9px] uppercase tracking-widest text-accent-fg font-bold shadow-md backdrop-blur-md flex items-center gap-1">
-            <Sparkle size={10} weight="fill" />
+          <div className="absolute top-3 right-3 rounded-md bg-accent px-2.5 py-1 font-mono text-xs uppercase tracking-wider text-accent-fg font-bold">
             <span>35MM SIGNATURE GRADE</span>
           </div>
         </div>
@@ -97,14 +121,11 @@ export default function ColorGradeSlider({
         {/* ── SLIDER DIVIDER LINE & INTERACTIVE THUMB ── */}
         <div
           className="absolute inset-y-0 w-0.5 bg-accent z-20 pointer-events-none transition-opacity duration-200"
-          style={{
-            left: `${sliderPosition}%`,
-            boxShadow: '0 0 12px rgba(217, 165, 33, 0.8), 0 0 2px rgba(255, 255, 255, 0.9)',
-          }}
+          style={{ left: `${sliderPosition}%` }}
         >
           {/* Center Handle Button */}
           <div
-            className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-white/30 bg-black/85 text-accent shadow-xl backdrop-blur-md transition-transform duration-150 ${
+            className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-white/30 bg-black text-accent transition-transform duration-150 ${
               isDragging
                 ? 'scale-110 border-accent bg-accent text-accent-fg'
                 : 'group-hover/slider:scale-105'
@@ -121,11 +142,8 @@ export default function ColorGradeSlider({
 
       {/* Interactive Bottom Prompt */}
       <div className="px-3 py-2.5 flex items-center justify-between text-xs text-muted font-mono">
-        <span className="flex items-center gap-1.5 text-[11px]">
-          <span className="inline-block size-1.5 rounded-full bg-accent animate-pulse" />
-          <span>GESER UNTUK MELIHAT COLOR GRADE</span>
-        </span>
-        <span className="text-accent font-semibold text-[10px]">UNDIP SEMARANG</span>
+        <span>Geser atau gunakan tombol panah untuk melihat color grade</span>
+        <span className="font-semibold text-fg/80">UNDIP SEMARANG</span>
       </div>
     </div>
   );

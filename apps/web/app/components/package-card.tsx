@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { ArrowRight, Check } from '@phosphor-icons/react';
+import { Check } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
 
 export interface PackageData {
@@ -54,7 +54,7 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
       onMouseLeave={() => setIsHovered(false)}
       className={`group relative flex h-full flex-col overflow-hidden rounded-3xl bg-card transition-all duration-300 ${
         pkg.isFeatured
-          ? 'border-2 border-accent shadow-2xl shadow-accent/15'
+          ? 'border-2 border-accent'
           : 'border border-white/10 hover:border-white/25 shadow-lg'
       }`}
     >
@@ -96,9 +96,7 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
                 key={stat.label}
                 className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-center"
               >
-                <dt className="text-[10px] font-mono uppercase tracking-wider text-muted-dim">
-                  {stat.label}
-                </dt>
+                <dt className="text-xs text-muted-dim">{stat.label}</dt>
                 <dd className="mt-1 text-sm font-bold text-fg">{stat.value}</dd>
               </div>
             ))}
@@ -111,7 +109,7 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
             <div
               role="tablist"
               aria-label={`Informasi ${pkg.name}`}
-              className="mb-5 inline-flex rounded-full border border-white/10 bg-white/[0.03] p-1"
+              className="mb-5 inline-flex rounded-full border border-white/10 bg-white/[0.03] p-0.5"
             >
               {(
                 [
@@ -125,7 +123,7 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
                   role="tab"
                   aria-selected={tab === value}
                   onClick={() => setTab(value)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`min-h-11 rounded-full px-5 text-xs font-semibold transition-colors ${
                     tab === value ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg'
                   }`}
                 >
@@ -146,7 +144,7 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
                   key={feat}
                   className="flex items-start gap-2.5 text-xs leading-relaxed text-fg/90"
                 >
-                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-accent/15 font-bold text-accent">
+                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-white/10 font-bold text-fg/70">
                     <Check size={10} weight="bold" />
                   </span>
                   <span>{feat}</span>
@@ -164,7 +162,7 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
                     key={term}
                     className="flex items-start gap-2.5 text-xs leading-relaxed text-muted"
                   >
-                    <span className="mt-0.5 shrink-0 text-accent">•</span>
+                    <span className="mt-0.5 shrink-0 text-fg/40">•</span>
                     <span>{term}</span>
                   </li>
                 ))}
@@ -179,16 +177,13 @@ export default function PackageCard({ pkg, onSelect }: PackageCardProps) {
             <button
               type="button"
               onClick={() => onSelect(pkg.id)}
-              className={`group/btn flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-center text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.97] ${
+              className={`flex min-h-12 w-full items-center justify-center rounded-full px-6 text-center text-xs font-bold uppercase tracking-wider transition-colors duration-200 active:scale-[0.97] ${
                 pkg.isFeatured
-                  ? 'bg-accent text-accent-fg shadow-lg shadow-accent/20 hover:bg-accent-light'
+                  ? 'bg-accent text-accent-fg hover:bg-accent-light'
                   : 'border border-white/15 bg-bg text-fg hover:border-accent hover:text-accent'
               }`}
             >
-              <span>Pilih {pkg.name}</span>
-              <span className="transition-transform duration-200 group-hover/btn:translate-x-1">
-                <ArrowRight size={13} weight="bold" />
-              </span>
+              Pilih {pkg.name}
             </button>
           )}
         </div>

@@ -1,5 +1,5 @@
-import Preloader from './components/preloader';
 import Gallery from './gallery';
+import ReservationInfo from './components/reservation-info';
 import ScrollReveal from './components/scroll-reveal';
 import HeroFilm from './components/hero-film';
 import HeroEntrance from './components/hero-entrance';
@@ -18,28 +18,32 @@ import type { PackageCategory, ServicePackage } from '@/lib/booking-api';
 import { formatClock, whatsappLink } from '@/lib/format';
 import type { LandingContent } from '@/lib/landing-content-api';
 import { brandMark, FALLBACK_STUDIO_NAME, type StudioInfo } from '@/lib/studio-api';
-import {
-  FilmStrip,
-  Sparkle,
-  ShieldCheck,
-  WhatsappLogo,
-  InstagramLogo,
-} from '@phosphor-icons/react/dist/ssr';
+import { WhatsappLogo, InstagramLogo } from '@phosphor-icons/react/dist/ssr';
 
 // ────────────────────────────────────────────────
 // DATA
 // ────────────────────────────────────────────────
 
-const POINT_ICONS = [Sparkle, ShieldCheck, FilmStrip];
+type SectionLink = { href: string; nav: string; footer: string };
 
-const navLinks = [
-  { href: '#portfolio', label: 'Galeri', idx: '01' },
-  { href: '#tentang', label: 'Tentang', idx: '02' },
-  { href: '#paket', label: 'Paket', idx: '03' },
-  { href: '#alur', label: 'Alur', idx: '04' },
-  { href: '#testimoni', label: 'Testimoni', idx: '05' },
-  { href: '#faq', label: 'FAQ', idx: '06' },
-];
+/** The sections that exist right now, in page order. The header and the footer both read this. */
+function sectionLinks(show: {
+  gallery: boolean;
+  stories: boolean;
+  faqs: boolean;
+  ordering: boolean;
+}): SectionLink[] {
+  return [
+    ...(show.gallery ? [{ href: '#portfolio', nav: 'Galeri', footer: 'Katalog Foto' }] : []),
+    { href: '#tentang', nav: 'Tentang', footer: 'Filosofi Studio' },
+    { href: '#paket', nav: 'Paket', footer: 'Pilihan Paket' },
+    show.ordering
+      ? { href: '#alur', nav: 'Alur', footer: 'Alur Pemesanan' }
+      : { href: '#info-reservasi', nav: 'Info', footer: 'Info Reservasi' },
+    ...(show.stories ? [{ href: '#testimoni', nav: 'Testimoni', footer: 'Cerita Wisudawan' }] : []),
+    ...(show.faqs ? [{ href: '#faq', nav: 'FAQ', footer: 'Tanya Jawab (FAQ)' }] : []),
+  ];
+}
 
 // ────────────────────────────────────────────────
 // MAIN COMPONENT
@@ -63,8 +67,9 @@ export default function Landing({
   const studioName = studio?.studioName ?? FALLBACK_STUDIO_NAME;
   const reservationsOpen = studio?.reservationsOpen !== false;
   const greeting = `Halo ${studioName}!`;
+  // Null without a number: a WhatsApp link to nowhere is worse than no button.
   const waLink = (text: string) =>
-    whatsappLink(studio?.whatsappNumber ?? '', `${greeting} ${text}`);
+    studio?.whatsappNumber ? whatsappLink(studio.whatsappNumber, `${greeting} ${text}`) : null;
   const steps = content?.steps ?? [];
   const cmsGallery = cmsContent?.gallery ?? [];
   const galleryTiles = cmsGallery.map((item) => ({
@@ -100,6 +105,25 @@ export default function Landing({
     rating: item.rating,
   }));
 
+  const supportLink = waLink('Saya ingin tanya seputar paket foto wisuda');
+  const finaleLink = waLink(
+    reservationsOpen
+      ? 'Saya ingin reservasi slot foto wisuda'
+      : 'Saya ingin menanyakan jadwal foto wisuda',
+  );
+  const footerLink = waLink('Saya ingin tanya seputar foto wisuda');
+  const sections = sectionLinks({
+    gallery: galleryTiles.length > 0,
+    stories: landingStories.length > 0,
+    faqs: landingFaqs.length > 0,
+    ordering: reservationsOpen,
+  });
+  const headerLinks = sections.map((link, index) => ({
+    href: link.href,
+    label: link.nav,
+    idx: String(index + 1).padStart(2, '0'),
+  }));
+
   return (
     <div className="min-h-[100dvh] flex flex-col bg-bg text-fg relative film-grain selection:bg-accent selection:text-accent-fg">
       <StructuredData
@@ -109,15 +133,12 @@ export default function Landing({
         testimonials={cmsContent?.testimonials}
         faqs={landingFaqs.map((item) => ({ question: item.q, answer: item.a }))}
       />
-      {/* ── 35MM ASSET PRELOADER ── */}
-      <Preloader brand={brandMark(studioName)} />
-
       {/* ── AMBIENT TOP GLOW ── */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] glow-gold-top -z-10" />
 
       {/* ── CAMERA VIEWFINDER FRAMING HEADER ── */}
       <HeaderViewfinder
-        navLinks={navLinks}
+        navLinks={headerLinks}
         brand={brandMark(studioName)}
         reservationsOpen={reservationsOpen}
       />
@@ -129,7 +150,13 @@ export default function Landing({
       >
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-12 lg:gap-8">
           {/* Left Column: Staggered Entrance */}
-          {content && <HeroEntrance hero={content.hero} reservationsOpen={reservationsOpen} />}
+          {content && (
+            <HeroEntrance
+              hero={content.hero}
+              reservationsOpen={reservationsOpen}
+              hasGallery={galleryTiles.length > 0}
+            />
+          )}
 
           {/* Right Column: Dual Infinite Film Strips with Spring Interactive Tilt */}
           <div className="flex items-center justify-center lg:col-span-5 lg:justify-end">
@@ -144,29 +171,31 @@ export default function Landing({
       {/* ── CAMPUS RIBBON (Marquee with Edge Alpha Gradient Masks) ── */}
       <CampusMarquee campuses={landingMarquee} />
 
-      {/* ── SECTION 2: PORTFOLIO ── */}
-      <section id="portfolio" className="scroll-mt-24 px-4 py-24 lg:py-32">
-        <div className="mx-auto max-w-6xl">
-          <ScrollReveal>
-            <div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-fg">
-                {content?.portfolio.heading}
-              </h2>
-              <p className="mt-3 max-w-xl text-sm text-muted leading-relaxed">
-                {content?.portfolio.description}
-              </p>
-            </div>
-          </ScrollReveal>
+      {/* ── SECTION 2: PORTFOLIO (only once there are photos to show) ── */}
+      {galleryTiles.length > 0 && (
+        <section id="portfolio" className="scroll-mt-24 px-4 py-24 lg:py-32">
+          <div className="mx-auto max-w-6xl">
+            <ScrollReveal>
+              <div>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-fg">
+                  {content?.portfolio.heading}
+                </h2>
+                <p className="mt-3 max-w-xl text-sm text-muted leading-relaxed">
+                  {content?.portfolio.description}
+                </p>
+              </div>
+            </ScrollReveal>
 
-          {/* Gallery with Morphing Pills & 35mm Lightbox Modal */}
-          <Gallery
-            tiles={galleryTiles}
-            categoryOptions={galleryCategories}
-            whatsappNumber={studio?.whatsappNumber ?? null}
-            studioName={studioName}
-          />
-        </div>
-      </section>
+            {/* Gallery with category pills and a lightbox */}
+            <Gallery
+              tiles={galleryTiles}
+              categoryOptions={galleryCategories}
+              whatsappNumber={studio?.whatsappNumber ?? null}
+              studioName={studioName}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── SECTION 3: ABOUT STUDIO ── */}
       <section
@@ -194,22 +223,12 @@ export default function Landing({
 
             {/* Key points, managed in the admin */}
             <div className="mt-10 space-y-6">
-              {(content?.about.points ?? []).map((item, idx) => {
-                const Icon = POINT_ICONS[idx % POINT_ICONS.length];
-                return (
-                  <div key={idx} className="flex items-start gap-4">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card border border-white/10 text-accent mt-0.5 shadow-sm">
-                      <Icon size={18} weight="bold" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-fg">{item.title}</h3>
-                      <p className="mt-1 text-xs sm:text-sm text-muted leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+              {(content?.about.points ?? []).map((item, idx) => (
+                <div key={idx} className="border-t border-white/10 pt-5">
+                  <h3 className="text-base font-bold text-fg">{item.title}</h3>
+                  <p className="mt-1.5 text-sm text-muted leading-relaxed">{item.description}</p>
+                </div>
+              ))}
             </div>
           </ScrollReveal>
 
@@ -229,10 +248,11 @@ export default function Landing({
                 {content?.packages.heading}
               </h2>
               <p className="mt-3 text-sm text-muted">
-                {content?.packages.description}{' '}
-                {allowDownPayment
-                  ? 'Cukup DP 50% untuk mengunci tanggal wisudamu.'
-                  : 'Bayar lunas untuk mengunci tanggal wisudamu.'}
+                {content?.packages.description}
+                {reservationsOpen &&
+                  (allowDownPayment
+                    ? ' Cukup DP 50% untuk mengunci tanggal wisudamu.'
+                    : ' Bayar lunas untuk mengunci tanggal wisudamu.')}
               </p>
             </div>
           </ScrollReveal>
@@ -245,138 +265,145 @@ export default function Landing({
         </div>
       </section>
 
-      {/* ── SECTION 5: HOW IT WORKS ── */}
-      <section
-        id="alur"
-        className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/40 border-y border-white/5"
-      >
-        <div className="mx-auto max-w-6xl">
-          <ScrollReveal>
-            <div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-fg">
-                Alur Pemesanan
-              </h2>
-              <p className="mt-3 max-w-md text-sm text-muted">
-                Empat langkah praktis dari konsultasi hingga hasil foto di tanganmu.
-              </p>
-            </div>
-          </ScrollReveal>
-
-          {/* 4 Steps (Original Clean Minimalist Layout) */}
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step, idx) => (
-              <ScrollReveal key={idx} delay={idx * 0.08}>
-                <div className="flex flex-col border-t border-white/15 pt-6 group">
-                  <span className="font-mono text-xs font-bold text-accent transition-colors duration-200 group-hover:text-accent-light">
-                    LANGKAH {String(idx + 1).padStart(2, '0')}
-                  </span>
-                  <h3 className="mt-3 text-lg font-bold text-fg group-hover:text-white transition-colors duration-200">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">{step.description}</p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SECTION 6: TESTIMONIALS (Studix Editorial Layout with Spotlight Cards) ── */}
-      <section id="testimoni" className="scroll-mt-24 px-4 py-24 lg:py-32">
-        <div className="mx-auto max-w-5xl">
-          <ScrollReveal>
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-6 mb-12">
+      {/* ── SECTION 5: HOW IT WORKS (online ordering), or how to book by chat while it is off ── */}
+      {reservationsOpen ? (
+        <section
+          id="alur"
+          className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/40 border-y border-white/5"
+        >
+          <div className="mx-auto max-w-6xl">
+            <ScrollReveal>
               <div>
-                <span className="text-xs font-mono uppercase tracking-widest text-accent">
-                  Cerita Wisudawan
-                </span>
-                <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase leading-[0.98]">
-                  Cerita Dari Mereka,
-                  <br />
-                  Bukan Dari Kami.
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-fg">
+                  Alur Pemesanan
                 </h2>
+                <p className="mt-3 max-w-md text-sm text-muted">
+                  Empat langkah praktis dari konsultasi hingga hasil foto di tanganmu.
+                </p>
               </div>
-              <p className="max-w-xs text-xs sm:text-sm text-muted">
-                Pengalaman nyata sesi wisuda bersama Kayastory di Semarang.
-              </p>
+            </ScrollReveal>
+
+            {/* The steps, as the studio wrote them */}
+            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {steps.map((step, idx) => (
+                <ScrollReveal key={idx} delay={idx * 0.08}>
+                  <div className="flex flex-col border-t border-white/15 pt-6 group">
+                    <span className="text-sm font-semibold text-muted">Langkah {idx + 1}</span>
+                    <h3 className="mt-3 text-lg font-bold text-fg">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted">{step.description}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
             </div>
-          </ScrollReveal>
-
-          {/* Studix-Style Stacked Story Cards with Spotlight */}
-          <div className="space-y-6">
-            {landingStories.map((story, i) => (
-              <ScrollReveal key={story.author} delay={i * 0.1}>
-                <TestimonialCard story={story} />
-              </ScrollReveal>
-            ))}
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <ReservationInfo
+          whatsappHref={waLink('Saya ingin menanyakan jadwal dan reservasi foto wisuda')}
+          hours={
+            studio?.openTime && studio.closeTime
+              ? `${formatClock(studio.openTime)} - ${formatClock(studio.closeTime)} WIB`
+              : null
+          }
+        />
+      )}
 
-      {/* ── SECTION 7: FAQ (Editorial 2-Column Studio Layout with Smooth Accordion) ── */}
-      <section
-        id="faq"
-        className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/30 border-t border-white/5"
-      >
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16 items-start">
-            {/* Left Column: Sticky Studio Heading & Quick Support */}
-            <ScrollReveal className="lg:col-span-5 lg:sticky lg:top-28">
-              <span className="text-xs font-mono uppercase tracking-widest text-accent">
-                Tanya Jawab
-              </span>
-              <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-fg leading-[1.05]">
-                Pertanyaan yang Sering Diajukan.
-              </h2>
-              <p className="mt-4 text-sm leading-relaxed text-muted">
-                Semua hal penting seputar reservasi, arahan gaya, lokasi pemotretan, hingga
-                penyerahan file foto wisuda.
-              </p>
-
-              {/* Direct Support Card */}
-              <div className="mt-8 rounded-2xl border border-white/10 bg-card p-6 shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-accent/15 text-accent">
-                    <WhatsappLogo size={20} weight="bold" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-fg">Butuh Info Tambahan?</h3>
-                    <p className="text-xs text-muted">
-                      Konsultasi gratis langsung dengan tim fotografer.
-                    </p>
-                  </div>
+      {/* ── SECTION 6: TESTIMONIALS (only when there are published stories) ── */}
+      {landingStories.length > 0 && (
+        <section id="testimoni" className="scroll-mt-24 px-4 py-24 lg:py-32">
+          <div className="mx-auto max-w-5xl">
+            <ScrollReveal>
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-6 mb-12">
+                <div>
+                  <p className="text-sm font-semibold text-fg/70">Cerita Wisudawan</p>
+                  <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase leading-[0.98]">
+                    Cerita Dari Mereka,
+                    <br />
+                    Bukan Dari Kami.
+                  </h2>
                 </div>
-                <a
-                  href={waLink('Saya ingin tanya seputar paket foto wisuda')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-5 block w-full rounded-xl bg-accent px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-accent-fg hover:bg-accent-light transition-all duration-200 active:scale-[0.97] shadow-md shadow-accent/10"
-                >
-                  Chat WhatsApp Studio ↗
-                </a>
+                <p className="max-w-xs text-xs sm:text-sm text-muted">
+                  Pengalaman nyata sesi wisuda bersama Kayastory di Semarang.
+                </p>
               </div>
             </ScrollReveal>
 
-            {/* Right Column: Smooth Animated Accordion */}
-            <ScrollReveal className="lg:col-span-7">
-              <FAQAccordion items={landingFaqs} />
-            </ScrollReveal>
+            <div className="space-y-6">
+              {landingStories.map((story, i) => (
+                <ScrollReveal key={story.author} delay={i * 0.1}>
+                  <TestimonialCard story={story} />
+                </ScrollReveal>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* ── SECTION 7: FAQ (only when there are questions) ── */}
+      {landingFaqs.length > 0 && (
+        <section
+          id="faq"
+          className="scroll-mt-24 px-4 py-24 lg:py-32 bg-bg-subtle/30 border-t border-white/5"
+        >
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-12 lg:grid-cols-12 lg:gap-16 items-start">
+              {/* Left Column: Sticky Studio Heading & Quick Support */}
+              <ScrollReveal className="lg:col-span-5 lg:sticky lg:top-28">
+                <span className="text-xs font-mono uppercase tracking-widest text-accent">
+                  Tanya Jawab
+                </span>
+                <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-fg leading-[1.05]">
+                  Pertanyaan yang Sering Diajukan.
+                </h2>
+                <p className="mt-4 text-sm leading-relaxed text-muted">
+                  Semua hal penting seputar reservasi, arahan gaya, lokasi pemotretan, hingga
+                  penyerahan file foto wisuda.
+                </p>
+
+                {/* Direct support, when there is a number to chat with */}
+                {supportLink && (
+                  <div className="mt-8 rounded-2xl border border-white/10 bg-card p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-full bg-white/10 text-fg/80">
+                        <WhatsappLogo size={20} weight="bold" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-fg">Butuh Info Tambahan?</h3>
+                        <p className="text-sm text-muted">
+                          Konsultasi gratis langsung dengan tim fotografer.
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={supportLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 flex min-h-12 w-full items-center justify-center rounded-xl bg-accent px-4 text-center text-xs font-bold uppercase tracking-wider text-accent-fg transition-colors duration-200 hover:bg-accent-light active:scale-[0.97]"
+                    >
+                      Chat WhatsApp Studio
+                    </a>
+                  </div>
+                )}
+              </ScrollReveal>
+
+              {/* Right Column: Smooth Animated Accordion */}
+              <ScrollReveal className="lg:col-span-7">
+                <FAQAccordion items={landingFaqs} />
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── SECTION 8: STUDIO FINALE (Pure Editorial Closing with Magnetic CTA) ── */}
       <section className="scroll-mt-24 border-t border-white/10 px-6 py-28 lg:py-40 bg-bg relative overflow-hidden">
-        {/* Subtle camera aperture ambient ring glow in the background */}
-        <div className="pointer-events-none absolute right-0 bottom-0 size-[500px] rounded-full bg-accent/[0.03] blur-3xl -z-0" />
-
         <div className="mx-auto max-w-6xl relative z-10">
           <ScrollReveal>
             <div className="grid gap-12 lg:grid-cols-12 items-end justify-between">
               <div className="lg:col-span-8">
-                <span className="font-mono text-xs uppercase tracking-widest text-accent block mb-4">
-                  Reservasi Wisuda 2026 • Semarang
-                </span>
+                <p className="mb-4 text-sm font-semibold text-fg/70">
+                  Reservasi Wisuda 2026, Semarang
+                </p>
                 <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-[-0.03em] text-fg leading-[0.98]">
                   Abadikan momen kelulusanmu bersama Kayastory.
                 </h2>
@@ -386,20 +413,19 @@ export default function Landing({
                 </p>
               </div>
 
-              <div className="lg:col-span-4 lg:flex lg:justify-end">
-                <MagneticButton
-                  href={waLink('Saya ingin reservasi slot foto wisuda')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-3 rounded-full bg-accent px-8 py-5 text-sm font-bold uppercase tracking-wider text-accent-fg transition-all duration-300 hover:bg-accent-light shadow-2xl shadow-accent/25 hover:shadow-accent/40"
-                  strength={0.3}
-                >
-                  <span>{reservationsOpen ? 'Mulai Reservasi' : 'Tanya Jadwal via WhatsApp'}</span>
-                  <span className="text-base transition-transform duration-200 group-hover:translate-x-1.5 group-hover:-translate-y-0.5 font-mono">
-                    ↗
-                  </span>
-                </MagneticButton>
-              </div>
+              {finaleLink && (
+                <div className="lg:col-span-4 lg:flex lg:justify-end">
+                  <MagneticButton
+                    href={finaleLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-14 items-center rounded-full bg-accent px-8 text-sm font-bold uppercase tracking-wider text-accent-fg transition-colors duration-300 hover:bg-accent-light"
+                    strength={0.3}
+                  >
+                    {reservationsOpen ? 'Mulai Reservasi' : 'Tanya Jadwal via WhatsApp'}
+                  </MagneticButton>
+                </div>
+              )}
             </div>
           </ScrollReveal>
         </div>
@@ -418,12 +444,15 @@ export default function Landing({
               >
                 KAYASTORY<span className="text-accent">.</span>
               </a>
-              <p className="mt-4 text-xs leading-relaxed text-muted max-w-sm">
+              <p className="mt-4 text-sm leading-relaxed text-muted max-w-sm">
                 Studio fotografi wisuda di Semarang yang mengabadikan momen kelulusan, kebaya, dan
                 kebersamaan dengan estetika warna yang berkarakter.
               </p>
-              <div className="mt-6 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-accent">
-                <span className="size-1.5 rounded-full bg-accent animate-pulse" />
+              <div className="mt-6 flex items-center gap-2 text-xs font-medium text-fg/80">
+                <span
+                  aria-hidden
+                  className={`size-1.5 rounded-full ${reservationsOpen ? 'bg-accent' : 'bg-muted-dim'}`}
+                />
                 <span>
                   {reservationsOpen
                     ? 'Menerima Reservasi Wisuda 2026'
@@ -434,40 +463,18 @@ export default function Landing({
 
             {/* Col 2: Indeks Menu (3 cols) */}
             <div className="lg:col-span-3">
-              <span className="block font-mono text-xs uppercase tracking-widest text-muted-dim mb-4">
-                Indeks
-              </span>
-              <ul className="space-y-2.5 text-xs text-muted">
-                <li>
-                  <a href="#portfolio" className="hover:text-fg transition-colors">
-                    01. Katalog Foto
-                  </a>
-                </li>
-                <li>
-                  <a href="#tentang" className="hover:text-fg transition-colors">
-                    02. Filosofi Studio
-                  </a>
-                </li>
-                <li>
-                  <a href="#paket" className="hover:text-fg transition-colors">
-                    03. Pilihan Paket
-                  </a>
-                </li>
-                <li>
-                  <a href="#alur" className="hover:text-fg transition-colors">
-                    04. Alur Pemesanan
-                  </a>
-                </li>
-                <li>
-                  <a href="#testimoni" className="hover:text-fg transition-colors">
-                    05. Cerita Wisudawan
-                  </a>
-                </li>
-                <li>
-                  <a href="#faq" className="hover:text-fg transition-colors">
-                    06. Tanya Jawab (FAQ)
-                  </a>
-                </li>
+              <span className="mb-4 block text-sm font-semibold text-fg/80">Indeks</span>
+              <ul className="text-sm text-muted">
+                {sections.map((link, index) => (
+                  <li key={link.href}>
+                    <a
+                      href={link.href}
+                      className="inline-flex min-h-11 items-center transition-colors hover:text-fg"
+                    >
+                      {String(index + 1).padStart(2, '0')}. {link.footer}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -475,10 +482,8 @@ export default function Landing({
             <div className="lg:col-span-2">
               {landingMarquee.length > 0 && (
                 <>
-                  <span className="block font-mono text-xs uppercase tracking-widest text-muted-dim mb-4">
-                    Area Kampus
-                  </span>
-                  <ul className="space-y-2 text-xs font-mono text-muted-dim">
+                  <span className="mb-4 block text-sm font-semibold text-fg/80">Area Kampus</span>
+                  <ul className="space-y-2 text-sm text-muted">
                     {landingMarquee.map((campus) => (
                       <li key={campus}>{campus}</li>
                     ))}
@@ -489,12 +494,10 @@ export default function Landing({
 
             {/* Col 4: Kontak & Studio Hours (3 cols) */}
             <div className="lg:col-span-3">
-              <span className="block font-mono text-xs uppercase tracking-widest text-muted-dim mb-4">
-                Kontak & Studio
-              </span>
-              <div className="space-y-3 text-xs text-muted">
+              <span className="mb-4 block text-sm font-semibold text-fg/80">Kontak & Studio</span>
+              <div className="space-y-3 text-sm text-muted">
                 {studio?.address && (
-                  <p className="font-mono text-[11px] text-fg">
+                  <p className="text-fg">
                     {studio.mapsUrl ? (
                       <a
                         href={studio.mapsUrl}
@@ -510,29 +513,31 @@ export default function Landing({
                   </p>
                 )}
                 {studio?.openTime && studio.closeTime && (
-                  <p className="text-[11px]">
+                  <p>
                     Jam Operasional: {formatClock(studio.openTime)} -{' '}
                     {formatClock(studio.closeTime)} WIB
                   </p>
                 )}
-                <div className="pt-2 flex items-center gap-3">
-                  <a
-                    href={waLink('Saya ingin tanya seputar foto wisuda')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-semibold text-fg hover:border-accent hover:text-accent active:scale-95 transition-all duration-150"
-                  >
-                    <WhatsappLogo size={14} weight="bold" />
-                    <span>WhatsApp</span>
-                  </a>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  {footerLink && (
+                    <a
+                      href={footerLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-11 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 text-xs font-semibold text-fg transition-colors duration-150 hover:border-accent hover:text-accent active:scale-95"
+                    >
+                      <WhatsappLogo size={15} weight="bold" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
                   {studio?.instagramUrl && (
                     <a
                       href={studio.instagramUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-semibold text-fg hover:border-accent hover:text-accent active:scale-95 transition-all duration-150"
+                      className="flex min-h-11 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 text-xs font-semibold text-fg transition-colors duration-150 hover:border-accent hover:text-accent active:scale-95"
                     >
-                      <InstagramLogo size={14} weight="bold" />
+                      <InstagramLogo size={15} weight="bold" />
                       <span>Instagram</span>
                     </a>
                   )}
@@ -548,10 +553,10 @@ export default function Landing({
             </p>
             <a
               href="#top"
-              className="inline-flex items-center gap-1.5 hover:text-fg transition-colors active:scale-95"
+              className="inline-flex min-h-11 items-center gap-1.5 hover:text-fg transition-colors active:scale-95"
             >
               <span>Kembali ke Atas</span>
-              <span className="text-accent">↑</span>
+              <span aria-hidden>↑</span>
             </a>
           </div>
 

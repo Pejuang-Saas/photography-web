@@ -10,6 +10,8 @@ const SECTIONS = [
   { id: 'tentang', label: 'STUDIO', num: '03' },
   { id: 'paket', label: 'PAKET', num: '04' },
   { id: 'alur', label: 'ALUR', num: '05' },
+  // Takes the place of the ordering steps while reservations are switched off.
+  { id: 'info-reservasi', label: 'INFO', num: '05' },
   { id: 'testimoni', label: 'TESTIMONI', num: '06' },
   { id: 'faq', label: 'FAQ', num: '07' },
 ];
@@ -53,15 +55,10 @@ export default function FrameCounter() {
       animate={{ opacity: 1, y: 0 }}
       exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
       transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-      className="fixed bottom-6 left-6 z-40 hidden md:flex items-center gap-3 rounded-full border border-white/15 bg-black/80 px-4 py-2 text-xs font-mono backdrop-blur-xl shadow-2xl"
+      className="fixed bottom-6 left-6 z-40 hidden md:flex items-center gap-3 rounded-full border border-white/15 bg-black px-4 py-2 text-xs font-mono"
     >
       <div className="flex items-center gap-2 text-accent">
-        <Aperture
-          size={15}
-          weight="bold"
-          className="animate-spin"
-          style={{ animationDuration: '20s' }}
-        />
+        <Aperture size={15} weight="bold" />
         <span className="font-bold">EXP // {activeSection.num}</span>
       </div>
 

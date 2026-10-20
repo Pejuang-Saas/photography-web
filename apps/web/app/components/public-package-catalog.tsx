@@ -45,7 +45,7 @@ function toPackageCardData(pkg: ServicePackage): PackageData {
 function AddOnPanel({ title, addOns }: { title: string; addOns: AddOn[] }) {
   return (
     <div className="mx-auto mt-10 max-w-3xl rounded-3xl border border-white/10 bg-card p-6 sm:p-7">
-      <h4 className="font-mono text-[11px] uppercase tracking-wider text-muted-dim">{title}</h4>
+      <h4 className="text-sm font-semibold text-fg/80">{title}</h4>
       <ul className="mt-4 divide-y divide-white/5">
         {addOns.map((addOn) => (
           <li
@@ -140,19 +140,6 @@ export default function PublicPackageCatalog({
 
   return (
     <div className="mt-14 space-y-16">
-      {closed && (
-        <p
-          role="status"
-          className="mx-auto max-w-2xl rounded-2xl border border-accent/30 bg-accent/[0.07] px-5 py-4 text-center text-sm text-fg"
-        >
-          Reservasi online sedang ditutup. Katalog ini untuk informasi saja
-          {studio.data?.whatsappNumber
-            ? '; hubungi kami lewat WhatsApp untuk menanyakan jadwal'
-            : ''}
-          .
-        </p>
-      )}
-
       {groups.map((group, groupIndex) => {
         const mine = offered[groupIndex];
         const key = panelKey(mine);
@@ -205,9 +192,7 @@ export default function PublicPackageCatalog({
 
       {generalTerms.length > 0 && (
         <aside className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-card p-6 sm:p-7">
-          <h4 className="font-mono text-[11px] uppercase tracking-wider text-muted-dim">
-            Ketentuan umum
-          </h4>
+          <h4 className="text-sm font-semibold text-fg/80">Ketentuan umum</h4>
           <ul className="mt-4 space-y-2.5 text-xs leading-relaxed text-muted">
             {generalTerms.map((term) => (
               <li key={term} className="flex gap-2.5">

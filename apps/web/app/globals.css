@@ -60,7 +60,8 @@ table[data-slot='table']
   --color-bg-subtle: #0d0d0e;
   --color-fg: #f5f5f7;
   --color-muted: #8e8e93;
-  --color-muted-dim: #545458;
+  /* 4.6:1 or better on the page, card and footer backgrounds (WCAG AA for normal text) */
+  --color-muted-dim: #7d7d82;
   --color-card: #111113;
   --color-card-hover: #17171a;
   --color-border-c: rgba(255, 255, 255, 0.08);
@@ -247,15 +248,6 @@ body {
   }
 }
 
-@keyframes tickerMarquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
 .animate-film-up {
   animation: filmScrollUp 38s linear infinite;
 }
@@ -264,20 +256,14 @@ body {
   animation: filmScrollDown 42s linear infinite;
 }
 
-.animate-ticker {
-  animation: tickerMarquee 28s linear infinite;
-}
-
 .animate-film-up:hover,
-.animate-film-down:hover,
-.animate-ticker:hover {
+.animate-film-down:hover {
   animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-film-up,
-  .animate-film-down,
-  .animate-ticker {
+  .animate-film-down {
     animation: none;
   }
 }

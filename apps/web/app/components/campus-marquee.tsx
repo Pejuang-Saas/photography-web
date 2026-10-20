@@ -1,48 +1,23 @@
-'use client';
-
-import { useReducedMotion } from 'motion/react';
-
 interface CampusMarqueeProps {
   campuses: string[];
 }
 
+/** The campuses the studio shoots at, as a quiet row under the hero. Nothing when there are none. */
 export default function CampusMarquee({ campuses }: CampusMarqueeProps) {
-  const shouldReduceMotion = useReducedMotion();
-
-  // Quadruple the array for an infinite loop with zero jump
-  const marqueeItems = [...campuses, ...campuses, ...campuses, ...campuses];
+  if (campuses.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden border-y border-white/10 bg-card py-3.5 backdrop-blur-xl">
-      {/* Edge Linear Gradient Alpha Mask for Seamless Entrance & Exit */}
-      <div
-        className="w-full overflow-hidden select-none"
-        style={{
-          maskImage:
-            'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
-          WebkitMaskImage:
-            'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
-        }}
-      >
-        <div
-          className={`flex w-max items-center gap-12 font-mono text-xs uppercase tracking-[0.2em] text-muted ${
-            shouldReduceMotion ? '' : 'animate-ticker'
-          }`}
-          style={{ animationDuration: '34s' }}
-        >
-          {marqueeItems.map((name, idx) => (
-            <span
-              key={`${name}-${idx}`}
-              className="flex items-center gap-6 group/item cursor-default"
-            >
-              <span className="text-fg/80 font-medium transition-colors duration-200 group-hover/item:text-accent">
-                {name}
-              </span>
-              <span className="text-accent text-sm">•</span>
+    <div className="border-y border-white/10 bg-card px-4 py-4">
+      <ul className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs font-medium uppercase tracking-wider text-fg/80">
+        {campuses.map((name) => (
+          <li key={name} className="flex items-center gap-8">
+            <span>{name}</span>
+            <span aria-hidden className="text-white/20 last:hidden">
+              /
             </span>
-          ))}
-        </div>
-      </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
