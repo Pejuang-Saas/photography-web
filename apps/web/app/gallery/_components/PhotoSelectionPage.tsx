@@ -1,26 +1,51 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { CheckCircle2, ImageOff, Loader2, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import { errorMessage } from '@/lib/admin-queries';
 import { ApiError } from '@/lib/api-client';
+import { usePhotoPages } from '@/lib/use-photo-pages';
 import { publicGalleryApi } from '@/lib/gallery-api';
-import type { CreateSessionRequest, Photo, PublicGalleryInfo } from '@/types/gallery';
+import type {
+  CreateSessionRequest,
+  FolderSummary,
+  MediaType,
+  PublicGalleryInfo,
+} from '@/types/gallery';
 import FilterTabs from './FilterTabs';
+import FolderGrid, { FolderBreadcrumb } from './FolderGrid';
 import GalleryEntryModal from './GalleryEntryModal';
 import PhotoGrid from './PhotoGrid';
+import PhotoPreview from './PhotoPreview';
 import SelectionBar from './SelectionBar';
-import SubmitModal from './SubmitModal';
-import { galleryReducer, initialState, photosFor, sessionStorageKey } from './gallery-state';
+import TypeFilter from './TypeFilter';
+import ReviewPage from './ReviewPage';
+import {
+  galleryReducer,
+  initialState,
+  sessionStorageKey,
+  type GalleryFilter,
+} from './gallery-state';
+import { useFolderTrail } from './use-folder-trail';
 import { useAutoSave } from './use-auto-save';
 
 // The site's body is always near-black (the landing page), so this page paints its own surface
 // the way the admin does, and follows the visitor's theme.
 const SHELL =
   'min-h-screen bg-[#f5f6f8] text-zinc-900 antialiased dark:bg-[#0f141d] dark:text-zinc-100';
+
+/** For screens with no header: the visitor can still switch theme. */
+function CornerThemeToggle() {
+  return (
+    <div className="fixed right-4 top-4 z-20">
+      <ThemeToggle />
+    </div>
+  );
+}
 
 type Boot =
   { phase: 'loading' } | { phase: 'ready' } | { phase: 'error'; title: string; message: string };
@@ -36,6 +61,7 @@ function ErrorScreen({
 }) {
   return (
     <div className={SHELL}>
+      <CornerThemeToggle />
       <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <TriangleAlert className="size-10 text-amber-500" />
         <h1 className="mt-4 text-xl font-bold">{title}</h1>
@@ -74,17 +100,19 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
   const [attempt, setAttempt] = useState(0);
   const [info, setInfo] = useState<PublicGalleryInfo | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [state, dispatch] = useReducer(galleryReducer, initialState);
 
   const [entryError, setEntryError] = useState<string | null>(null);
   const [entryPending, setEntryPending] = useState(false);
-  const [submitOpen, setSubmitOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  // The review page is its own history entry (?review=1), so the browser's back button leaves it.
+  const [reviewing, setReviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [thanks, setThanks] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
+  const folderTrail = useFolderTrail();
+  const [mediaType, setMediaType] = useState<MediaType>('all');
 
   const onSubmittedElsewhere = useCallback(() => dispatch({ type: 'submitted' }), []);
   const { flush, markSaved } = useAutoSave({
@@ -142,33 +170,6 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
     };
   }, [token, attempt, markSaved]);
 
-  // ── The photos: first page at once, the rest in the background, all kept in memory ─────────────
-  useEffect(() => {
-    if (!sessionToken) return;
-    let cancelled = false;
-    (async () => {
-      setLoadingPhotos(true);
-      try {
-        for (let page = 1; ; page += 1) {
-          const result = await publicGalleryApi.photos(token, page);
-          if (cancelled) return;
-          setPhotos((current) => {
-            const known = new Set(current.map((photo) => photo.id));
-            return [...current, ...result.items.filter((photo) => !known.has(photo.id))];
-          });
-          if (page >= result.totalPages) break;
-        }
-      } catch (error) {
-        if (!cancelled) toast.error(`Foto tidak dapat dimuat sepenuhnya: ${errorMessage(error)}`);
-      } finally {
-        if (!cancelled) setLoadingPhotos(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, sessionToken]);
-
   async function startSession(data: CreateSessionRequest) {
     setEntryPending(true);
     setEntryError(null);
@@ -201,20 +202,66 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
     [max, state.selectedIds],
   );
 
-  const shown = useMemo(
-    () => photosFor(photos, state.selectedIds, state.activeFilter),
-    [photos, state.selectedIds, state.activeFilter],
+  // One page of the open folder (or of a tab) at a time; the next page loads as the customer scrolls.
+  const pages = usePhotoPages({
+    queryKey: ['gallery', token, sessionToken, state.activeFilter, mediaType, folderTrail.path],
+    enabled: !!sessionToken,
+    fetchPage: (page) =>
+      publicGalleryApi.photos(token, {
+        page,
+        folder: folderTrail.path,
+        filter: state.activeFilter,
+        type: mediaType,
+        sessionToken: sessionToken ?? undefined,
+      }),
+  });
+  const shown = pages.photos;
+  // Folders only get in the way once the customer filters by choice, so then every photo is listed.
+  const folders = state.activeFilter === 'all' ? pages.folders : [];
+  const browsing =
+    state.activeFilter === 'all' && (folderTrail.trail.length > 0 || folders.length > 0);
+
+  // The last clicks may still be waiting for their save, and the server lists by what it has saved.
+  const afterSave = useCallback(
+    async (action: () => void) => {
+      await flush().catch(() => undefined);
+      action();
+    },
+    [flush],
   );
-  const selectedPhotos = useMemo(
-    () => photos.filter((photo) => state.selectedIds.has(photo.id)),
-    [photos, state.selectedIds],
-  );
-  const total = loadingPhotos || photos.length === 0 ? (info?.totalPhotos ?? 0) : photos.length;
+  const openFolder = (folder: FolderSummary) => void afterSave(() => folderTrail.open(folder));
+  const goToFolder = (path: string) => void afterSave(() => folderTrail.goTo(path));
+  const changeFilter = (filter: GalleryFilter) =>
+    void afterSave(() => dispatch({ type: 'filter', filter }));
+
+  const previewIndex = previewId ? shown.findIndex((photo) => photo.id === previewId) : -1;
+
+  const total = info?.totalPhotos ?? 0;
+  // "Semua" counts what the open folder holds, subfolders included; the other tabs span the gallery.
   const counts = {
-    all: total,
+    all: folderTrail.current?.count ?? total,
     selected: selectedCount,
     unselected: Math.max(0, total - selectedCount),
   };
+
+  useEffect(() => {
+    const sync = () => setReviewing(new URLSearchParams(window.location.search).has('review'));
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
+
+  async function openReview() {
+    // The review lists what the server has saved, so the last clicks go first.
+    await flush().catch(() => undefined);
+    window.history.pushState(null, '', '?review=1');
+    setReviewing(true);
+    window.scrollTo(0, 0);
+  }
+
+  function leaveReview() {
+    if (new URLSearchParams(window.location.search).has('review')) window.history.back();
+    else setReviewing(false);
+  }
 
   async function submit() {
     if (!sessionToken) return;
@@ -226,7 +273,7 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
       const result = await publicGalleryApi.submit(token, sessionToken);
       dispatch({ type: 'submitted' });
       setThanks(result.message);
-      setSubmitOpen(false);
+      leaveReview();
       toast.success(result.message);
     } catch (error) {
       setSubmitError(errorMessage(error));
@@ -239,6 +286,7 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
   if (boot.phase === 'loading') {
     return (
       <div className={SHELL}>
+        <CornerThemeToggle />
         <main className="flex min-h-screen items-center justify-center">
           <Loader2 className="size-6 animate-spin text-zinc-400" aria-label="Memuat gallery" />
         </main>
@@ -257,9 +305,30 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
     );
   }
 
+  if (reviewing && sessionToken) {
+    return (
+      <>
+        <ReviewPage
+          token={token}
+          sessionToken={sessionToken}
+          galleryName={info?.name ?? ''}
+          customerName={customerName}
+          max={max}
+          selectedIds={state.selectedIds}
+          onRemove={toggle}
+          onBack={leaveReview}
+          onSubmit={submit}
+          pending={submitting}
+          error={submitError}
+        />
+        <Toaster position="top-center" />
+      </>
+    );
+  }
+
   return (
     <div className={SHELL}>
-      <main className="mx-auto max-w-7xl px-4 pb-32 pt-8 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 pb-36 pt-8 sm:px-6">
         <header className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -271,9 +340,12 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
                 {total} Foto{customerName && ` · ${customerName}`}
               </p>
             </div>
-            <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm font-bold text-amber-700 dark:text-amber-400">
-              {selectedCount} dipilih
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm font-bold text-amber-700 dark:text-amber-400">
+                {selectedCount} dipilih
+              </span>
+              <ThemeToggle />
+            </div>
           </div>
 
           {thanks && (
@@ -286,14 +358,20 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
             </div>
           )}
 
-          <FilterTabs
-            active={state.activeFilter}
-            counts={counts}
-            onChange={(filter) => dispatch({ type: 'filter', filter })}
-          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <FilterTabs active={state.activeFilter} counts={counts} onChange={changeFilter} />
+            <TypeFilter
+              value={mediaType}
+              onChange={setMediaType}
+              totalPhotos={total}
+              totalVideos={info?.totalVideos ?? 0}
+            />
+          </div>
         </header>
 
-        <section className="mt-6">
+        <section className="mt-6 space-y-4">
+          {browsing && <FolderBreadcrumb path={folderTrail.path} onOpen={goToFolder} />}
+          <FolderGrid folders={folders} onOpen={openFolder} />
           {shown.length > 0 ? (
             <PhotoGrid
               photos={shown}
@@ -301,30 +379,39 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
               disabled={state.isSubmitted}
               lockUnselected={atLimit}
               onToggle={toggle}
-              resetKey={state.activeFilter}
+              onPreview={setPreviewId}
+              hasMore={!!pages.hasMore}
+              loadingMore={pages.loadingMore}
+              onLoadMore={pages.loadMore}
             />
-          ) : loadingPhotos ? (
+          ) : pages.isLoading ? (
             <p className="flex items-center justify-center gap-2 py-20 text-sm text-zinc-500">
               <Loader2 className="size-4 animate-spin" />
               Memuat foto…
             </p>
-          ) : (
+          ) : pages.isError ? (
+            <div className="flex flex-col items-center gap-3 py-20 text-center text-zinc-500">
+              <TriangleAlert className="size-8 text-amber-500" />
+              <p className="text-sm">Foto tidak dapat dimuat: {errorMessage(pages.error)}</p>
+              <Button variant="outline" onClick={() => void pages.refetch()}>
+                Coba lagi
+              </Button>
+            </div>
+          ) : folders.length > 0 ? null : (
             <div className="flex flex-col items-center gap-3 py-20 text-center text-zinc-500">
               <ImageOff className="size-8" />
               <p className="text-sm">
-                {photos.length === 0
-                  ? 'Belum ada foto di gallery ini.'
-                  : state.activeFilter === 'selected'
-                    ? 'Belum ada foto yang dipilih.'
-                    : 'Semua foto sudah dipilih.'}
+                {state.activeFilter === 'selected'
+                  ? 'Belum ada foto yang dipilih.'
+                  : state.activeFilter === 'unselected'
+                    ? 'Semua foto sudah dipilih.'
+                    : total === 0
+                      ? 'Belum ada foto di gallery ini.'
+                      : mediaType !== 'all'
+                        ? `Tidak ada ${mediaType === 'video' ? 'video' : 'foto'} di sini.`
+                        : 'Folder ini kosong.'}
               </p>
             </div>
-          )}
-          {loadingPhotos && shown.length > 0 && (
-            <p className="mt-4 flex items-center justify-center gap-2 text-xs text-zinc-500">
-              <Loader2 className="size-3.5 animate-spin" />
-              Memuat foto lainnya…
-            </p>
           )}
         </section>
       </main>
@@ -334,10 +421,7 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
           selectedCount={selectedCount}
           max={max}
           submitted={state.isSubmitted}
-          onSubmit={() => {
-            setSubmitError(null);
-            setSubmitOpen(true);
-          }}
+          onSubmit={() => void openReview()}
         />
       )}
       <GalleryEntryModal
@@ -347,14 +431,17 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
         pending={entryPending}
         onSubmitCustomerData={startSession}
       />
-      <SubmitModal
-        isOpen={submitOpen}
-        onClose={() => setSubmitOpen(false)}
-        onSubmit={submit}
-        selectedPhotos={selectedPhotos}
-        selectedCount={selectedCount}
-        pending={submitting}
-        error={submitError}
+      <PhotoPreview
+        photos={shown}
+        index={previewIndex >= 0 ? previewIndex : null}
+        selectedIds={state.selectedIds}
+        disabled={state.isSubmitted}
+        onToggle={toggle}
+        onNavigate={(index) => setPreviewId(shown[index]?.id ?? null)}
+        onClose={() => setPreviewId(null)}
+        hasMore={!!pages.hasMore}
+        onLoadMore={pages.loadMore}
+        total={pages.total}
       />
       <Toaster position="top-center" />
     </div>

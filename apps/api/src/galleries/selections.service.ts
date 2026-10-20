@@ -3,6 +3,7 @@ import { GalleryStatus, SelectionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateSessionDto } from './dto/gallery.dto';
 import { galleryError, pageParams, pagination } from './gallery-errors';
+import { browsePhotos, mediaTypeWhere, parseMediaType, parsePhotoFilter } from './photo-browse';
 
 /** What a customer does with a gallery's public link, found by the secret in it. */
 @Injectable()
@@ -11,39 +12,66 @@ export class SelectionsService {
 
   async info(token: string) {
     const gallery = await this.activeGallery(token);
-    const totalPhotos = await this.prisma.galleryPhoto.count({
-      where: { galleryId: gallery.id, isActive: true },
-    });
+    const [totalPhotos, totalVideos] = await Promise.all([
+      this.prisma.galleryPhoto.count({ where: { galleryId: gallery.id, isActive: true } }),
+      this.prisma.galleryPhoto.count({
+        where: { galleryId: gallery.id, isActive: true, ...mediaTypeWhere('video') },
+      }),
+    ]);
     return {
       name: gallery.name,
       description: gallery.description,
       totalPhotos,
+      totalVideos,
       maxSelections: gallery.maxSelections,
       status: gallery.status,
     };
   }
 
-  async photos(token: string, query: { page?: string; limit?: string }) {
+  async photos(
+    token: string,
+    query: {
+      page?: string;
+      limit?: string;
+      folder?: string;
+      filter?: string;
+      type?: string;
+      sessionToken?: string;
+    },
+  ) {
     const gallery = await this.activeGallery(token);
-    const { page, limit, skip } = pageParams(query.page, query.limit, { limit: 50, max: 100 });
-    const where = { galleryId: gallery.id, isActive: true };
-    const [items, total] = await Promise.all([
-      this.prisma.galleryPhoto.findMany({
-        where,
-        orderBy: [{ sortOrder: 'asc' }, { filename: 'asc' }],
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          filename: true,
-          driveFileId: true,
-          thumbnailUrl: true,
-          viewUrl: true,
-        },
-      }),
-      this.prisma.galleryPhoto.count({ where }),
-    ]);
-    return { items, ...pagination(page, limit, total) };
+    const { page, limit, skip } = pageParams(query.page, query.limit, { limit: 48, max: 100 });
+    const filter = parsePhotoFilter(query.filter);
+    // The selected / unselected tabs and the per-folder counts are about this customer's draft.
+    const selection = query.sessionToken
+      ? await this.prisma.selection.findFirst({
+          where: { sessionToken: query.sessionToken, galleryId: gallery.id },
+          select: { id: true },
+        })
+      : null;
+    if (filter !== 'all' && !selection) {
+      throw galleryError(404, 'SESSION_NOT_FOUND', 'Sesi tidak ditemukan');
+    }
+    return browsePhotos(this.prisma, {
+      galleryId: gallery.id,
+      folder: query.folder?.trim() ?? '',
+      filter,
+      type: parseMediaType(query.type),
+      selectionId: selection?.id,
+      isActive: true,
+      page,
+      limit,
+      skip,
+      select: {
+        id: true,
+        filename: true,
+        driveFileId: true,
+        thumbnailUrl: true,
+        viewUrl: true,
+        mimeType: true,
+        folderPath: true,
+      },
+    });
   }
 
   async createSession(token: string, dto: CreateSessionDto) {

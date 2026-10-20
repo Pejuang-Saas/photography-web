@@ -100,6 +100,7 @@ export class GallerySyncService {
               mimeType: photo.mimeType,
               thumbnailUrl: photo.thumbnailUrl,
               viewUrl: photo.viewUrl,
+              folderPath: photo.folderPath || null,
               sortOrder: start + offset,
               isActive: true,
             };

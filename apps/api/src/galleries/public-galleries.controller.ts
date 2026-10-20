@@ -16,7 +16,18 @@ export class PublicGalleriesController {
   }
 
   @Get(':token/photos')
-  photos(@Param('token') token: string, @Query() query: { page?: string; limit?: string }) {
+  photos(
+    @Param('token') token: string,
+    @Query()
+    query: {
+      page?: string;
+      limit?: string;
+      folder?: string;
+      filter?: string;
+      type?: string;
+      sessionToken?: string;
+    },
+  ) {
     return this.selections.photos(token, query);
   }
 

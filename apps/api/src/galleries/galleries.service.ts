@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { GalleryStatus, Prisma, SelectionStatus, SyncStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateGalleryDto, UpdateGalleryDto } from './dto/gallery.dto';
+import { browsePhotos, mediaTypeWhere, parseMediaType } from './photo-browse';
 import { galleryError, pageParams, pagination } from './gallery-errors';
 import { extractFolderId } from './sources/google-drive-public/google-drive-public.parser';
 
@@ -118,6 +119,7 @@ export class GalleriesService {
     const [
       totalPhotos,
       activePhotos,
+      activeVideos,
       selections,
       submitted,
       selectedPhotos,
@@ -126,6 +128,9 @@ export class GalleriesService {
     ] = await Promise.all([
       this.prisma.galleryPhoto.count({ where: { galleryId: id } }),
       this.prisma.galleryPhoto.count({ where: { galleryId: id, isActive: true } }),
+      this.prisma.galleryPhoto.count({
+        where: { galleryId: id, isActive: true, ...mediaTypeWhere('video') },
+      }),
       this.prisma.selection.count({ where: { galleryId: id } }),
       this.prisma.selection.count({
         where: { galleryId: id, status: SelectionStatus.SUBMITTED },
@@ -146,6 +151,7 @@ export class GalleriesService {
       ...this.present(gallery),
       totalPhotos,
       totalActivePhotos: activePhotos,
+      totalActiveVideos: activeVideos,
       totalSelections: selections,
       totalSubmissions: submitted,
       totalSelectedPhotos: selectedPhotos,
@@ -156,6 +162,26 @@ export class GalleriesService {
 
   async update(id: string, dto: UpdateGalleryDto) {
     await this.find(id);
+    let driveFolderId: string | undefined;
+    if (dto.driveFolderUrl !== undefined) {
+      const found = extractFolderId(dto.driveFolderUrl);
+      if (!found) {
+        throw galleryError(
+          400,
+          'DRIVE_FOLDER_INVALID',
+          'Alamat folder Google Drive tidak dikenali. Contoh: https://drive.google.com/drive/folders/…',
+        );
+      }
+      driveFolderId = found;
+    }
+    // null unlinks the booking; a value must be one that exists.
+    if (dto.bookingId) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: dto.bookingId },
+        select: { id: true },
+      });
+      if (!booking) throw galleryError(400, 'BOOKING_NOT_FOUND', 'Booking tidak ditemukan');
+    }
     const gallery = await this.prisma.gallery.update({
       where: { id },
       data: {
@@ -163,20 +189,15 @@ export class GalleriesService {
         description: dto.description,
         status: dto.status,
         maxSelections: dto.maxSelections,
+        driveFolderId,
+        bookingId: dto.bookingId,
       },
     });
     return this.present(gallery);
   }
 
   async remove(id: string) {
-    const gallery = await this.find(id);
-    if (gallery.status !== GalleryStatus.DRAFT) {
-      throw galleryError(
-        400,
-        'GALLERY_NOT_DELETABLE',
-        'Hanya gallery berstatus DRAFT yang bisa dihapus. Arsipkan gallery yang sudah aktif.',
-      );
-    }
+    await this.find(id);
     const syncing = await this.prisma.syncJob.count({
       where: { galleryId: id, status: { in: [SyncStatus.PENDING, SyncStatus.RUNNING] } },
     });
@@ -190,24 +211,21 @@ export class GalleriesService {
     await this.prisma.gallery.delete({ where: { id } });
   }
 
-  async photos(id: string, query: { page?: string; limit?: string; isActive?: string }) {
+  async photos(
+    id: string,
+    query: { page?: string; limit?: string; isActive?: string; folder?: string; type?: string },
+  ) {
     await this.find(id);
-    const { page, limit, skip } = pageParams(query.page, query.limit, { limit: 50, max: 100 });
-    const where: Prisma.GalleryPhotoWhereInput = {
+    const { page, limit, skip } = pageParams(query.page, query.limit, { limit: 48, max: 100 });
+    return browsePhotos(this.prisma, {
       galleryId: id,
-      ...(query.isActive === 'true' && { isActive: true }),
-      ...(query.isActive === 'false' && { isActive: false }),
-    };
-    const [items, total] = await Promise.all([
-      this.prisma.galleryPhoto.findMany({
-        where,
-        orderBy: [{ sortOrder: 'asc' }, { filename: 'asc' }],
-        skip,
-        take: limit,
-      }),
-      this.prisma.galleryPhoto.count({ where }),
-    ]);
-    return { items, ...pagination(page, limit, total) };
+      folder: query.folder?.trim(),
+      type: parseMediaType(query.type),
+      isActive: query.isActive === 'true' ? true : query.isActive === 'false' ? false : undefined,
+      page,
+      limit,
+      skip,
+    });
   }
 
   async selections(id: string, query: { page?: string; limit?: string; status?: string }) {

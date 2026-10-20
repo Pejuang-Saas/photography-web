@@ -26,7 +26,7 @@ export default function SelectionBar({
           aria-valuemax={max}
           aria-valuenow={selectedCount}
           aria-label="Jumlah foto dipilih"
-          className="h-1 bg-zinc-200 dark:bg-zinc-800"
+          className="h-1.5 bg-zinc-200 dark:bg-zinc-800"
         >
           <div
             className={cn('h-full transition-all', warn ? 'bg-orange-500' : 'bg-amber-500')}
@@ -34,23 +34,30 @@ export default function SelectionBar({
           />
         </div>
       )}
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <p className={cn('text-sm font-semibold', warn && 'text-orange-600 dark:text-orange-400')}>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:px-6">
+        <p
+          className={cn(
+            'text-[15px] font-bold sm:text-lg',
+            warn && 'text-orange-600 dark:text-orange-400',
+          )}
+        >
           {selectedCount} Foto Dipilih
-          {max !== null && <span className="font-normal text-zinc-500"> dari maks. {max}</span>}
+          {max !== null && (
+            <span className="text-sm font-normal text-zinc-500"> dari maks. {max}</span>
+          )}
         </p>
         {submitted ? (
           <span className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="size-4" />
+            <CheckCircle2 className="size-5" />
             Pilihan terkirim
           </span>
         ) : (
           <Button
             disabled={selectedCount === 0}
             onClick={onSubmit}
-            className="bg-amber-500 font-bold text-zinc-950 hover:bg-amber-600"
+            className="h-10 bg-amber-500 px-5 text-sm font-bold text-zinc-950 hover:bg-amber-600 sm:px-6"
           >
-            Submit Pilihan
+            Tinjau Pilihan
           </Button>
         )}
       </div>

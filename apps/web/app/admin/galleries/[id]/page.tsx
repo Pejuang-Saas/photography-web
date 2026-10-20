@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Archive, ExternalLink, Images, Trash2, Users } from 'lucide-react';
+import { Archive, Eye, Images, Pencil, Trash2 } from 'lucide-react';
 import { errorMessage } from '@/lib/admin-queries';
 import { formatDateTime } from '@/lib/format';
 import { galleryLink } from '@/lib/gallery-url';
@@ -14,6 +14,7 @@ import { CmsPageHeader } from '../../components/cms-page-header';
 import { QueryError, QueryLoading } from '../../components/query-state';
 import CopyLinkButton from '../_components/copy-link-button';
 import GalleryStatusBadge from '../_components/gallery-status-badge';
+import SelectionsSection from '../_components/selections-section';
 import SyncStatusCard from '../_components/sync-status-card';
 
 const CARD =
@@ -77,10 +78,20 @@ export default function GalleryDetailPage() {
               size="sm"
               className="gap-1.5"
               nativeButton={false}
-              render={<a href={link} target="_blank" rel="noopener noreferrer" />}
+              render={<Link href={`/admin/galleries/${id}/preview`} />}
             >
-              <ExternalLink className="size-3.5" />
-              Buka
+              <Eye className="size-3.5" />
+              Pratinjau
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              nativeButton={false}
+              render={<Link href={`/admin/galleries/${id}/edit`} />}
+            >
+              <Pencil className="size-3.5" />
+              Edit
             </Button>
           </div>
         }
@@ -115,36 +126,38 @@ export default function GalleryDetailPage() {
                   Arsipkan
                 </Button>
               )}
-              {data.status === 'DRAFT' && (
-                <CmsDeleteDialog
-                  title={data.name}
-                  entityLabel="galeri"
-                  description={
-                    <>
-                      Galeri{' '}
-                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                        “{data.name}”
-                      </span>{' '}
-                      dan semua pilihan customer di dalamnya akan dihapus permanen. Foto di Google
-                      Drive tidak terpengaruh.
-                    </>
-                  }
-                  isPending={remove.isPending}
-                  onConfirm={() =>
-                    remove.mutate(id, { onSuccess: () => router.replace('/admin/galleries') })
-                  }
-                  trigger={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-rose-600 hover:text-rose-700"
-                    >
-                      <Trash2 className="size-3.5" />
-                      Hapus
-                    </Button>
-                  }
-                />
-              )}
+              <CmsDeleteDialog
+                title={data.name}
+                entityLabel="galeri"
+                description={
+                  <>
+                    Galeri{' '}
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                      “{data.name}”
+                    </span>{' '}
+                    akan dihapus permanen, termasuk{' '}
+                    {data.totalSelections > 0
+                      ? `pilihan ${data.totalSelections} customer di dalamnya (${data.totalSubmissions} sudah dikirim)`
+                      : 'semua pilihan customer di dalamnya'}
+                    .{data.status === 'ACTIVE' && ' Tautan customer langsung berhenti bisa dibuka.'}{' '}
+                    Foto di Google Drive tidak terpengaruh.
+                  </>
+                }
+                isPending={remove.isPending}
+                onConfirm={() =>
+                  remove.mutate(id, { onSuccess: () => router.replace('/admin/galleries') })
+                }
+                trigger={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-rose-600 hover:text-rose-700"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Hapus
+                  </Button>
+                }
+              />
             </div>
           </div>
           {data.status === 'DRAFT' && (
@@ -202,16 +215,7 @@ export default function GalleryDetailPage() {
         <Stat label="Total foto dipilih" value={data.totalSelectedPhotos} />
       </div>
 
-      <Link
-        href={`/admin/galleries/${id}/selections`}
-        className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-white p-5 text-sm font-semibold text-zinc-900 transition-colors hover:border-amber-500/60 dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:text-white"
-      >
-        <span className="flex items-center gap-3">
-          <Users className="size-4 text-amber-600" />
-          Lihat pilihan customer
-        </span>
-        <span className="text-xs font-normal text-zinc-500">{data.totalSelections} sesi</span>
-      </Link>
+      <SelectionsSection galleryId={id} />
     </div>
   );
 }

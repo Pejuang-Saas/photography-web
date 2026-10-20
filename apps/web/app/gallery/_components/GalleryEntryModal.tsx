@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,7 +34,11 @@ export default function GalleryEntryModal({
   return (
     <Dialog open={isOpen} onOpenChange={() => undefined}>
       <DialogContent showCloseButton={false} className="gap-5 p-6 sm:max-w-md">
-        <DialogHeader>
+        {/* The page behind is covered while this is open, so the theme switch has to be here too. */}
+        <div className="absolute right-3 top-3">
+          <ThemeToggle />
+        </div>
+        <DialogHeader className="pr-10">
           <DialogTitle>{galleryName}</DialogTitle>
           <DialogDescription>Masukkan nama Anda untuk mulai memilih foto.</DialogDescription>
         </DialogHeader>

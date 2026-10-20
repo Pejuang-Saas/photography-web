@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QueryProvider } from '@/lib/query-provider';
 import PhotoSelectionPage from '../_components/PhotoSelectionPage';
 
 export const metadata: Metadata = {
@@ -9,5 +10,9 @@ export const metadata: Metadata = {
 
 export default async function GalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  return <PhotoSelectionPage token={token} />;
+  return (
+    <QueryProvider>
+      <PhotoSelectionPage token={token} />
+    </QueryProvider>
+  );
 }

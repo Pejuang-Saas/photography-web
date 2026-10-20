@@ -17,7 +17,11 @@ export default function FilterTabs({
   onChange: (filter: GalleryFilter) => void;
 }) {
   return (
-    <div role="tablist" aria-label="Filter foto" className="flex flex-wrap gap-2">
+    <div
+      role="tablist"
+      aria-label="Filter foto"
+      className="inline-flex h-11 max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-zinc-300/80 bg-zinc-200/70 p-1 dark:border-zinc-800 dark:bg-zinc-900"
+    >
       {TABS.map((tab) => (
         <button
           key={tab.value}
@@ -26,19 +30,19 @@ export default function FilterTabs({
           aria-selected={active === tab.value}
           onClick={() => onChange(tab.value)}
           className={cn(
-            'inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+            'inline-flex h-full shrink-0 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-all',
             active === tab.value
-              ? 'border-amber-500 bg-amber-500 text-zinc-950'
-              : 'border-zinc-300 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300',
+              ? 'bg-amber-500 text-zinc-950 shadow-sm'
+              : 'text-zinc-700 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
           )}
         >
           {tab.label}
           <span
             className={cn(
-              'rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums',
+              'rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums',
               active === tab.value
                 ? 'bg-zinc-950/15'
-                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+                : 'bg-zinc-300/60 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
             )}
           >
             {counts[tab.value]}

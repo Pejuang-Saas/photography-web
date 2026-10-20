@@ -21,7 +21,7 @@ const STYLE: Record<GalleryStatus, { label: string; className: string }> = {
 export default function GalleryStatusBadge({ status }: { status: GalleryStatus }) {
   const style = STYLE[status];
   return (
-    <Badge variant="outline" className={cn('text-[11px] font-semibold', style.className)}>
+    <Badge variant="outline" className={cn('text-[10px] font-bold', style.className)}>
       {style.label}
     </Badge>
   );

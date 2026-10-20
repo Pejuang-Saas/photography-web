@@ -65,7 +65,8 @@ export class GalleriesController {
   @Get(':id/photos')
   photos(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query() query: { page?: string; limit?: string; isActive?: string },
+    @Query()
+    query: { page?: string; limit?: string; isActive?: string; folder?: string; type?: string },
   ) {
     return this.galleries.photos(id, query);
   }

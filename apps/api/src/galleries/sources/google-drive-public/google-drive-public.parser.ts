@@ -9,7 +9,16 @@ import { DriveSourceError, type DiscoveredPhoto } from '../photo-source';
 /** How many entries a public folder page lists before it stops. Google gives no way to ask for more. */
 export const DRIVE_PAGE_LIMIT = 50;
 
-const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic']);
+const MEDIA_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+  'video/mp4',
+  'video/quicktime',
+]);
 
 const EXTENSION_TYPES: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -18,14 +27,20 @@ const EXTENSION_TYPES: Record<string, string> = {
   webp: 'image/webp',
   gif: 'image/gif',
   heic: 'image/heic',
+  heif: 'image/heif',
+  mp4: 'video/mp4',
+  m4v: 'video/mp4',
+  mov: 'video/quicktime',
 };
 
-/** Drive labels some uploads (often camera exports) as a generic binary; the extension tells. */
-function imageTypeOf(name: string, mime: string) {
-  if (IMAGE_TYPES.has(mime)) return mime;
+/** Photos and videos are kept. Drive labels some uploads (often camera exports) as a generic binary; the extension tells. */
+function mediaTypeOf(name: string, mime: string) {
+  if (MEDIA_TYPES.has(mime)) return mime;
   if (mime !== 'application/octet-stream') return null;
   return EXTENSION_TYPES[name.split('.').pop()?.toLowerCase() ?? ''] ?? null;
 }
+
+const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
 const FOLDER_ID = /^[A-Za-z0-9_-]{10,}$/;
 
@@ -116,9 +131,9 @@ export function parseDriveFolderHtml(html: string) {
   }
   const entries = (listing ?? []).filter(isEntry);
 
-  const photos: DiscoveredPhoto[] = entries
+  const photos: Omit<DiscoveredPhoto, 'folderPath'>[] = entries
     .flatMap((entry) => {
-      const mimeType = imageTypeOf(entry[2], entry[3]);
+      const mimeType = mediaTypeOf(entry[2], entry[3]);
       return mimeType
         ? [
             {
@@ -133,9 +148,71 @@ export function parseDriveFolderHtml(html: string) {
     })
     .sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true }));
 
+  const folders = entries
+    .filter((entry) => entry[3] === FOLDER_MIME)
+    .map((entry) => ({ id: entry[0], name: entry[2] }))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
   return {
     photos,
+    /** Subfolders listed here, so the caller can read what is inside them. */
+    folders,
     /** True when the page listed exactly its limit, so more files may exist that it did not show. */
     possiblyTruncated: entries.length >= DRIVE_PAGE_LIMIT,
   };
+}
+
+const HTML_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+};
+
+function decodeHtml(text: string) {
+  return text.replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z]+);/g, (whole, entity: string) => {
+    if (entity.startsWith('#x')) return String.fromCodePoint(parseInt(entity.slice(2), 16));
+    if (entity.startsWith('#')) return String.fromCodePoint(parseInt(entity.slice(1), 10));
+    return HTML_ENTITIES[entity] ?? whole;
+  });
+}
+
+/**
+ * The embeddable folder view (`/embeddedfolderview`) lists every entry of a folder in plain HTML,
+ * where the regular folder page stops at 50. Each entry is a `flip-entry` block with its id, a link
+ * (to `/folders/` for a folder, `/file/d/` for a file), its title, and an icon named after its type.
+ */
+export function parseDriveEmbedHtml(html: string) {
+  const blocks = html.split('<div class="flip-entry" id="entry-').slice(1);
+  const photos: Omit<DiscoveredPhoto, 'folderPath'>[] = [];
+  const folders: { id: string; name: string }[] = [];
+
+  for (const block of blocks) {
+    const id = block.match(/^([A-Za-z0-9_-]+)"/)?.[1];
+    const title = block.match(/<div class="flip-entry-title">([\s\S]*?)<\/div>/)?.[1];
+    if (!id || title === undefined) continue;
+    const name = decodeHtml(title);
+
+    if (block.includes('/drive/folders/')) {
+      folders.push({ id, name });
+      continue;
+    }
+    const iconType = block.match(
+      /drive-thirdparty\.googleusercontent\.com\/\d+\/type\/([^"]+)"/,
+    )?.[1];
+    const mimeType = mediaTypeOf(name, iconType ?? 'application/octet-stream');
+    if (!mimeType) continue;
+    photos.push({
+      externalId: id,
+      filename: name,
+      mimeType,
+      thumbnailUrl: DRIVE_THUMBNAIL_URL(id),
+      viewUrl: DRIVE_VIEW_URL(id),
+    });
+  }
+
+  photos.sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true }));
+  folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  return { photos, folders, entryCount: blocks.length };
 }

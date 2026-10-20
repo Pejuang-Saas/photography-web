@@ -23,7 +23,7 @@ function setup(
     gallery: { findUnique: jest.fn().mockResolvedValue(gallery) },
     galleryPhoto: {
       count: jest.fn(async ({ where }: any) =>
-        where.id ? (options.validPhotos ?? where.id.in.length) : 10,
+        where.id ? (options.validPhotos ?? where.id.in.length) : where.mimeType ? 4 : 10,
       ),
       findMany: jest.fn().mockResolvedValue([]),
     },
@@ -52,6 +52,7 @@ describe('SelectionsService: reaching a gallery', () => {
       name: 'Wedding',
       description: null,
       totalPhotos: 10,
+      totalVideos: 4,
       maxSelections: 3,
       status: 'ACTIVE',
     });

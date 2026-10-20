@@ -10,6 +10,26 @@ export type Paginated<T> = {
   totalPages: number;
 };
 
+/** A folder inside the shared Drive folder, as the server counts it. */
+export interface FolderSummary {
+  name: string;
+  /** Names from the top, joined by "/", the same shape as a photo's `folderPath`. */
+  path: string;
+  /** Photos inside, subfolders included. */
+  count: number;
+  /** Of those, how many the customer picked; 0 outside the customer's page. */
+  selected: number;
+}
+
+/** One page of photos; the folders directly inside the open one come with the first page only. */
+export type PhotoPage = Paginated<Photo> & { folders?: FolderSummary[] };
+
+/** Which kind of file a list shows: photos, videos, or both. */
+export type MediaType = 'all' | 'photo' | 'video';
+
+/** Which photos a tab lists; the picked ones follow the customer's saved draft. */
+export type PhotoFilter = 'all' | 'selected' | 'unselected';
+
 /** A photo as the customer sees it: metadata only, the image stays on Google Drive. */
 export interface Photo {
   id: string;
@@ -17,6 +37,10 @@ export interface Photo {
   driveFileId: string;
   thumbnailUrl: string | null;
   viewUrl: string | null;
+  /** "image/jpeg", "video/mp4" and so on; videos are told apart by the "video/" start. */
+  mimeType: string | null;
+  /** Subfolders below the shared Drive folder, joined by "/"; null for the folder itself. */
+  folderPath: string | null;
 }
 
 /** What a gallery's public link shows before anything is chosen. */
@@ -24,6 +48,8 @@ export interface PublicGalleryInfo {
   name: string;
   description: string | null;
   totalPhotos: number;
+  /** Of the total, how many are videos. */
+  totalVideos: number;
   maxSelections: number | null;
   status: GalleryStatus;
 }
@@ -69,6 +95,7 @@ export interface AdminGalleryListItem extends AdminGallery {
 export interface AdminGalleryDetail extends AdminGallery {
   totalPhotos: number;
   totalActivePhotos: number;
+  totalActiveVideos: number;
   totalSelections: number;
   totalSubmissions: number;
   totalSelectedPhotos: number;
@@ -90,6 +117,9 @@ export interface UpdateGalleryInput {
   description?: string;
   status?: GalleryStatus;
   maxSelections?: number | null;
+  driveFolderUrl?: string;
+  /** null unlinks the booking. */
+  bookingId?: string | null;
 }
 
 export interface SelectionSummary {

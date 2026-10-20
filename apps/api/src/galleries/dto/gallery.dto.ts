@@ -78,6 +78,20 @@ export class UpdateGalleryDto {
   @Min(1)
   @Max(100_000)
   maxSelections?: number | null;
+
+  /** A new folder takes effect at the next sync; photos only in the old folder are then retired. */
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  driveFolderUrl?: string;
+
+  /** null unlinks the booking. */
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  bookingId?: string | null;
 }
 
 export class CreateSessionDto {

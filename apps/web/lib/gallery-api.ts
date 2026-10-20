@@ -7,7 +7,9 @@ import type {
   CreateSessionResponse,
   AdminGallery,
   Paginated,
-  Photo,
+  MediaType,
+  PhotoFilter,
+  PhotoPage,
   PublicGalleryInfo,
   SelectionDetail,
   SelectionStatus,
@@ -21,7 +23,7 @@ import type {
 
 const json = (body: unknown) => JSON.stringify(body);
 
-function query(params: Record<string, string | number | undefined>) {
+function query(params: Record<string, string | number | boolean | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== '') search.set(key, String(value));
@@ -42,6 +44,16 @@ export const galleryApi = {
   triggerSync: (id: string) =>
     apiRequest<{ syncJobId: string }>(`/admin/galleries/${id}/sync`, { method: 'POST' }),
   latestSync: (id: string) => apiRequest<SyncJob>(`/admin/galleries/${id}/sync/latest`),
+  photos: (
+    id: string,
+    params: {
+      page?: number;
+      limit?: number;
+      isActive?: boolean;
+      folder?: string;
+      type?: MediaType;
+    },
+  ) => apiRequest<PhotoPage>(`/admin/galleries/${id}/photos${query(params)}`),
   selections: (id: string, params: { page?: number; limit?: number; status?: SelectionStatus }) =>
     apiRequest<Paginated<SelectionSummary>>(`/admin/galleries/${id}/selections${query(params)}`),
   selection: (id: string, selectionId: string) =>
@@ -51,8 +63,19 @@ export const galleryApi = {
 /** The customer's side, reached by the secret in the link. */
 export const publicGalleryApi = {
   info: (token: string) => apiRequest<PublicGalleryInfo>(`/g/${token}`),
-  photos: (token: string, page: number, limit = 100) =>
-    apiRequest<Paginated<Photo>>(`/g/${token}/photos${query({ page, limit })}`),
+  photos: (
+    token: string,
+    params: {
+      page: number;
+      limit?: number;
+      /** The open folder; empty is the shared folder itself. */
+      folder?: string;
+      filter?: PhotoFilter;
+      type?: MediaType;
+      /** Needed for the selected and unselected tabs, and for the per-folder picked counts. */
+      sessionToken?: string;
+    },
+  ) => apiRequest<PhotoPage>(`/g/${token}/photos${query(params)}`),
   createSession: (token: string, input: CreateSessionRequest) =>
     apiRequest<CreateSessionResponse>(`/g/${token}/selections`, {
       method: 'POST',

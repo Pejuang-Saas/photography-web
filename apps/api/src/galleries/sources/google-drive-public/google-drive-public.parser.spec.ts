@@ -78,17 +78,32 @@ describe('parseDriveFolderHtml', () => {
     ]);
   });
 
-  it('leaves out folders and files that are not images', () => {
+  it('leaves out folders and files that are not photos or videos', () => {
     const { photos } = parseDriveFolderHtml(
       folderPage([
         file('f', 'Subfolder', 'application/vnd.google-apps.folder'),
         file('z', 'all.zip', 'application/zip'),
-        file('v', 'clip.mp4', 'video/mp4'),
         file('p', 'a.jpg'),
       ]),
     );
 
     expect(photos.map((photo) => photo.externalId)).toEqual(['p']);
+  });
+
+  it('keeps videos next to photos', () => {
+    const { photos } = parseDriveFolderHtml(
+      folderPage([
+        file('v', 'clip.mp4', 'video/mp4'),
+        file('m', 'take.MOV', 'application/octet-stream'),
+        file('p', 'a.jpg'),
+      ]),
+    );
+
+    expect(photos.map((photo) => [photo.externalId, photo.mimeType])).toEqual([
+      ['p', 'image/jpeg'],
+      ['v', 'video/mp4'],
+      ['m', 'video/quicktime'],
+    ]);
   });
 
   it('recognises an image Drive labelled as a generic binary by its extension', () => {

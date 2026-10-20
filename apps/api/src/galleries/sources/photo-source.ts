@@ -4,6 +4,8 @@ export type DiscoveredPhoto = {
   mimeType: string;
   thumbnailUrl: string;
   viewUrl: string;
+  /** Subfolders below the shared folder, joined by "/"; empty for a photo in the folder itself. */
+  folderPath: string;
 };
 
 export type DiscoveryResult = {

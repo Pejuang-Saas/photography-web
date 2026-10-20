@@ -11,6 +11,7 @@ const photo = (id: string, filename = `${id}.jpg`) => ({
   mimeType: 'image/jpeg',
   thumbnailUrl: `t-${id}`,
   viewUrl: `v-${id}`,
+  folderPath: '',
 });
 
 function setup(

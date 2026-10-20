@@ -741,6 +741,8 @@ model GalleryPhoto {
   mimeType     String?  @map("mime_type")
   thumbnailUrl String?  @map("thumbnail_url")
   viewUrl      String?  @map("view_url")
+  /// Subfolders below the shared Drive folder, joined by "/"; null for a photo in the folder itself.
+  folderPath   String?  @map("folder_path")
   sortOrder    Int      @default(0) @map("sort_order")
   /// False once the file is no longer in the Drive folder.
   isActive     Boolean  @default(true) @map("is_active")

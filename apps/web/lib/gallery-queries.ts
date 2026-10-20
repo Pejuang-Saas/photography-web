@@ -19,6 +19,7 @@ export const galleryKeys = {
   list: (filter: object) => ['admin', 'galleries', 'list', filter] as const,
   detail: (id: string) => ['admin', 'galleries', 'detail', id] as const,
   sync: (id: string) => ['admin', 'galleries', 'sync', id] as const,
+  photos: (id: string) => ['admin', 'galleries', 'photos', id] as const,
   selections: (id: string, filter: object) =>
     ['admin', 'galleries', 'selections', id, filter] as const,
   selection: (id: string, selectionId: string) =>

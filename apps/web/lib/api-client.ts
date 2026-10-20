@@ -48,10 +48,7 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   return response.json().catch(() => undefined);
 }
 
-export async function apiRequest<T>(
-  path: string,
-  options: ApiRequestOptions = {},
-): Promise<T> {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (isJsonBody(options.body) && !headers.has('content-type')) {
     headers.set('content-type', 'application/json');

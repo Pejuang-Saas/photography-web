@@ -1,66 +1,89 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Loader2 } from 'lucide-react';
 import type { Photo } from '@/types/gallery';
 import PhotoCard from './PhotoCard';
 
-const STEP = 50;
+const NO_SELECTION = new Set<string>();
+const noop = () => undefined;
+const DEFAULT_COLUMNS =
+  'grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6';
 
 /**
- * Draws the photos 50 at a time: the rest are already in memory, and the next 50 appear when the
- * marker below the grid comes into view. Starts over from the top when the list is a new one.
+ * Draws the photos loaded so far and asks for the next page when the marker below the grid comes
+ * near the screen: infinite scroll. The images themselves load lazily, as each card nears view.
  */
 export default function PhotoGrid({
   photos,
-  selectedIds,
-  disabled,
-  lockUnselected,
-  onToggle,
-  resetKey,
+  selectedIds = NO_SELECTION,
+  disabled = false,
+  lockUnselected = false,
+  onToggle = noop,
+  onPreview = noop,
+  renderPhoto,
+  columns = DEFAULT_COLUMNS,
+  hasMore,
+  loadingMore,
+  onLoadMore,
 }: {
   photos: Photo[];
-  selectedIds: Set<string>;
+  selectedIds?: Set<string>;
   /** Read-only, after submitting. */
-  disabled: boolean;
+  disabled?: boolean;
   /** At the limit: what is already chosen can still be removed. */
-  lockUnselected: boolean;
-  onToggle: (photoId: string) => void;
-  resetKey: string;
+  lockUnselected?: boolean;
+  onToggle?: (photoId: string) => void;
+  onPreview?: (photoId: string) => void;
+  /** Draws a card its own way, for a list that is not about choosing. */
+  renderPhoto?: (photo: Photo) => ReactNode;
+  columns?: string;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
 }) {
-  const [visible, setVisible] = useState({ key: resetKey, count: STEP });
-  const count = visible.key === resetKey ? visible.count : STEP;
   const sentinel = useRef<HTMLDivElement>(null);
 
+  // Watching again after each page: a marker that is still on screen asks for the next one.
   useEffect(() => {
     const marker = sentinel.current;
-    if (!marker || count >= photos.length) return;
+    if (!marker || !hasMore || loadingMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible({ key: resetKey, count: count + STEP });
-        }
+        if (entries.some((entry) => entry.isIntersecting)) onLoadMore();
       },
-      { rootMargin: '600px' },
+      { rootMargin: '800px' },
     );
     observer.observe(marker);
     return () => observer.disconnect();
-  }, [count, photos.length, resetKey]);
+  }, [hasMore, loadingMore, onLoadMore, photos.length]);
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-        {photos.slice(0, count).map((photo) => (
-          <PhotoCard
-            key={photo.id}
-            photo={photo}
-            isSelected={selectedIds.has(photo.id)}
-            disabled={disabled}
-            dimmed={lockUnselected}
-            onToggle={onToggle}
-          />
-        ))}
+      <div className={`grid ${columns}`}>
+        {photos.map((photo) =>
+          renderPhoto ? (
+            renderPhoto(photo)
+          ) : (
+            <PhotoCard
+              key={photo.id}
+              photo={photo}
+              isSelected={selectedIds.has(photo.id)}
+              disabled={disabled}
+              dimmed={lockUnselected}
+              onToggle={onToggle}
+              onPreview={onPreview}
+            />
+          ),
+        )}
       </div>
-      {count < photos.length && <div ref={sentinel} className="h-8" aria-hidden />}
+      {hasMore && <div ref={sentinel} className="h-8" aria-hidden />}
+      {loadingMore && (
+        <p className="flex items-center justify-center gap-2 py-3 text-xs text-zinc-500">
+          <Loader2 className="size-3.5 animate-spin" />
+          Memuat foto lainnya…
+        </p>
+      )}
     </>
   );
 }

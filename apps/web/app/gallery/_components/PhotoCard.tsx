@@ -2,9 +2,10 @@
 
 import { memo, useState } from 'react';
 import Image from 'next/image';
-import { Check, ExternalLink, ImageOff } from 'lucide-react';
+import { Check, Expand, ImageOff, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Photo } from '@/types/gallery';
+import { isVideo } from './media';
 
 function PhotoCardView({
   photo,
@@ -12,6 +13,7 @@ function PhotoCardView({
   disabled,
   dimmed,
   onToggle,
+  onPreview,
 }: {
   photo: Photo;
   isSelected: boolean;
@@ -20,9 +22,11 @@ function PhotoCardView({
   /** The limit is reached: still clickable, so the customer is told why nothing happens. */
   dimmed: boolean;
   onToggle: (photoId: string) => void;
+  onPreview: (photoId: string) => void;
 }) {
   // A thumbnail link can expire or be refused; a placeholder beats a broken image.
   const [failed, setFailed] = useState(false);
+  const video = isVideo(photo);
 
   return (
     <div
@@ -35,7 +39,7 @@ function PhotoCardView({
       <button
         type="button"
         aria-pressed={isSelected}
-        aria-label={`${isSelected ? 'Batalkan pilihan' : 'Pilih'} ${photo.filename}`}
+        aria-label={`${isSelected ? 'Batalkan pilihan' : 'Pilih'} ${video ? 'video' : 'foto'} ${photo.filename}`}
         disabled={disabled}
         onClick={() => onToggle(photo.id)}
         className="absolute inset-0 block size-full cursor-pointer disabled:cursor-default"
@@ -45,7 +49,7 @@ function PhotoCardView({
             src={photo.thumbnailUrl}
             alt={photo.filename}
             fill
-            sizes="(min-width: 1024px) 25vw, 50vw"
+            sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 50vw"
             loading="lazy"
             unoptimized
             referrerPolicy="no-referrer"
@@ -58,6 +62,13 @@ function PhotoCardView({
             <span className="line-clamp-2 text-[11px] break-all">{photo.filename}</span>
           </span>
         )}
+        {video && (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm">
+              <Play className="size-5 fill-current" />
+            </span>
+          </span>
+        )}
         {isSelected && (
           <span className="absolute inset-0 flex items-start justify-end bg-amber-500/15 p-2">
             <span className="flex size-7 items-center justify-center rounded-full bg-amber-500 text-zinc-950 shadow">
@@ -67,19 +78,18 @@ function PhotoCardView({
         )}
       </button>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <span className="truncate text-[11px] font-medium text-white">{photo.filename}</span>
-        {photo.viewUrl && (
-          <a
-            href={photo.viewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Buka foto penuh ${photo.filename}`}
-            className="pointer-events-auto flex size-7 shrink-0 items-center justify-center rounded-full bg-white/90 text-zinc-900 hover:bg-white"
-          >
-            <ExternalLink className="size-3.5" />
-          </a>
-        )}
+      {/* Always visible: a touch screen has no hover. */}
+      <button
+        type="button"
+        aria-label={`Perbesar ${photo.filename}`}
+        onClick={() => onPreview(photo.id)}
+        className="absolute left-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+      >
+        <Expand className="size-4" />
+      </button>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <span className="block truncate text-[11px] font-medium text-white">{photo.filename}</span>
       </div>
     </div>
   );

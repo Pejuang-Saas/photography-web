@@ -1,12 +1,22 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@teispace/next-themes';
 import { Button } from '@/components/ui/button';
 
+const subscribe = () => () => undefined;
+
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  // The server cannot know the visitor's theme, so until the browser has taken over the button
+  // shows the same thing the server drew; otherwise the icon differs and hydration fails.
+  const mounted = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
+  const isDark = mounted && resolvedTheme === 'dark';
 
   return (
     <Button

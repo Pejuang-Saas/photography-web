@@ -105,14 +105,12 @@ describe('GalleriesService.remove', () => {
     expect(prisma.gallery.delete).toHaveBeenCalledWith({ where: { id: 'g1' } });
   });
 
-  it.each(['ACTIVE', 'ARCHIVED'])('refuses a %s gallery', async (status) => {
+  it.each(['ACTIVE', 'ARCHIVED'])('deletes a %s gallery too', async (status) => {
     const { service, prisma } = setup({ gallery: { id: 'g1', status, publicToken: 't' } });
 
-    await expect(service.remove('g1')).rejects.toMatchObject({
-      status: 400,
-      response: { errorCode: 'GALLERY_NOT_DELETABLE' },
-    });
-    expect(prisma.gallery.delete).not.toHaveBeenCalled();
+    await service.remove('g1');
+
+    expect(prisma.gallery.delete).toHaveBeenCalledWith({ where: { id: 'g1' } });
   });
 
   it('waits for a running sync', async () => {
@@ -146,6 +144,35 @@ describe('GalleriesService.update', () => {
       description: undefined,
       status: undefined,
       maxSelections: null,
+      driveFolderId: undefined,
+      bookingId: undefined,
     });
+  });
+
+  it('reads a new folder address, and refuses one that is not a Drive folder', async () => {
+    const { service, prisma } = setup();
+
+    await service.update('g1', {
+      driveFolderUrl: 'https://drive.google.com/drive/folders/1NewFolderIdxyz?usp=sharing',
+    });
+    expect(prisma.gallery.update.mock.calls[0][0].data.driveFolderId).toBe('1NewFolderIdxyz');
+
+    await expect(
+      service.update('g1', { driveFolderUrl: 'https://example.com' }),
+    ).rejects.toMatchObject({
+      status: 400,
+      response: { errorCode: 'DRIVE_FOLDER_INVALID' },
+    });
+  });
+
+  it('links, unlinks and checks the booking', async () => {
+    const { service, prisma } = setup({ booking: null });
+
+    await expect(service.update('g1', { bookingId: 'nope' })).rejects.toMatchObject({
+      response: { errorCode: 'BOOKING_NOT_FOUND' },
+    });
+
+    await service.update('g1', { bookingId: null });
+    expect(prisma.gallery.update.mock.calls[0][0].data.bookingId).toBeNull();
   });
 });

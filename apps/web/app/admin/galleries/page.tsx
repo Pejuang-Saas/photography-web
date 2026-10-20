@@ -2,22 +2,30 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, Images, Loader2, RefreshCw } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Images,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import { errorMessage } from '@/lib/admin-queries';
 import { formatDateTime } from '@/lib/format';
 import { galleryLink } from '@/lib/gallery-url';
-import { useGalleries, useLatestSync, useTriggerSync } from '@/lib/gallery-queries';
+import {
+  useDeleteGallery,
+  useGalleries,
+  useLatestSync,
+  useTriggerSync,
+} from '@/lib/gallery-queries';
 import type { AdminGalleryListItem, GalleryStatus } from '@/types/gallery';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CmsDeleteDialog } from '../components/cms-delete-dialog';
 import { CmsPageHeader } from '../components/cms-page-header';
 import { QueryError, QueryLoading } from '../components/query-state';
 import CopyLinkButton from './_components/copy-link-button';
@@ -44,7 +52,7 @@ function SyncCell({ gallery }: { gallery: AdminGalleryListItem }) {
         size="sm"
         disabled={running}
         onClick={() => trigger.mutate(gallery.id)}
-        className="gap-1.5"
+        className="h-8 gap-1.5 border-zinc-300 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
       >
         {running ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -65,6 +73,43 @@ function SyncCell({ gallery }: { gallery: AdminGalleryListItem }) {
   );
 }
 
+const ICON_BUTTON =
+  'h-8 border-zinc-300 bg-white px-2.5 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700';
+
+function DeleteCell({ gallery }: { gallery: AdminGalleryListItem }) {
+  const remove = useDeleteGallery();
+  return (
+    <CmsDeleteDialog
+      title={gallery.name}
+      entityLabel="galeri"
+      description={
+        <>
+          Galeri{' '}
+          <span className="font-semibold text-zinc-700 dark:text-zinc-300">“{gallery.name}”</span>{' '}
+          akan dihapus permanen
+          {gallery.totalSubmissions > 0
+            ? `, termasuk ${gallery.totalSubmissions} pilihan customer yang sudah dikirim`
+            : ', termasuk semua pilihan customer di dalamnya'}
+          .{gallery.status === 'ACTIVE' && ' Tautan customer langsung berhenti bisa dibuka.'} Foto
+          di Google Drive tidak terpengaruh.
+        </>
+      }
+      isPending={remove.isPending}
+      onConfirm={() => remove.mutate(gallery.id)}
+      trigger={
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label={`Hapus galeri ${gallery.name}`}
+          className={`${ICON_BUTTON} hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40`}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      }
+    />
+  );
+}
+
 export default function GalleriesPage() {
   const [status, setStatus] = useState<GalleryStatus | undefined>(undefined);
   const [page, setPage] = useState(1);
@@ -80,28 +125,26 @@ export default function GalleriesPage() {
         createLabel="Buat Galeri"
       />
 
-      <div role="tablist" aria-label="Filter status" className="flex flex-wrap gap-2">
-        {FILTERS.map((filter) => (
-          <button
-            key={filter.label}
-            type="button"
-            role="tab"
-            aria-selected={status === filter.value}
-            onClick={() => {
-              setStatus(filter.value);
-              setPage(1);
-            }}
-            className={cn(
-              'rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors',
-              status === filter.value
-                ? 'border-amber-500 bg-amber-500/10 text-zinc-900 dark:text-white'
-                : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:text-zinc-400',
-            )}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        value={status ?? 'ALL'}
+        onValueChange={(value) => {
+          setStatus(value === 'ALL' ? undefined : (value as GalleryStatus));
+          setPage(1);
+        }}
+        className="w-full lg:w-auto"
+      >
+        <TabsList className="flex h-10 items-center gap-1 rounded-xl border border-zinc-300/80 bg-zinc-200/70 p-1 dark:border-zinc-800 dark:bg-zinc-900">
+          {FILTERS.map((filter) => (
+            <TabsTrigger
+              key={filter.label}
+              value={filter.value ?? 'ALL'}
+              className="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-zinc-700 transition-all hover:text-zinc-900 data-active:bg-white data-active:text-zinc-950 data-active:shadow-sm dark:text-zinc-400 dark:hover:text-white dark:data-active:bg-zinc-800 dark:data-active:text-white"
+            >
+              {filter.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {galleries.isLoading ? (
         <QueryLoading rows={4} />
@@ -125,53 +168,78 @@ export default function GalleriesPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-zinc-900/60">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead className="text-right">Foto</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Sync Terakhir</TableHead>
-                  <TableHead className="text-right">Pilihan Terkirim</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {galleries.data.items.map((gallery) => (
-                  <TableRow key={gallery.id}>
-                    <TableCell className="font-semibold text-zinc-900 dark:text-white">
-                      <Link href={`/admin/galleries/${gallery.id}`} className="hover:underline">
-                        {gallery.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{gallery.totalPhotos}</TableCell>
-                    <TableCell>
-                      <GalleryStatusBadge status={gallery.status} />
-                    </TableCell>
-                    <TableCell className="text-xs text-zinc-500">
-                      {gallery.lastSyncAt ? formatDateTime(gallery.lastSyncAt) : 'Belum pernah'}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {gallery.totalSubmissions}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <SyncCell gallery={gallery} />
-                        <CopyLinkButton link={galleryLink(gallery)} label="Salin link" iconOnly />
-                        <Link href={`/admin/galleries/${gallery.id}`}>
-                          <Button variant="outline" size="sm" className="gap-1.5">
-                            <Eye className="size-3.5" />
-                            Detail
-                          </Button>
+          <Card className="overflow-hidden rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-400">
+                  <tr>
+                    <th className="p-3.5 pl-5 font-semibold">Nama</th>
+                    <th className="p-3.5 text-right font-semibold">Foto</th>
+                    <th className="p-3.5 font-semibold">Status</th>
+                    <th className="p-3.5 font-semibold">Sync Terakhir</th>
+                    <th className="p-3.5 text-right font-semibold">Pilihan Terkirim</th>
+                    <th className="p-3.5 pr-5 text-right font-semibold">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                  {galleries.data.items.map((gallery) => (
+                    <tr
+                      key={gallery.id}
+                      className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                    >
+                      <td className="p-3.5 pl-5">
+                        <Link
+                          href={`/admin/galleries/${gallery.id}`}
+                          className="text-xs font-bold text-zinc-900 hover:underline dark:text-white"
+                        >
+                          {gallery.name}
                         </Link>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                      </td>
+                      <td className="p-3.5 text-right tabular-nums text-zinc-800 dark:text-zinc-200">
+                        {gallery.totalPhotos}
+                      </td>
+                      <td className="p-3.5">
+                        <GalleryStatusBadge status={gallery.status} />
+                      </td>
+                      <td className="p-3.5 text-[11px] text-zinc-500">
+                        {gallery.lastSyncAt ? formatDateTime(gallery.lastSyncAt) : 'Belum pernah'}
+                      </td>
+                      <td className="p-3.5 text-right tabular-nums text-zinc-800 dark:text-zinc-200">
+                        {gallery.totalSubmissions}
+                      </td>
+                      <td className="p-3.5 pr-5">
+                        <div className="flex items-center justify-end gap-2">
+                          <SyncCell gallery={gallery} />
+                          <CopyLinkButton link={galleryLink(gallery)} label="Salin link" iconOnly />
+                          <Link href={`/admin/galleries/${gallery.id}/edit`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              aria-label={`Edit galeri ${gallery.name}`}
+                              className={ICON_BUTTON}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                          </Link>
+                          <Link href={`/admin/galleries/${gallery.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1 border-zinc-300 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                            >
+                              <Eye className="size-3.5 text-amber-500" />
+                              Detail
+                            </Button>
+                          </Link>
+                          <DeleteCell gallery={gallery} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
           <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
             <span>
