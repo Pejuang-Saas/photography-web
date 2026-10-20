@@ -22,7 +22,7 @@ API dan worker dibangun dari **Dockerfile yang sama**. Bedanya hanya `Build Stag
 Urutan ini penting karena web membutuhkan alamat API saat dibangun.
 
 1. **Buat Postgres dan Redis.** Catat nama host internal, user, password, dan nama database dari halaman masing-masing.
-2. **Siapkan penyimpanan gambar.** Beri domain publik (misalnya `cdn.example.com`) yang menunjuk ke MinIO port 9000. Bucket dibuat otomatis oleh API saat pertama dipakai, lengkap dengan kebijakan baca publik, jadi tidak perlu dibuat manual. Kalau memakai S3 lain, pastikan akunnya boleh membuat bucket dan memasang kebijakan bucket.
+2. **Siapkan penyimpanan gambar.** Beri domain publik (misalnya `cdn.example.com`) yang menunjuk ke MinIO port 9000. **MinIO punya dua port: 9000 adalah API S3 (untuk aplikasi dan domain gambar), 9001 hanya konsol web.** `S3_ENDPOINT` dan domain `cdn` harus menunjuk ke **9000**. Bucket dibuat otomatis oleh API saat pertama dipakai, lengkap dengan kebijakan baca publik, jadi tidak perlu dibuat manual. Kalau memakai S3 lain, pastikan akunnya boleh membuat bucket dan memasang kebijakan bucket.
 3. **Deploy `api`.** Isi environment dari [`apps/api/.env.production.example`](../../apps/api/.env.production.example). Di log harus muncul `Applying Prisma migrations`, lalu `Database schema ready`, lalu `API is running`. Cek `https://api.example.com/ready`: semua `connected`.
 4. **Isi data awal dari terminal aplikasi `api`** (tab Terminal di Dokploy, atau `docker exec`):
    ```sh
@@ -145,7 +145,8 @@ Lewat panel admin:
 | Landing kosong atau katalog "tidak dapat dimuat" | Server web tidak bisa menjangkau API: periksa `API_INTERNAL_URL` (nama aplikasi API harus benar) atau `NEXT_PUBLIC_API_URL` |
 | Semua pengunjung kena `429` bersamaan | `TRUST_PROXY_HOPS` 0, atau jumlah proxy tidak cocok |
 | API terus restart dengan `Giving up after 30 attempts` | `DATABASE_URL` salah, atau Postgres belum jalan. Lihat log baris di atas pesan itu |
-| Seed gagal dengan galat S3 | `S3_ENDPOINT` atau kuncinya salah, atau MinIO belum jalan |
+| Seed gagal: `S3 API Requests must be made to API port` | `S3_ENDPOINT` (atau domain gambar) menunjuk ke port konsol 9001. Ganti ke port API **9000** |
+| Seed gagal dengan galat S3 lain | `S3_ENDPOINT` atau kuncinya salah, atau MinIO belum jalan |
 | Email atau WhatsApp tidak terkirim | `OUTBOX_DELIVERY_MODE` masih `disabled`, atau `SMTP_*` kosong, atau worker belum berjalan |
 | `npm ci` gagal saat build | Lockfile tidak sinkron dengan package.json: jalankan `sh scripts/refresh-lock.sh <app>` |
 

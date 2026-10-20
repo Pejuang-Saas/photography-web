@@ -26,30 +26,35 @@ export default function AdminLoginForm() {
     setError('');
     setIsSubmitting(true);
 
-    const { error: signInError } = await authClient.signIn.email({
-      email,
-      password,
-    });
+    try {
+      const { error: signInError } = await authClient.signIn.email({
+        email,
+        password,
+      });
 
-    if (signInError) {
-      setError('Email atau password tidak valid.');
+      if (signInError) {
+        setError('Email atau password tidak valid.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const access = await fetch(`${apiUrl}/admin/auth/me`, {
+        credentials: 'include',
+      });
+
+      if (!access.ok) {
+        await authClient.signOut();
+        setError('Akun ini tidak memiliki akses admin.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      router.replace(next);
+      router.refresh();
+    } catch {
+      setError('Tidak dapat terhubung ke server. Periksa koneksi, lalu coba lagi.');
       setIsSubmitting(false);
-      return;
     }
-
-    const access = await fetch(`${apiUrl}/admin/auth/me`, {
-      credentials: 'include',
-    });
-
-    if (!access.ok) {
-      await authClient.signOut();
-      setError('Akun ini tidak memiliki akses admin.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    router.replace(next);
-    router.refresh();
   };
 
   return (
