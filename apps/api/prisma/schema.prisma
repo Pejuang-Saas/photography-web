@@ -389,7 +389,7 @@ model StudioSetting {
   /// The general conditions shown at checkout, a list of sentences.
   reservationTerms Json?    @map("reservation_terms")
   /// Off shows the catalog only: nobody can book online until it is turned back on.
-  reservationsOpen Boolean   @default(true) @map("reservations_open")
+  reservationsOpen Boolean  @default(true) @map("reservations_open")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -839,6 +839,7 @@ model GalleryPhoto {
 
   gallery        Gallery         @relation(fields: [galleryId], references: [id], onDelete: Cascade)
   selectionItems SelectionItem[]
+  revisions      PhotoRevision[]
 
   @@unique([galleryId, driveFileId])
   @@index([galleryId, isActive, sortOrder])
@@ -855,11 +856,14 @@ model Selection {
   customerPhone String?         @map("customer_phone")
   status        SelectionStatus @default(DRAFT)
   submittedAt   DateTime?       @map("submitted_at")
+  /// The customer's overall message to the studio, written on the review page and sent with the picks.
+  generalNote   String?         @map("general_note")
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
-  gallery Gallery         @relation(fields: [galleryId], references: [id], onDelete: Cascade)
-  items   SelectionItem[]
+  gallery   Gallery         @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  items     SelectionItem[]
+  revisions PhotoRevision[]
 
   @@index([galleryId, status])
   @@map("selections")
@@ -869,6 +873,8 @@ model SelectionItem {
   id          String   @id @default(uuid())
   selectionId String   @map("selection_id")
   photoId     String   @map("photo_id")
+  /// What the customer wants the studio to know about this photo (crop, retouch, ...).
+  note        String?
   createdAt   DateTime @default(now()) @map("created_at")
 
   selection Selection    @relation(fields: [selectionId], references: [id], onDelete: Cascade)
@@ -877,6 +883,24 @@ model SelectionItem {
   @@unique([selectionId, photoId])
   @@index([photoId])
   @@map("selection_items")
+}
+
+/// A customer's revision request for one edited photo (a photo in the gallery's "edit" folder).
+/// Kept apart from the picks: the edits arrive after the customer has already submitted.
+model PhotoRevision {
+  id          String   @id @default(uuid())
+  selectionId String   @map("selection_id")
+  photoId     String   @map("photo_id")
+  note        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  selection Selection    @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+  photo     GalleryPhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([selectionId, photoId])
+  @@index([photoId])
+  @@map("photo_revisions")
 }
 
 model SyncJob {

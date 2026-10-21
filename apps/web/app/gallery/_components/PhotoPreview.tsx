@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ export default function PhotoPreview({
   hasMore = false,
   onLoadMore,
   total,
+  footer,
 }: {
   photos: Photo[];
   /** Null when closed. */
@@ -49,6 +50,8 @@ export default function PhotoPreview({
   onLoadMore?: () => void;
   /** How many there are in all, when more than the loaded ones. */
   total?: number;
+  /** Extra content under the photo's name, such as the customer's note or revision request. */
+  footer?: (photo: Photo) => ReactNode;
 }) {
   const open = index !== null && photos[index] !== undefined;
   const photo = open ? photos[index] : null;
@@ -98,11 +101,12 @@ export default function PhotoPreview({
   const src = photo ? largeUrl(photo) : null;
   const state = loaded && photo && loaded.id === photo.id ? loaded : null;
   const video = photo ? isVideo(photo) : false;
+  const extra = photo && footer ? footer(photo) : null;
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
-        className="h-[92dvh] max-h-[92dvh] grid-rows-[minmax(0,1fr)_auto] gap-0 overflow-hidden bg-black p-0 text-white ring-0 sm:max-w-5xl"
+        className="h-[92dvh] max-h-[92dvh] grid-rows-[minmax(0,1fr)_auto_auto] gap-0 overflow-hidden bg-black p-0 text-white ring-0 sm:max-w-5xl"
         aria-describedby={undefined}
       >
         {photo && (
@@ -217,6 +221,7 @@ export default function PhotoPreview({
                 </Button>
               )}
             </div>
+            {extra && <div className="border-t border-white/10 bg-zinc-950 px-4 py-3">{extra}</div>}
           </>
         )}
       </DialogContent>

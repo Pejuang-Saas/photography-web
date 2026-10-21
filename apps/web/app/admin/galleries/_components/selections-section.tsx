@@ -2,7 +2,18 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ImageOff, Trash2, Users } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon,
+  ImageOff,
+  MessageSquareQuote,
+  MessageSquareText,
+  PencilRuler,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import PhotoPreview from '@/app/gallery/_components/PhotoPreview';
 import { errorMessage } from '@/lib/admin-queries';
 import { formatDateTime } from '@/lib/format';
@@ -12,7 +23,13 @@ import {
   useRemoveSelection,
 } from '@/lib/gallery-queries';
 import { cn } from '@/lib/utils';
-import type { SelectionStatus, SelectionSummary } from '@/types/gallery';
+import type {
+  NotedPhoto,
+  Photo,
+  RevisedPhoto,
+  SelectionStatus,
+  SelectionSummary,
+} from '@/types/gallery';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,11 +59,101 @@ function StatusBadge({ status }: { status: SelectionStatus }) {
   );
 }
 
-/** The photos one customer chose, in a grid under their row; a click opens one larger. */
+/** One thumbnail with its filename; the customer's words sit under it, set apart so they are seen. */
+function PhotoTile({
+  photo,
+  text,
+  tone,
+  onOpen,
+}: {
+  photo: NotedPhoto | RevisedPhoto;
+  text: string | null;
+  /** Revisions are asks the studio must act on; notes are context. */
+  tone: 'note' | 'revision';
+  onOpen: () => void;
+}) {
+  return (
+    <li className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        aria-label={`Perbesar ${photo.filename}`}
+        onClick={onOpen}
+        className="relative block aspect-[4/5] w-full overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-800"
+      >
+        {photo.thumbnailUrl ? (
+          <Image
+            src={photo.thumbnailUrl}
+            alt={photo.filename}
+            fill
+            sizes="220px"
+            unoptimized
+            referrerPolicy="no-referrer"
+            className="object-cover transition-transform hover:scale-[1.04]"
+          />
+        ) : (
+          <ImageOff className="m-auto size-5 text-zinc-400" />
+        )}
+      </button>
+      <p className="truncate text-xs font-medium text-zinc-700 dark:text-zinc-300">
+        {photo.filename}
+      </p>
+      {text && (
+        <p
+          className={cn(
+            'whitespace-pre-wrap break-words rounded-md border-l-2 px-2.5 py-1.5 text-xs leading-snug',
+            tone === 'revision'
+              ? 'border-rose-500 bg-rose-500/10 text-zinc-900 dark:text-zinc-100'
+              : 'border-amber-500 bg-amber-500/10 text-zinc-900 dark:text-zinc-100',
+          )}
+        >
+          {text}
+        </p>
+      )}
+    </li>
+  );
+}
+
+const TILE_GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6';
+
+function GroupHeading({
+  icon: Icon,
+  title,
+  hint,
+  tone,
+}: {
+  icon: typeof PencilRuler;
+  title: string;
+  hint?: string;
+  tone: 'note' | 'revision' | 'plain';
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2">
+      <h4 className="flex items-center gap-1.5 text-sm font-bold text-zinc-900 dark:text-white">
+        <Icon
+          className={cn(
+            'size-4',
+            tone === 'revision'
+              ? 'text-rose-500'
+              : tone === 'note'
+                ? 'text-amber-600'
+                : 'text-zinc-500',
+          )}
+        />
+        {title}
+      </h4>
+      {hint && <span className="text-xs text-zinc-500">{hint}</span>}
+    </div>
+  );
+}
+
+/** What one customer chose and asked for: revisions first (they need action), then the picks. */
 function ChosenPhotos({ galleryId, selectionId }: { galleryId: string; selectionId: string }) {
   const selection = useGallerySelection(galleryId, selectionId);
-  const [index, setIndex] = useState<number | null>(null);
+  const [preview, setPreview] = useState<{ list: 'picks' | 'revisions'; index: number } | null>(
+    null,
+  );
   const photos = selection.data?.selectedPhotos ?? [];
+  const revisions = selection.data?.revisions ?? [];
 
   if (selection.isLoading) return <QueryLoading rows={1} />;
   if (selection.isError) {
@@ -56,52 +163,108 @@ function ChosenPhotos({ galleryId, selectionId }: { galleryId: string; selection
       </p>
     );
   }
-  if (photos.length === 0) {
+  if (photos.length === 0 && revisions.length === 0) {
     return <p className="text-sm text-zinc-500">Belum ada foto yang dipilih.</p>;
   }
 
+  const notedCount = photos.filter((photo) => photo.note).length;
+  const shown = preview?.list === 'revisions' ? revisions : photos;
+  const noteOf = (photo: Photo) =>
+    preview?.list === 'revisions'
+      ? revisions.find((row) => row.id === photo.id)?.note
+      : photos.find((row) => row.id === photo.id)?.note;
+
   return (
-    <>
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8">
-        {photos.map((photo, position) => (
-          <li key={photo.id} className="space-y-1">
-            <button
-              type="button"
-              aria-label={`Perbesar ${photo.filename}`}
-              onClick={() => setIndex(position)}
-              className="relative block aspect-[4/5] w-full overflow-hidden rounded-md bg-zinc-200 dark:bg-zinc-800"
-            >
-              {photo.thumbnailUrl ? (
-                <Image
-                  src={photo.thumbnailUrl}
-                  alt={photo.filename}
-                  fill
-                  sizes="160px"
-                  unoptimized
-                  referrerPolicy="no-referrer"
-                  className="object-cover transition-transform hover:scale-[1.04]"
-                />
-              ) : (
-                <ImageOff className="m-auto size-5 text-zinc-400" />
-              )}
-            </button>
-            <p className="truncate text-[11px] text-zinc-600 dark:text-zinc-400">
-              {photo.filename}
-            </p>
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-6 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+      {revisions.length > 0 && (
+        <div className="space-y-3">
+          <GroupHeading
+            icon={PencilRuler}
+            tone="revision"
+            title={`Permintaan revisi (${revisions.length})`}
+            hint="Foto hasil edit yang perlu dikerjakan ulang"
+          />
+          <ul className={TILE_GRID}>
+            {revisions.map((photo, index) => (
+              <PhotoTile
+                key={photo.id}
+                photo={photo}
+                text={photo.note}
+                tone="revision"
+                onOpen={() => setPreview({ list: 'revisions', index })}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+      {photos.length > 0 && (
+        <div className="space-y-3">
+          <GroupHeading
+            icon={MessageSquareText}
+            tone="plain"
+            title={`Foto pilihan (${photos.length})`}
+            hint={notedCount > 0 ? `${notedCount} dengan catatan` : undefined}
+          />
+          <ul className={TILE_GRID}>
+            {photos.map((photo, index) => (
+              <PhotoTile
+                key={photo.id}
+                photo={photo}
+                text={photo.note}
+                tone="note"
+                onOpen={() => setPreview({ list: 'picks', index })}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
       <PhotoPreview
-        photos={photos}
-        index={index}
+        photos={shown}
+        index={preview?.index ?? null}
         selectedIds={NO_SELECTION}
         disabled
         hideSelect
         onToggle={() => undefined}
-        onNavigate={setIndex}
-        onClose={() => setIndex(null)}
+        onNavigate={(index) => setPreview((current) => current && { ...current, index })}
+        onClose={() => setPreview(null)}
+        footer={(photo) => {
+          const note = noteOf(photo);
+          return note ? (
+            <div className="text-xs">
+              <p className="font-semibold text-zinc-300">
+                {preview?.list === 'revisions' ? 'Permintaan revisi' : 'Catatan customer'}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-200">{note}</p>
+            </div>
+          ) : null;
+        }}
       />
-    </>
+    </div>
+  );
+}
+
+/** A small count pill; lit up (amber) when it means the customer asked for something. */
+function Chip({
+  icon: Icon,
+  children,
+  tone = 'plain',
+}: {
+  icon: typeof Users;
+  children: React.ReactNode;
+  tone?: 'plain' | 'note' | 'revision';
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
+        tone === 'revision' && 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+        tone === 'note' && 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300',
+        tone === 'plain' && 'border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400',
+      )}
+    >
+      <Icon className="size-3.5" />
+      {children}
+    </span>
   );
 }
 
@@ -118,27 +281,38 @@ function SelectionRow({
 }) {
   const contact = [selection.customerEmail, selection.customerPhone].filter(Boolean).join(' · ');
   const remove = useRemoveSelection(galleryId);
+  const needsAction = selection.revisionCount > 0;
 
   return (
-    <Card className="rounded-xl border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
-      <CardContent className="space-y-4 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-                {selection.customerName}
-              </h3>
-              <StatusBadge status={selection.status} />
-            </div>
-            <p className="mt-0.5 text-xs text-zinc-500">
-              {contact || 'Tanpa kontak'}
-              {selection.submittedAt && ` · dikirim ${formatDateTime(selection.submittedAt)}`}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
-              {selection.selectedCount} foto
+    <Card
+      className={cn(
+        'rounded-xl bg-white shadow-sm dark:bg-zinc-900/60',
+        needsAction ? 'border-rose-500/40' : 'border-zinc-200/80 dark:border-zinc-800/80',
+      )}
+    >
+      <CardContent className="space-y-4 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              aria-hidden
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-bold uppercase text-amber-700 dark:text-amber-400"
+            >
+              {selection.customerName.slice(0, 1)}
             </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                  {selection.customerName}
+                </h3>
+                <StatusBadge status={selection.status} />
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                {contact || 'Tanpa kontak'}
+                {selection.submittedAt && ` · dikirim ${formatDateTime(selection.submittedAt)}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -146,7 +320,7 @@ function SelectionRow({
               onClick={onToggle}
               className="gap-1.5"
             >
-              {open ? 'Tutup foto' : 'Lihat foto'}
+              {open ? 'Tutup detail' : 'Lihat detail'}
               <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
             </Button>
             <CmsDeleteDialog
@@ -179,6 +353,33 @@ function SelectionRow({
             />
           </div>
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Chip icon={ImageIcon}>{selection.selectedCount} foto dipilih</Chip>
+          {selection.noteCount > 0 && (
+            <Chip icon={MessageSquareText} tone="note">
+              {selection.noteCount} catatan foto
+            </Chip>
+          )}
+          {selection.revisionCount > 0 && (
+            <Chip icon={PencilRuler} tone="revision">
+              {selection.revisionCount} permintaan revisi
+            </Chip>
+          )}
+        </div>
+
+        {selection.generalNote && (
+          <figure className="rounded-lg border-l-4 border-amber-500 bg-amber-500/10 px-4 py-3">
+            <figcaption className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
+              <MessageSquareQuote className="size-3.5" />
+              Pesan dari {selection.customerName}
+            </figcaption>
+            <blockquote className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-zinc-900 dark:text-zinc-100">
+              {selection.generalNote}
+            </blockquote>
+          </figure>
+        )}
+
         {open && <ChosenPhotos galleryId={galleryId} selectionId={selection.id} />}
       </CardContent>
     </Card>
@@ -189,7 +390,8 @@ function SelectionRow({
 export default function SelectionsSection({ galleryId }: { galleryId: string }) {
   const [status, setStatus] = useState<SelectionStatus | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const [openId, setOpenId] = useState<string | null>(null);
+  // undefined: not touched yet, so a lone customer is shown open; null: the admin closed it.
+  const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   const selections = useGallerySelections(galleryId, { page, status });
 
   return (
@@ -246,8 +448,20 @@ export default function SelectionsSection({ galleryId }: { galleryId: string }) 
                 key={selection.id}
                 galleryId={galleryId}
                 selection={selection}
-                open={openId === selection.id}
-                onToggle={() => setOpenId(openId === selection.id ? null : selection.id)}
+                open={
+                  (openId === undefined
+                    ? selections.data.items.length === 1
+                      ? selections.data.items[0].id
+                      : null
+                    : openId) === selection.id
+                }
+                onToggle={() => {
+                  const current =
+                    openId === undefined && selections.data.items.length === 1
+                      ? selections.data.items[0].id
+                      : openId;
+                  setOpenId(current === selection.id ? null : selection.id);
+                }}
               />
             ))}
           </div>

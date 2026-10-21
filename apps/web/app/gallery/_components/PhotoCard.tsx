@@ -2,7 +2,7 @@
 
 import { memo, useState } from 'react';
 import Image from 'next/image';
-import { Check, Expand, ImageOff, Play } from 'lucide-react';
+import { Check, ImageOff, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Photo } from '@/types/gallery';
 import { isVideo } from './media';
@@ -38,11 +38,9 @@ function PhotoCardView({
     >
       <button
         type="button"
-        aria-pressed={isSelected}
-        aria-label={`${isSelected ? 'Batalkan pilihan' : 'Pilih'} ${video ? 'video' : 'foto'} ${photo.filename}`}
-        disabled={disabled}
-        onClick={() => onToggle(photo.id)}
-        className="absolute inset-0 block size-full cursor-pointer disabled:cursor-default"
+        aria-label={`Buka ${video ? 'video' : 'foto'} ${photo.filename}`}
+        onClick={() => onPreview(photo.id)}
+        className="absolute inset-0 block size-full cursor-pointer"
       >
         {photo.thumbnailUrl && !failed ? (
           <Image
@@ -70,22 +68,25 @@ function PhotoCardView({
           </span>
         )}
         {isSelected && (
-          <span className="absolute inset-0 flex items-start justify-end bg-amber-500/15 p-2">
-            <span className="flex size-7 items-center justify-center rounded-full bg-amber-500 text-zinc-950 shadow">
-              <Check className="size-4" strokeWidth={3} />
-            </span>
-          </span>
+          <span className="pointer-events-none absolute inset-0 bg-amber-500/15" aria-hidden />
         )}
       </button>
 
-      {/* Always visible: a touch screen has no hover. */}
+      {/* A tap opens the photo (where the choice button and the note are); this is the shortcut. */}
       <button
         type="button"
-        aria-label={`Perbesar ${photo.filename}`}
-        onClick={() => onPreview(photo.id)}
-        className="absolute left-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+        aria-pressed={isSelected}
+        aria-label={`${isSelected ? 'Batalkan pilihan' : 'Pilih'} ${video ? 'video' : 'foto'} ${photo.filename}`}
+        disabled={disabled}
+        onClick={() => onToggle(photo.id)}
+        className={cn(
+          'absolute right-2 top-2 flex size-8 items-center justify-center rounded-full shadow transition-colors disabled:cursor-default',
+          isSelected
+            ? 'bg-amber-500 text-zinc-950'
+            : 'bg-black/55 text-white backdrop-blur-sm hover:bg-black/80',
+        )}
       >
-        <Expand className="size-4" />
+        <Check className="size-4" strokeWidth={3} />
       </button>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">

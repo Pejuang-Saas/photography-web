@@ -129,9 +129,24 @@ export class CreateSessionDto {
   customerPhone?: string;
 }
 
+export class SubmitSelectionDto {
+  /** An overall message for the studio, sent together with the picks. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+}
+
 export class SaveSelectionDto {
   @IsArray()
   @ArrayMaxSize(10_000)
   @IsString({ each: true })
   photoIds: string[];
+}
+
+/** A customer's note on one photo, or a revision request on an edited one; blank clears it. */
+export class PhotoNoteDto {
+  @IsString()
+  @MaxLength(1000)
+  note: string;
 }

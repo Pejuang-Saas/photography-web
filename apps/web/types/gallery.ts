@@ -136,12 +136,25 @@ export interface SelectionSummary {
   customerPhone: string | null;
   status: SelectionStatus;
   selectedCount: number;
+  /** Edited photos the customer asked to have revised. */
+  revisionCount: number;
+  /** Picks the customer wrote a note on. */
+  noteCount: number;
+  /** The customer's overall message, sent with the picks. */
+  generalNote: string | null;
   submittedAt: string | null;
   createdAt: string;
 }
 
-export interface SelectionDetail extends Omit<SelectionSummary, 'selectedCount'> {
-  selectedPhotos: Photo[];
+/** A photo the customer picked, with their note about it. */
+export type NotedPhoto = Photo & { note: string | null };
+
+/** An edited photo the customer wants revised, with what they asked for. */
+export type RevisedPhoto = Photo & { note: string; updatedAt: string };
+
+export interface SelectionDetail extends Omit<SelectionSummary, 'selectedCount' | 'revisionCount' | 'noteCount'> {
+  selectedPhotos: NotedPhoto[];
+  revisions: RevisedPhoto[];
 }
 
 export interface CreateSessionRequest {
@@ -160,6 +173,10 @@ export interface SessionState {
   customerName: string;
   selectedCount: number;
   selectedPhotoIds: string[];
+  /** photoId to the customer's note on a picked photo. */
+  notes: Record<string, string>;
+  /** photoId to the revision request on an edited photo. */
+  revisions: Record<string, string>;
   submittedAt: string | null;
 }
 

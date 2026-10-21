@@ -14,13 +14,16 @@ import type {
   CreateSessionRequest,
   FolderSummary,
   MediaType,
+  Photo,
   PublicGalleryInfo,
 } from '@/types/gallery';
 import FilterTabs from './FilterTabs';
 import FolderGrid, { FolderBreadcrumb } from './FolderGrid';
 import GalleryEntryModal from './GalleryEntryModal';
 import PhotoGrid from './PhotoGrid';
+import PhotoNoteBox from './PhotoNoteBox';
 import PhotoPreview from './PhotoPreview';
+import { isEditPhoto } from './edit-folder';
 import SelectionBar from './SelectionBar';
 import TypeFilter from './TypeFilter';
 import ReviewPage from './ReviewPage';
@@ -111,6 +114,9 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [thanks, setThanks] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
+  // The customer's words per photo: a note on a pick, a revision request on an edited photo.
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [revisions, setRevisions] = useState<Record<string, string>>({});
   const folderTrail = useFolderTrail();
   const [mediaType, setMediaType] = useState<MediaType>('all');
 
@@ -152,6 +158,8 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
               submitted: session.status === 'SUBMITTED',
             });
             setCustomerName(session.customerName);
+            setNotes(session.notes ?? {});
+            setRevisions(session.revisions ?? {});
             setSessionToken(stored);
             if (session.status === 'SUBMITTED') {
               setThanks(`Pilihan Anda sudah dikirim. Terima kasih, ${session.customerName}.`);
@@ -202,6 +210,63 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
   const max = info?.maxSelections ?? null;
   const selectedCount = state.selectedIds.size;
   const atLimit = max !== null && selectedCount >= max;
+
+  /** Saves one photo's words. A note needs its photo saved as picked first, so the draft goes out first. */
+  const saveWords = useCallback(
+    async (kind: 'note' | 'revision', photoId: string, text: string) => {
+      if (!sessionToken) return;
+      if (kind === 'note') await flush();
+      const send = kind === 'note' ? publicGalleryApi.saveNote : publicGalleryApi.saveRevision;
+      await send(token, sessionToken, photoId, text);
+      const clean = text.trim();
+      const update = (current: Record<string, string>) => {
+        const next = { ...current };
+        if (clean) next[photoId] = clean;
+        else delete next[photoId];
+        return next;
+      };
+      (kind === 'note' ? setNotes : setRevisions)(update);
+      toast.success(
+        clean
+          ? kind === 'note'
+            ? 'Catatan tersimpan'
+            : 'Permintaan revisi terkirim ke studio'
+          : 'Dihapus',
+      );
+    },
+    [sessionToken, token, flush],
+  );
+
+  const previewFooter = (photo: Photo) => {
+    if (!sessionToken || viewOnly) return null;
+    if (isEditPhoto(photo)) {
+      return (
+        <PhotoNoteBox
+          key={`revision-${photo.id}`}
+          label="Minta revisi untuk foto ini"
+          placeholder="Contoh: warna terlalu gelap, tolong terangkan sedikit"
+          saved={revisions[photo.id] ?? ''}
+          readOnly={false}
+          onSave={(text) => saveWords('revision', photo.id, text)}
+        />
+      );
+    }
+    if (!state.selectedIds.has(photo.id)) {
+      return state.isSubmitted ? null : (
+        <p className="text-xs text-zinc-500">Pilih foto ini untuk menambah catatan.</p>
+      );
+    }
+    return (
+      <PhotoNoteBox
+        key={`note-${photo.id}`}
+        label="Catatan untuk foto ini"
+        placeholder="Contoh: crop lebih rapat, haluskan kulit"
+        saved={notes[photo.id] ?? ''}
+        readOnly={state.isSubmitted}
+        onSave={(text) => saveWords('note', photo.id, text)}
+      />
+    );
+  };
 
   const toggle = useCallback(
     (photoId: string) => {
@@ -278,14 +343,14 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
     else setReviewing(false);
   }
 
-  async function submit() {
+  async function submit(note: string) {
     if (!sessionToken) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
       // The last clicks may still be waiting for their save.
       await flush();
-      const result = await publicGalleryApi.submit(token, sessionToken);
+      const result = await publicGalleryApi.submit(token, sessionToken, note);
       dispatch({ type: 'submitted' });
       setThanks(result.message);
       leaveReview();
@@ -478,6 +543,7 @@ export default function PhotoSelectionPage({ token }: { token: string }) {
         hasMore={!!pages.hasMore}
         onLoadMore={pages.loadMore}
         total={pages.total}
+        footer={previewFooter}
       />
       <Toaster position="top-center" />
     </div>

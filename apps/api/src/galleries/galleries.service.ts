@@ -246,14 +246,23 @@ export class GalleriesService {
         orderBy: [{ submittedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
         skip,
         take: limit,
-        include: { _count: { select: { items: true } } },
+        include: { _count: { select: { items: true, revisions: true } } },
       }),
       this.prisma.selection.count({ where }),
     ]);
+    // How many of each customer's picks carry a note, so the admin sees at a glance who wrote some.
+    const noted = await this.prisma.selectionItem.groupBy({
+      by: ['selectionId'],
+      where: { selectionId: { in: rows.map((row) => row.id) }, note: { not: null } },
+      _count: { _all: true },
+    });
+    const notedBySelection = new Map(noted.map((row) => [row.selectionId, row._count._all]));
     return {
       items: rows.map(({ _count, sessionToken: _token, ...selection }) => ({
         ...selection,
         selectedCount: _count.items,
+        revisionCount: _count.revisions,
+        noteCount: notedBySelection.get(selection.id) ?? 0,
       })),
       ...pagination(page, limit, total),
     };
@@ -282,11 +291,23 @@ export class GalleriesService {
           include: { photo: true },
           orderBy: [{ photo: { sortOrder: 'asc' } }, { photo: { filename: 'asc' } }],
         },
+        revisions: {
+          include: { photo: true },
+          orderBy: [{ photo: { sortOrder: 'asc' } }, { photo: { filename: 'asc' } }],
+        },
       },
     });
     if (!row) throw galleryError(404, 'SELECTION_NOT_FOUND', 'Pilihan customer tidak ditemukan');
-    const { items, sessionToken: _token, ...selection } = row;
-    return { ...selection, selectedPhotos: items.map((item) => item.photo) };
+    const { items, revisions, sessionToken: _token, ...selection } = row;
+    return {
+      ...selection,
+      selectedPhotos: items.map((item) => ({ ...item.photo, note: item.note })),
+      revisions: revisions.map((row) => ({
+        ...row.photo,
+        note: row.note,
+        updatedAt: row.updatedAt,
+      })),
+    };
   }
 
   /** The gallery, or a 404 the web app can recognise. */

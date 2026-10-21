@@ -91,11 +91,12 @@ export default function ReviewPage({
   selectedIds: Set<string>;
   onRemove: (photoId: string) => void;
   onBack: () => void;
-  onSubmit: () => void;
+  onSubmit: (note: string) => void;
   pending: boolean;
   error: string | null;
 }) {
   const [agreed, setAgreed] = useState(false);
+  const [note, setNote] = useState('');
   const pages = usePhotoPages({
     queryKey: ['gallery-review', token, sessionToken],
     fetchPage: (page) =>
@@ -196,7 +197,20 @@ export default function ReviewPage({
               )}
             </dl>
 
-            <label className="mt-5 flex cursor-pointer items-start gap-2.5 rounded-lg bg-amber-500/[0.08] p-3 text-xs leading-relaxed text-zinc-700 dark:text-zinc-300">
+            <label className="mt-5 block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+              Catatan untuk studio <span className="font-normal text-zinc-500">(opsional)</span>
+              <textarea
+                value={note}
+                disabled={pending}
+                onChange={(event) => setNote(event.target.value)}
+                maxLength={2000}
+                rows={3}
+                placeholder="Pesan umum untuk semua foto, misalnya tone warna atau batas waktu"
+                className="mt-1.5 w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus-visible:border-amber-500 focus-visible:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+              />
+            </label>
+
+            <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg bg-amber-500/[0.08] p-3 text-xs leading-relaxed text-zinc-700 dark:text-zinc-300">
               <input
                 type="checkbox"
                 checked={agreed}
@@ -218,7 +232,7 @@ export default function ReviewPage({
 
             <Button
               disabled={!agreed || count === 0 || pending}
-              onClick={onSubmit}
+              onClick={() => onSubmit(note)}
               className={cn(
                 'mt-4 h-11 w-full gap-2 bg-amber-500 text-sm font-bold text-zinc-950 hover:bg-amber-600',
               )}

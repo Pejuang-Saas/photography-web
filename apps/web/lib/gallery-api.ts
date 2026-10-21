@@ -91,9 +91,19 @@ export const publicGalleryApi = {
       body: json({ photoIds }),
       keepalive,
     }),
-  submit: (token: string, sessionToken: string) =>
+  saveNote: (token: string, sessionToken: string, photoId: string, note: string) =>
+    apiRequest<{ saved: boolean }>(`/g/${token}/selections/${sessionToken}/notes/${photoId}`, {
+      method: 'PUT',
+      body: json({ note }),
+    }),
+  saveRevision: (token: string, sessionToken: string, photoId: string, note: string) =>
+    apiRequest<{ saved: boolean }>(`/g/${token}/selections/${sessionToken}/revisions/${photoId}`, {
+      method: 'PUT',
+      body: json({ note }),
+    }),
+  submit: (token: string, sessionToken: string, note?: string) =>
     apiRequest<SubmitSelectionResponse>(`/g/${token}/selections/${sessionToken}/submit`, {
       method: 'POST',
-      body: json({}),
+      body: json({ note }),
     }),
 };

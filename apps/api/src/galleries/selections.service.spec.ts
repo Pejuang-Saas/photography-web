@@ -10,6 +10,8 @@ function setup(
     selected?: number;
     submittedRows?: number;
     customers?: number;
+    photo?: Row | null;
+    noteRows?: number;
   } = {},
 ) {
   const gallery =
@@ -34,6 +36,12 @@ function setup(
         where.id ? (options.validPhotos ?? where.id.in.length) : where.mimeType ? 4 : 10,
       ),
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(options.photo ?? { folderPath: 'edit' }),
+    },
+    photoRevision: {
+      findMany: jest.fn().mockResolvedValue([]),
+      upsert: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     selection: {
       create: jest.fn().mockResolvedValue({ id: 's1', sessionToken: 'sess' }),
@@ -45,6 +53,7 @@ function setup(
     selectionItem: {
       findMany: jest.fn().mockResolvedValue([{ photoId: 'p1' }, { photoId: 'p2' }]),
       count: jest.fn().mockResolvedValue(options.selected ?? 2),
+      updateMany: jest.fn().mockResolvedValue({ count: options.noteRows ?? 1 }),
       deleteMany: jest.fn().mockReturnValue('delete'),
       createMany: jest.fn().mockReturnValue('create'),
     },
@@ -286,7 +295,17 @@ describe('SelectionsService.submit', () => {
     });
     expect(prisma.selection.updateMany).toHaveBeenCalledWith({
       where: { id: 's1', status: 'DRAFT' },
-      data: { status: 'SUBMITTED', submittedAt: expect.any(Date) },
+      data: { status: 'SUBMITTED', submittedAt: expect.any(Date), generalNote: null },
+    });
+  });
+
+  it('keeps the overall note sent with the picks, trimmed', async () => {
+    const { service, prisma } = setup();
+
+    await service.submit('tok', 'sess', '  tolong dikirim hari ini ');
+
+    expect(prisma.selection.updateMany.mock.calls[0][0].data).toMatchObject({
+      generalNote: 'tolong dikirim hari ini',
     });
   });
 
@@ -324,5 +343,67 @@ describe('SelectionsService.submit', () => {
     });
 
     await expect(service.submit('tok', 'sess')).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe('SelectionsService: notes and revisions', () => {
+  it('saves a trimmed note on a picked photo, and clears it when blank', async () => {
+    const { service, prisma } = setup();
+
+    await service.setNote('tok', 'sess', 'p1', '  crop lebih rapat ');
+    expect(prisma.selectionItem.updateMany).toHaveBeenLastCalledWith({
+      where: { selectionId: 's1', photoId: 'p1' },
+      data: { note: 'crop lebih rapat' },
+    });
+
+    await service.setNote('tok', 'sess', 'p1', '   ');
+    expect(prisma.selectionItem.updateMany).toHaveBeenLastCalledWith({
+      where: { selectionId: 's1', photoId: 'p1' },
+      data: { note: null },
+    });
+  });
+
+  it('refuses a note on a photo that is not picked, or after submitting', async () => {
+    await expect(
+      setup({ noteRows: 0 }).service.setNote('tok', 'sess', 'p1', 'x'),
+    ).rejects.toMatchObject({ response: { errorCode: 'PHOTO_NOT_SELECTED' } });
+    await expect(
+      setup({
+        selection: { id: 's1', status: 'SUBMITTED', customerName: 'Budi', submittedAt: new Date() },
+      }).service.setNote('tok', 'sess', 'p1', 'x'),
+    ).rejects.toMatchObject({ response: { errorCode: 'SELECTION_ALREADY_SUBMITTED' } });
+  });
+
+  it('keeps a revision request for a photo in the edit folder, even after submitting', async () => {
+    const { service, prisma } = setup({
+      selection: { id: 's1', status: 'SUBMITTED', customerName: 'Budi', submittedAt: new Date() },
+      photo: { folderPath: 'Final/Edit' },
+    });
+
+    await service.setRevision('tok', 'sess', 'p1', ' terlalu gelap ');
+    expect(prisma.photoRevision.upsert).toHaveBeenCalledWith({
+      where: { selectionId_photoId: { selectionId: 's1', photoId: 'p1' } },
+      create: { selectionId: 's1', photoId: 'p1', note: 'terlalu gelap' },
+      update: { note: 'terlalu gelap' },
+    });
+  });
+
+  it('removes the revision when the text is blank', async () => {
+    const { service, prisma } = setup();
+
+    await service.setRevision('tok', 'sess', 'p1', '  ');
+    expect(prisma.photoRevision.deleteMany).toHaveBeenCalledWith({
+      where: { selectionId: 's1', photoId: 'p1' },
+    });
+    expect(prisma.photoRevision.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses a revision for a photo outside the edit folder', async () => {
+    await expect(
+      setup({ photo: { folderPath: 'Raw' } }).service.setRevision('tok', 'sess', 'p1', 'x'),
+    ).rejects.toMatchObject({ response: { errorCode: 'NOT_AN_EDIT_PHOTO' } });
+    await expect(
+      setup({ photo: { folderPath: null } }).service.setRevision('tok', 'sess', 'p1', 'x'),
+    ).rejects.toMatchObject({ response: { errorCode: 'NOT_AN_EDIT_PHOTO' } });
   });
 });

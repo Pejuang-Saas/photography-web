@@ -1,7 +1,22 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '../common/public.decorator';
-import { CreateSessionDto, SaveSelectionDto } from './dto/gallery.dto';
+import {
+  CreateSessionDto,
+  PhotoNoteDto,
+  SaveSelectionDto,
+  SubmitSelectionDto,
+} from './dto/gallery.dto';
 import { SelectionsService } from './selections.service';
 
 /** The customer's side. Reached by the secret token in the link; the global limit of 60 a minute applies. */
@@ -50,10 +65,34 @@ export class PublicGalleriesController {
     return this.selections.save(token, sessionToken, dto.photoIds);
   }
 
+  @Put(':token/selections/:sessionToken/notes/:photoId')
+  note(
+    @Param('token') token: string,
+    @Param('sessionToken') sessionToken: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+    @Body() dto: PhotoNoteDto,
+  ) {
+    return this.selections.setNote(token, sessionToken, photoId, dto.note);
+  }
+
+  @Put(':token/selections/:sessionToken/revisions/:photoId')
+  revision(
+    @Param('token') token: string,
+    @Param('sessionToken') sessionToken: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+    @Body() dto: PhotoNoteDto,
+  ) {
+    return this.selections.setRevision(token, sessionToken, photoId, dto.note);
+  }
+
   @Post(':token/selections/:sessionToken/submit')
   @HttpCode(200)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  submit(@Param('token') token: string, @Param('sessionToken') sessionToken: string) {
-    return this.selections.submit(token, sessionToken);
+  submit(
+    @Param('token') token: string,
+    @Param('sessionToken') sessionToken: string,
+    @Body() dto: SubmitSelectionDto,
+  ) {
+    return this.selections.submit(token, sessionToken, dto.note);
   }
 }

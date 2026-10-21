@@ -3,6 +3,7 @@ import { GalleryStatus, SelectionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateSessionDto } from './dto/gallery.dto';
 import { galleryError, pageParams, pagination } from './gallery-errors';
+import { isEditFolder } from './revision-folder';
 import { browsePhotos, mediaTypeWhere, parseMediaType, parsePhotoFilter } from './photo-browse';
 
 /** What a customer does with a gallery's public link, found by the secret in it. */
@@ -111,15 +112,76 @@ export class SelectionsService {
     const { selection } = await this.session(token, sessionToken);
     const items = await this.prisma.selectionItem.findMany({
       where: { selectionId: selection.id, photo: { isActive: true } },
-      select: { photoId: true },
+      select: { photoId: true, note: true },
+    });
+    const revisions = await this.prisma.photoRevision.findMany({
+      where: { selectionId: selection.id, photo: { isActive: true } },
+      select: { photoId: true, note: true },
     });
     return {
       status: selection.status,
       customerName: selection.customerName,
       selectedCount: items.length,
       selectedPhotoIds: items.map((item) => item.photoId),
+      /** photoId to the customer's note, only for photos that have one. */
+      notes: Object.fromEntries(
+        items.flatMap((item) => (item.note ? [[item.photoId, item.note]] : [])),
+      ),
+      /** photoId to the revision request on an edited photo. */
+      revisions: Object.fromEntries(revisions.map((row) => [row.photoId, row.note])),
       submittedAt: selection.submittedAt,
     };
+  }
+
+  /** A note on one picked photo; blank clears it. The photo must already be saved as picked. */
+  async setNote(token: string, sessionToken: string, photoId: string, note: string) {
+    const { selection } = await this.session(token, sessionToken);
+    this.assertOpen(selection.status);
+
+    const result = await this.prisma.selectionItem.updateMany({
+      where: { selectionId: selection.id, photoId },
+      data: { note: note.trim() || null },
+    });
+    if (result.count === 0) {
+      throw galleryError(409, 'PHOTO_NOT_SELECTED', 'Pilih foto ini dulu sebelum menambah catatan');
+    }
+    return { saved: true };
+  }
+
+  /**
+   * A revision request on an edited photo (one in the "edit" folder). It works after submitting
+   * too, because the edits only arrive once the customer's picks are final. Blank removes it.
+   */
+  async setRevision(token: string, sessionToken: string, photoId: string, note: string) {
+    const { gallery, selection } = await this.session(token, sessionToken);
+    const photo = await this.prisma.galleryPhoto.findFirst({
+      where: { id: photoId, galleryId: gallery.id, isActive: true },
+      select: { folderPath: true },
+    });
+    if (!photo) {
+      throw galleryError(404, 'PHOTO_NOT_FOUND', 'Foto tidak ditemukan di gallery ini');
+    }
+    if (!isEditFolder(photo.folderPath)) {
+      throw galleryError(
+        400,
+        'NOT_AN_EDIT_PHOTO',
+        'Revisi hanya bisa diminta untuk foto di folder "edit"',
+      );
+    }
+
+    const text = note.trim();
+    if (!text) {
+      await this.prisma.photoRevision.deleteMany({
+        where: { selectionId: selection.id, photoId },
+      });
+      return { saved: true };
+    }
+    await this.prisma.photoRevision.upsert({
+      where: { selectionId_photoId: { selectionId: selection.id, photoId } },
+      create: { selectionId: selection.id, photoId, note: text },
+      update: { note: text },
+    });
+    return { saved: true };
   }
 
   /** Replaces the whole draft with this list, which is how the browser's debounced save works. */
@@ -155,7 +217,7 @@ export class SelectionsService {
     return { selectedCount: ids.length };
   }
 
-  async submit(token: string, sessionToken: string) {
+  async submit(token: string, sessionToken: string, note?: string) {
     const { gallery, selection } = await this.session(token, sessionToken);
     this.assertOpen(selection.status);
 
@@ -171,7 +233,11 @@ export class SelectionsService {
     const submittedAt = new Date();
     const result = await this.prisma.selection.updateMany({
       where: { id: selection.id, status: SelectionStatus.DRAFT },
-      data: { status: SelectionStatus.SUBMITTED, submittedAt },
+      data: {
+        status: SelectionStatus.SUBMITTED,
+        submittedAt,
+        generalNote: note?.trim() || null,
+      },
     });
     if (result.count === 0) this.assertOpen(SelectionStatus.SUBMITTED);
 
